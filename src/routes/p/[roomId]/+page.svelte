@@ -93,7 +93,7 @@
 
 <div class="screen" data-page="dashboard">
 	<header class="app-bar">
-		<div class="row gap-8" style="flex: 1; align-items: center;">
+		<a class="project-link row gap-8" href="/p/{roomId}/settings" aria-label="Project settings">
 			<span
 				class="project-tile"
 				style={project
@@ -106,7 +106,7 @@
 				<span class="app-bar-title project-name">{project?.name ?? 'Loading'}</span>
 				<span class="dim mono project-token">{roomId}</span>
 			</span>
-		</div>
+		</a>
 		<div class="row gap-6" style="flex: 0; justify-content: flex-end;">
 			<a class="icon-btn" href="/p/{roomId}/settle" aria-label="Settle up" title="Settle up">
 				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
@@ -288,6 +288,13 @@
 </div>
 
 <style>
+	.project-link {
+		flex: 1;
+		align-items: center;
+		text-decoration: none;
+		color: inherit;
+	}
+
 	.project-tile {
 		width: 36px;
 		height: 36px;
