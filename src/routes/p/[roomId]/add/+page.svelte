@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { expenseShares } from '$lib/balance';
+	import { expenseShares, splitEvenly } from '$lib/balance';
 	import { evalToCents } from '$lib/math';
 	import { formatAmount } from '$lib/money';
 	import { getCurrentMember } from '$lib/storage';
@@ -86,6 +86,18 @@
 		shares = next;
 	}
 
+	function autoFillRest() {
+		if (splitMode !== 'amount') return;
+		const empties = involvedList.filter((m) => (evalToCents(amounts[m.id] ?? '') ?? 0) === 0);
+		if (empties.length === 0 || remaining <= 0) return;
+		const portions = splitEvenly(remaining, empties.length);
+		const next = { ...amounts };
+		empties.forEach((m, i) => {
+			next[m.id] = (portions[i] / 100).toFixed(2);
+		});
+		amounts = next;
+	}
+
 	const previewExpense: Expense | null = $derived.by(() => {
 		if (!project || amountCents <= 0 || involvedList.length === 0) return null;
 		return {
@@ -121,6 +133,14 @@
 	});
 	const remaining = $derived(amountCents - assignedAmount);
 	const totalShares = $derived(involvedList.reduce((sum, m) => sum + (shares[m.id] ?? 0), 0));
+	const emptyInvolvedCount = $derived(
+		splitMode === 'amount'
+			? involvedList.filter((m) => (evalToCents(amounts[m.id] ?? '') ?? 0) === 0).length
+			: 0
+	);
+	const canAutoFill = $derived(
+		splitMode === 'amount' && amountCents > 0 && remaining > 0 && emptyInvolvedCount > 0
+	);
 
 	async function onSave(event?: Event) {
 		event?.preventDefault();
@@ -309,6 +329,19 @@
 					<span class="split-tab-sub">precise</span>
 				</button>
 			</div>
+
+			{#if canAutoFill}
+				<button type="button" class="auto-fill" onclick={autoFillRest}>
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+						<path d="M11 3l1.5 4.5L17 9l-4.5 1.5L11 15l-1.5-4.5L5 9l4.5-1.5z" />
+						<path d="M18 14l.8 2.2L21 17l-2.2.8L18 20l-.8-2.2L15 17l2.2-.8z" />
+					</svg>
+					<span class="auto-fill-text">
+						Split the remaining <span class="num">{formatAmount(remaining, currencySymbol)}</span>
+						among {emptyInvolvedCount} {emptyInvolvedCount === 1 ? 'person' : 'people'}
+					</span>
+				</button>
+			{/if}
 
 			<div class="col gap-8 member-list">
 				{#each members as m (m.id)}
@@ -669,6 +702,46 @@
 		font-size: 10px;
 		font-family: var(--font-mono);
 		opacity: 0.75;
+	}
+
+	.auto-fill {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		width: 100%;
+		padding: 10px 12px;
+		margin-bottom: 12px;
+		background: color-mix(in oklab, var(--accent) 10%, transparent);
+		border: 1px dashed color-mix(in oklab, var(--accent) 50%, transparent);
+		border-radius: var(--radius);
+		color: var(--ink);
+		cursor: pointer;
+		font: inherit;
+		text-align: left;
+		transition: background 0.12s ease, border-color 0.12s ease;
+	}
+
+	.auto-fill:hover {
+		background: color-mix(in oklab, var(--accent) 18%, transparent);
+		border-color: var(--accent);
+	}
+
+	.auto-fill svg {
+		width: 18px;
+		height: 18px;
+		color: var(--accent);
+		flex-shrink: 0;
+	}
+
+	.auto-fill-text {
+		font-size: 12px;
+		line-height: 1.4;
+		color: var(--ink-2);
+	}
+
+	.auto-fill-text .num {
+		color: var(--ink);
+		font-weight: 600;
 	}
 
 	.member-list {
