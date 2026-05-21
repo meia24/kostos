@@ -42,18 +42,8 @@
 		new Map((project?.paymentMethods ?? []).map((m) => [m.id, m]))
 	);
 
-	let searching = $state(false);
 	let query = $state('');
 	let searchEl = $state<HTMLInputElement | null>(null);
-
-	$effect(() => {
-		if (searching && searchEl) searchEl.focus();
-	});
-
-	function toggleSearch() {
-		searching = !searching;
-		if (!searching) query = '';
-	}
 
 	function clearQuery() {
 		query = '';
@@ -154,51 +144,36 @@
 		</div>
 		<div class="app-bar-title">Expenses</div>
 		<div class="row gap-6" style="flex: 1; justify-content: flex-end;">
-			<button
-				class="icon-btn"
-				type="button"
-				aria-label={searching ? 'Close search' : 'Search expenses'}
-				aria-pressed={searching}
-				onclick={toggleSearch}
-			>
-				{#if searching}
-					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
-				{:else}
-					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="6" /><path d="M16 16l4 4" /></svg>
-				{/if}
-			</button>
 			<a class="icon-btn" href="/p/{roomId}/add" aria-label="Add expense">
 				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 6v12M6 12h12" /></svg>
 			</a>
 		</div>
 	</header>
 
-	{#if searching}
-		<div class="search-bar">
-			<span class="search-icon" aria-hidden="true">
-				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="6" /><path d="M16 16l4 4" /></svg>
-			</span>
-			<input
-				bind:this={searchEl}
-				bind:value={query}
-				class="search-input"
-				placeholder="Search title, payer, category, method, notes"
-				type="search"
-				autocomplete="off"
-				spellcheck="false"
-			/>
-			{#if query}
-				<button
-					class="search-clear"
-					type="button"
-					onclick={clearQuery}
-					aria-label="Clear search"
-				>
-					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
-				</button>
-			{/if}
-		</div>
-	{/if}
+	<div class="search-bar">
+		<span class="search-icon" aria-hidden="true">
+			<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="6" /><path d="M16 16l4 4" /></svg>
+		</span>
+		<input
+			bind:this={searchEl}
+			bind:value={query}
+			class="search-input"
+			placeholder="Search title, payer, category, method, notes"
+			type="search"
+			autocomplete="off"
+			spellcheck="false"
+		/>
+		{#if query}
+			<button
+				class="search-clear"
+				type="button"
+				onclick={clearQuery}
+				aria-label="Clear search"
+			>
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
+			</button>
+		{/if}
+	</div>
 
 	<div class="scroll">
 		<section class="card summary-card">
@@ -247,6 +222,7 @@
 							symbol={currencySymbol}
 							totalMembers={members.length}
 							showDate={false}
+							{query}
 						/>
 					{/each}
 				</div>

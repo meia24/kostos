@@ -7,6 +7,7 @@
 		Member,
 		PaymentMethodItem
 	} from '$lib/types';
+	import Highlight from './Highlight.svelte';
 
 	type Props = {
 		expense: Expense;
@@ -19,6 +20,7 @@
 		totalMembers: number;
 		showDate?: boolean;
 		showInvolvedCount?: boolean;
+		query?: string;
 	};
 
 	let {
@@ -31,7 +33,8 @@
 		symbol,
 		totalMembers,
 		showDate = true,
-		showInvolvedCount = true
+		showInvolvedCount = true,
+		query = ''
 	}: Props = $props();
 
 	const category = $derived(
@@ -74,13 +77,28 @@
 	function shortDate(ts: number): string {
 		return new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 	}
+
+	const noteMatch = $derived.by(() => {
+		const q = query.trim().toLowerCase();
+		if (!q || !expense.notes) return null;
+		const lower = expense.notes.toLowerCase();
+		const idx = lower.indexOf(q);
+		if (idx === -1) return null;
+		const start = Math.max(0, idx - 24);
+		const end = Math.min(expense.notes.length, idx + q.length + 40);
+		const prefix = start > 0 ? '…' : '';
+		const suffix = end < expense.notes.length ? '…' : '';
+		return prefix + expense.notes.slice(start, end) + suffix;
+	});
 </script>
 
 <a class="expense-row" {href}>
 	<span class="cat-tile row-cat">{category?.emoji ?? '📦'}</span>
 	<span class="col row-text">
 		<span class="row title-row">
-			<span class="row-title">{expense.description || 'Expense'}</span>
+			<span class="row-title">
+				<Highlight text={expense.description || 'Expense'} {query} />
+			</span>
 			{#if expense.splitMode === 'shares'}
 				<span class="sticker mode-sticker">SHARES</span>
 			{:else if expense.splitMode === 'amount'}
@@ -89,7 +107,7 @@
 		</span>
 		<span class="dim mono row-meta">
 			{#if showDate}<span>{shortDate(expense.date)}</span><span class="dot">·</span>{/if}
-			<span>{payersLabel}</span>
+			<span><Highlight text={payersLabel} {query} /></span>
 			{#if method}
 				<span class="dot">·</span>
 				<span class="row-method" title={method.name}>{method.emoji}</span>
@@ -99,6 +117,12 @@
 				<span>{expense.splits.length}/{totalMembers}</span>
 			{/if}
 		</span>
+		{#if noteMatch}
+			<span class="dim row-note-match">
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M5 4h14v16H5z" /><path d="M9 9h6M9 13h6M9 17h4" /></svg>
+				<Highlight text={noteMatch} {query} />
+			</span>
+		{/if}
 	</span>
 	<span class="col row-amount-col">
 		<span class="num row-amount">{formatAmount(expense.amount, symbol)}</span>
@@ -185,5 +209,22 @@
 
 	.row-impact {
 		font-size: 11px;
+	}
+
+	.row-note-match {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		font-size: 11px;
+		line-height: 1.4;
+		margin-top: 2px;
+		font-style: italic;
+	}
+
+	.row-note-match svg {
+		width: 12px;
+		height: 12px;
+		flex-shrink: 0;
+		opacity: 0.7;
 	}
 </style>
