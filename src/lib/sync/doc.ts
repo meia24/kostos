@@ -1,14 +1,16 @@
 import * as Y from 'yjs';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import { browser } from '$app/environment';
-import type {
-	Category,
-	Expense,
-	ExpenseSplit,
-	Member,
-	Payment,
-	PaymentMethodItem,
-	Project
+import {
+	DEFAULT_CATEGORIES,
+	DEFAULT_PAYMENT_METHODS,
+	type Category,
+	type Expense,
+	type ExpenseSplit,
+	type Member,
+	type Payment,
+	type PaymentMethodItem,
+	type Project
 } from '$lib/types';
 
 export type RoomHandle = {
@@ -65,13 +67,15 @@ export function readProject(handle: RoomHandle): Project | null {
 	const p = handle.project;
 	if (!p.has('id')) return null;
 	const rawCategories = p.get('categories') as Y.Array<Y.Map<unknown>> | undefined;
+	// Projects created before categories existed return the curated default set so the
+	// picker isn't empty; the Y.Array gets materialised the first time addCategory fires.
 	const categories: Category[] = rawCategories
 		? rawCategories.toArray().map((c) => ({
 				id: c.get('id') as string,
 				name: c.get('name') as string,
 				emoji: c.get('emoji') as string
 			}))
-		: [];
+		: DEFAULT_CATEGORIES;
 	const rawMethods = p.get('paymentMethods') as Y.Array<Y.Map<unknown>> | undefined;
 	const paymentMethods: PaymentMethodItem[] = rawMethods
 		? rawMethods.toArray().map((m) => ({
@@ -79,7 +83,7 @@ export function readProject(handle: RoomHandle): Project | null {
 				name: m.get('name') as string,
 				emoji: m.get('emoji') as string
 			}))
-		: [];
+		: DEFAULT_PAYMENT_METHODS;
 	return {
 		id: p.get('id') as string,
 		name: p.get('name') as string,
@@ -123,15 +127,27 @@ export function initProject(handle: RoomHandle, project: Project, members: Membe
 }
 
 export function addCategory(handle: RoomHandle, category: Category): void {
-	const arr = handle.project.get('categories') as Y.Array<Y.Map<unknown>> | undefined;
-	if (!arr) return;
-	handle.doc.transact(() => arr.push([categoryMap(category)]));
+	handle.doc.transact(() => {
+		let arr = handle.project.get('categories') as Y.Array<Y.Map<unknown>> | undefined;
+		if (!arr) {
+			arr = new Y.Array<Y.Map<unknown>>();
+			handle.project.set('categories', arr);
+			for (const c of DEFAULT_CATEGORIES) arr.push([categoryMap(c)]);
+		}
+		arr.push([categoryMap(category)]);
+	});
 }
 
 export function addPaymentMethod(handle: RoomHandle, method: PaymentMethodItem): void {
-	const arr = handle.project.get('paymentMethods') as Y.Array<Y.Map<unknown>> | undefined;
-	if (!arr) return;
-	handle.doc.transact(() => arr.push([paymentMethodMap(method)]));
+	handle.doc.transact(() => {
+		let arr = handle.project.get('paymentMethods') as Y.Array<Y.Map<unknown>> | undefined;
+		if (!arr) {
+			arr = new Y.Array<Y.Map<unknown>>();
+			handle.project.set('paymentMethods', arr);
+			for (const m of DEFAULT_PAYMENT_METHODS) arr.push([paymentMethodMap(m)]);
+		}
+		arr.push([paymentMethodMap(method)]);
+	});
 }
 
 function categoryMap(c: Category): Y.Map<unknown> {
