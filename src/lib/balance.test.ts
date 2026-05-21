@@ -12,17 +12,22 @@ function member(id: string, name = id): Member {
 	return { id, name, createdAt: 0 };
 }
 
-function expense(partial: Partial<Expense> & Pick<Expense, 'amount' | 'payerId' | 'splits'>): Expense {
+type ExpenseInit = Partial<Expense> & Pick<Expense, 'amount' | 'splits'> & { payerId?: string };
+
+function expense(partial: ExpenseInit): Expense {
+	const payments = partial.payments ?? (partial.payerId
+		? [{ memberId: partial.payerId, amount: partial.amount }]
+		: []);
 	return {
 		id: partial.id ?? 'e1',
-		payerId: partial.payerId,
+		payments,
 		amount: partial.amount,
 		currency: partial.currency ?? 'EUR',
 		date: partial.date ?? 0,
 		splitMode: partial.splitMode ?? 'even',
 		splits: partial.splits,
 		createdAt: partial.createdAt ?? 0,
-		createdBy: partial.createdBy ?? partial.payerId
+		createdBy: partial.createdBy ?? payments[0]?.memberId ?? ''
 	};
 }
 
@@ -166,6 +171,26 @@ describe('computeBalances', () => {
 		expect(byId.a).toBe(600);
 		expect(byId.b).toBe(-300);
 		expect(byId.c).toBe(-300);
+	});
+
+	it('credits multiple payers in proportion to what they paid', () => {
+		const members = [member('a'), member('b'), member('c')];
+		const expenses: Expense[] = [
+			expense({
+				amount: 900,
+				payments: [
+					{ memberId: 'a', amount: 600 },
+					{ memberId: 'b', amount: 300 }
+				],
+				splits: [{ memberId: 'a' }, { memberId: 'b' }, { memberId: 'c' }]
+			})
+		];
+		const balances = computeBalances(members, expenses);
+		const byId = Object.fromEntries(balances.map((b) => [b.memberId, b.net]));
+		expect(byId.a).toBe(300);
+		expect(byId.b).toBe(0);
+		expect(byId.c).toBe(-300);
+		expect(netZero(balances)).toBe(true);
 	});
 
 	it('produces a net-zero ledger across many expenses', () => {

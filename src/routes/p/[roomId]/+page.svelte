@@ -87,9 +87,26 @@
 		return m.id === currentMemberId ? 'You' : m.name;
 	}
 
+	function payersLabel(payments: Expense['payments']): string {
+		if (payments.length === 0) return '—';
+		const first = payerName(payments[0].memberId);
+		if (payments.length === 1) return `${first} paid`;
+		if (payments.length === 2) {
+			return `${first} & ${payerName(payments[1].memberId)} paid`;
+		}
+		return `${first} + ${payments.length - 1} others paid`;
+	}
+
 	function formatDate(ts: number): string {
 		const d = new Date(ts);
 		return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+	}
+
+	function paidByExpense(e: Expense): number {
+		if (!currentMemberId) return 0;
+		return e.payments
+			.filter((p) => p.memberId === currentMemberId)
+			.reduce((sum, p) => sum + p.amount, 0);
 	}
 </script>
 
@@ -234,24 +251,21 @@
 						{#if i > 0}<hr class="hairline" style="margin-left: 56px;" />{/if}
 						<a href="/p/{roomId}/expenses/{e.id}" class="recent-row">
 							<span class="av av-sm recent-av">
-								{(membersById.get(e.payerId)?.name?.[0] ?? '?').toUpperCase()}
+								{(
+									membersById.get(e.payments[0]?.memberId ?? '')?.name?.[0] ?? '?'
+								).toUpperCase()}
 							</span>
 							<span class="col recent-text">
 								<span class="recent-title">{e.description ?? 'Expense'}</span>
 								<span class="dim mono recent-meta">
-									{formatDate(e.date)} · {payerName(e.payerId)} paid
+									{formatDate(e.date)} · {payersLabel(e.payments)}
 								</span>
 							</span>
 							<span class="col" style="align-items: flex-end;">
 								<span class="num recent-amount">{formatAmount(e.amount, currencySymbol)}</span>
 								<span class="num recent-share dim">
 									{currentMemberId
-										? formatSigned(
-												(e.payerId === currentMemberId
-													? e.amount
-													: 0) - yourShareOf(e),
-												currencySymbol
-											)
+										? formatSigned(paidByExpense(e) - yourShareOf(e), currencySymbol)
 										: ''}
 								</span>
 							</span>

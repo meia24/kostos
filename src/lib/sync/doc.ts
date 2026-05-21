@@ -1,7 +1,7 @@
 import * as Y from 'yjs';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import { browser } from '$app/environment';
-import type { Expense, ExpenseSplit, Member, Project } from '$lib/types';
+import type { Expense, ExpenseSplit, Member, Payment, Project } from '$lib/types';
 
 export type RoomHandle = {
 	roomId: string;
@@ -129,9 +129,16 @@ function readExpenseEntry(entry: Y.Map<unknown>): Expense {
 				amount: s.get('amount') as number | undefined
 			}))
 		: [];
+	const rawPayments = entry.get('payments') as Y.Array<Y.Map<unknown>> | undefined;
+	const payments: Payment[] = rawPayments
+		? rawPayments.toArray().map((p) => ({
+				memberId: p.get('memberId') as string,
+				amount: p.get('amount') as number
+			}))
+		: [];
 	return {
 		id: entry.get('id') as string,
-		payerId: entry.get('payerId') as string,
+		payments,
 		amount: entry.get('amount') as number,
 		currency: entry.get('currency') as string,
 		description: entry.get('description') as string | undefined,
@@ -149,7 +156,14 @@ function readExpenseEntry(entry: Y.Map<unknown>): Expense {
 function expenseMap(e: Expense): Y.Map<unknown> {
 	const ym = new Y.Map<unknown>();
 	ym.set('id', e.id);
-	ym.set('payerId', e.payerId);
+	const ypayments = new Y.Array<Y.Map<unknown>>();
+	for (const p of e.payments) {
+		const yp = new Y.Map<unknown>();
+		yp.set('memberId', p.memberId);
+		yp.set('amount', p.amount);
+		ypayments.push([yp]);
+	}
+	ym.set('payments', ypayments);
 	ym.set('amount', e.amount);
 	ym.set('currency', e.currency);
 	if (e.description) ym.set('description', e.description);

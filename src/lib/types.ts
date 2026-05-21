@@ -30,10 +30,17 @@ export type ExpenseSplit = {
 	amount?: number;
 };
 
+/** One contribution to an expense. Cents. The sum across an expense's payments must
+ *  equal Expense.amount. A single-payer expense is just a one-row payments array. */
+export type Payment = {
+	memberId: string;
+	amount: number;
+};
+
 /** Expense amounts are stored in minor units (cents) to avoid float drift. */
 export type Expense = {
 	id: string;
-	payerId: string;
+	payments: Payment[];
 	amount: number;
 	currency: string;
 	description?: string;

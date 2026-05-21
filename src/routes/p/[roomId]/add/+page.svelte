@@ -100,16 +100,17 @@
 
 	const previewExpense: Expense | null = $derived.by(() => {
 		if (!project || amountCents <= 0 || involvedList.length === 0) return null;
+		const fallback = payerId || members[0]?.id || '';
 		return {
 			id: 'preview',
-			payerId: payerId || (members[0]?.id ?? ''),
+			payments: [{ memberId: fallback, amount: amountCents }],
 			amount: amountCents,
 			currency: project.currency,
 			date: Date.now(),
 			splitMode,
 			splits: buildSplitsForPreview(),
 			createdAt: Date.now(),
-			createdBy: payerId || (members[0]?.id ?? '')
+			createdBy: fallback
 		};
 	});
 
@@ -149,7 +150,7 @@
 
 		const expense: Expense = {
 			id: generateId(),
-			payerId,
+			payments: [{ memberId: payerId, amount: amountCents }],
 			amount: amountCents,
 			currency: project.currency,
 			description: title.trim(),

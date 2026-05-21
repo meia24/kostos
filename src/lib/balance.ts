@@ -92,7 +92,9 @@ export function computeBalances(members: Member[], expenses: Expense[]): MemberB
 	for (const m of members) net.set(m.id, 0);
 
 	for (const expense of expenses) {
-		net.set(expense.payerId, (net.get(expense.payerId) ?? 0) + expense.amount);
+		for (const payment of expense.payments) {
+			net.set(payment.memberId, (net.get(payment.memberId) ?? 0) + payment.amount);
+		}
 		const shares = expenseShares(expense);
 		for (const [memberId, cents] of shares) {
 			net.set(memberId, (net.get(memberId) ?? 0) - cents);
