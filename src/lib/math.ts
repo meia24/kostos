@@ -7,6 +7,19 @@
  */
 
 const ALLOWED = /^[\d\s+\-*/().,]+$/;
+const SINGLE_MATH_CHAR = /^[\d\s+\-*/().,]$/;
+const NON_MATH_CHAR = /[^\d\s+\-*/().,]/g;
+
+/** Whether a single character is one of the math-input alphabet members. */
+export function isAllowedMathChar(c: string): boolean {
+	return SINGLE_MATH_CHAR.test(c);
+}
+
+/** Drop every character that isn't part of the math-input alphabet. Useful for
+ *  sanitising a paste payload before it lands in an amount field. */
+export function stripDisallowedMathChars(s: string): string {
+	return s.replace(NON_MATH_CHAR, '');
+}
 
 /** Evaluate a math expression like `50/20-2`. Returns the numeric result, or null
  *  if the input is empty, malformed, non-numeric, or contains disallowed characters.

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import FillRowButton from './FillRowButton.svelte';
+	import { mathInput } from '$lib/actions/mathInput';
 	import { formatAmount } from '$lib/money';
 	import type { Member, SplitMode } from '$lib/types';
 
@@ -152,6 +153,7 @@
 						<input
 							class="input amount-input-sm mono"
 							value={amounts[m.id] ?? ''}
+							use:mathInput
 							oninput={(e) => onUpdateAmount(m.id, e.currentTarget.value)}
 							placeholder="0.00"
 							inputmode="decimal"

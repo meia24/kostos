@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { evalExpression, evalToCents, toMinorUnits } from './math';
+import {
+	evalExpression,
+	evalToCents,
+	isAllowedMathChar,
+	stripDisallowedMathChars,
+	toMinorUnits
+} from './math';
 
 describe('evalExpression', () => {
 	it('returns a plain number unchanged', () => {
@@ -64,6 +70,37 @@ describe('toMinorUnits', () => {
 
 	it('does not lose pennies on noisy floats', () => {
 		expect(toMinorUnits(0.1 + 0.2)).toBe(30);
+	});
+});
+
+describe('isAllowedMathChar', () => {
+	it('accepts digits, operators, parens, comma, dot, whitespace', () => {
+		for (const c of '0123456789+-*/(),. \t') expect(isAllowedMathChar(c)).toBe(true);
+	});
+
+	it('rejects letters and stray symbols', () => {
+		for (const c of 'aZ€$£%&#@^_!?') expect(isAllowedMathChar(c)).toBe(false);
+	});
+
+	it('rejects empty and multi-character strings', () => {
+		expect(isAllowedMathChar('')).toBe(false);
+		expect(isAllowedMathChar('12')).toBe(false);
+	});
+});
+
+describe('stripDisallowedMathChars', () => {
+	it('keeps allowed characters intact', () => {
+		expect(stripDisallowedMathChars('(120 + 5) / 3')).toBe('(120 + 5) / 3');
+	});
+
+	it('strips currency prefixes and labels', () => {
+		expect(stripDisallowedMathChars('€84.20')).toBe('84.20');
+		expect(stripDisallowedMathChars('$1,200.50')).toBe('1,200.50');
+		expect(stripDisallowedMathChars('USD 42')).toBe(' 42');
+	});
+
+	it('returns empty for fully-invalid input', () => {
+		expect(stripDisallowedMathChars('abc')).toBe('');
 	});
 });
 

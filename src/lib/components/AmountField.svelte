@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { mathInput } from '$lib/actions/mathInput';
+
 	type Props = {
 		value: string;
 		cents: number;
@@ -22,6 +24,7 @@
 			bind:this={inputEl}
 			class="amount-input mono"
 			bind:value
+			use:mathInput
 			placeholder="Type 0.00 or 50/20-2"
 			inputmode="decimal"
 			autocomplete="off"
