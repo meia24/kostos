@@ -13,7 +13,7 @@
 		"test": "vitest run",
 		"test:watch": "vitest",
 		"sync": "node scripts/sync-server.js",
-		"icons": "pwa-assets-generator",
+		"icons": "pwa-assets-generator && node scripts/build-maskable.js",
 		"cf:dev": "wrangler dev",
 		"cf:deploy": "vite build && wrangler deploy"
 	},

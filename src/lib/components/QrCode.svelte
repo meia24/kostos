@@ -21,7 +21,7 @@
 			type: 'svg',
 			errorCorrectionLevel: 'M',
 			margin,
-			color: { dark: '#000000', light: '#00000000' }
+			color: { dark: '#0a0c0a', light: '#ffffff' }
 		})
 			.then((out) => {
 				if (!cancelled) svg = out;
@@ -45,7 +45,7 @@
 
 <style>
 	.qr {
-		background: var(--surface, #fff);
+		background: #ffffff;
 		border-radius: 14px;
 		padding: 12px;
 		display: grid;
@@ -57,11 +57,6 @@
 		width: 100%;
 		height: 100%;
 		display: block;
-		color: var(--ink);
-	}
-
-	.qr :global(svg path) {
-		fill: var(--ink);
 	}
 
 	.placeholder {

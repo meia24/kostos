@@ -18,9 +18,9 @@ export default defineConfig({
 			registerType: 'autoUpdate',
 			injectRegister: 'auto',
 			manifest: {
-				name: 'Kostos · Group expenses',
+				name: 'Kostos',
 				short_name: 'Kostos',
-				description: 'Even out group expenses with just a token, no accounts needed.',
+				description: 'Privacy-first group expense splitter. No accounts, encrypted, offline-ready.',
 				start_url: '/',
 				scope: '/',
 				display: 'standalone',
