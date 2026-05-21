@@ -4,6 +4,7 @@
 	import EmojiPickerField from './EmojiPickerField.svelte';
 	import type { EmojiItem } from './EmojiPickerField.svelte';
 	import PaidBySection from './PaidBySection.svelte';
+	import ScreenAppBar from './ScreenAppBar.svelte';
 	import type { PaymentRow } from './PaidBySection.svelte';
 	import SplitSection from './SplitSection.svelte';
 	import { expenseShares, splitEvenly } from '$lib/balance';
@@ -318,14 +319,8 @@
 </svelte:head>
 
 <div class="screen" data-page="expense-form">
-	<header class="app-bar">
-		<div class="row gap-8" style="flex: 1;">
-			<button class="icon-btn" aria-label="Cancel" onclick={onCancel} type="button">
-				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
-			</button>
-		</div>
-		<div class="app-bar-title">{headerTitle}</div>
-		<div class="row gap-6" style="flex: 1; justify-content: flex-end;">
+	<ScreenAppBar title={headerTitle} {onCancel}>
+		{#snippet right()}
 			<button
 				type="button"
 				class="btn btn-primary save-btn"
@@ -334,8 +329,8 @@
 			>
 				{saveLabel}
 			</button>
-		</div>
-	</header>
+		{/snippet}
+	</ScreenAppBar>
 
 	<form class="scroll" onsubmit={handleSubmit}>
 		<AmountField

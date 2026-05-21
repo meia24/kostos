@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { expenseShares } from '$lib/balance';
+	import ScreenAppBar from '$lib/components/ScreenAppBar.svelte';
 	import { formatAmount, formatSigned } from '$lib/money';
 	import { getCurrentMember } from '$lib/storage';
 	import {
@@ -121,19 +122,13 @@
 </svelte:head>
 
 <div class="screen" data-page="expense-detail">
-	<header class="app-bar">
-		<div class="row gap-8" style="flex: 1;">
-			<a class="icon-btn" href="/p/{roomId}/expenses" aria-label="Back">
-				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 6l-6 6 6 6" /></svg>
-			</a>
-		</div>
-		<div class="app-bar-title">Expense</div>
-		<div class="row gap-6" style="flex: 1; justify-content: flex-end;">
+	<ScreenAppBar title="Expense" backHref="/p/{roomId}/expenses">
+		{#snippet right()}
 			<button class="icon-btn" type="button" onclick={onEdit} aria-label="Edit" disabled={!expense}>
 				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 20h4l11-11-4-4L4 16v4zM14 6l4 4" /></svg>
 			</button>
-		</div>
-	</header>
+		{/snippet}
+	</ScreenAppBar>
 
 	{#if !expense}
 		<div class="scroll empty-detail">

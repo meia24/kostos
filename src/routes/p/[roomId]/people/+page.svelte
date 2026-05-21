@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { computeBalances, expenseShares } from '$lib/balance';
-	import { PROJECT_COLOR_VALUES, tileBackground } from '$lib/colors';
+	import ScreenAppBar from '$lib/components/ScreenAppBar.svelte';
 	import TabBar from '$lib/components/TabBar.svelte';
 	import { formatAmount, formatSigned } from '$lib/money';
 	import { getCurrentMember } from '$lib/storage';
@@ -143,23 +143,7 @@
 </svelte:head>
 
 <div class="screen" data-page="people">
-	<header class="app-bar">
-		<div class="row gap-8" style="flex: 1; align-items: center;">
-			<a class="icon-btn" href="/p/{roomId}" aria-label="Back">
-				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 6l-6 6 6 6" /></svg>
-			</a>
-			<span
-				class="project-tile"
-				style={project
-					? `background: ${tileBackground(project.color)}; color: ${PROJECT_COLOR_VALUES[project.color]};`
-					: ''}
-			>
-				{project?.emoji ?? '🏖'}
-			</span>
-		</div>
-		<div class="app-bar-title">Members</div>
-		<div class="row gap-6" style="flex: 1;"></div>
-	</header>
+	<ScreenAppBar title="Members" backHref="/p/{roomId}" {project} />
 
 	<div class="scroll">
 		<div class="section-head" style="margin-top: 4px;">
@@ -275,16 +259,6 @@
 </div>
 
 <style>
-	.project-tile {
-		width: 28px;
-		height: 28px;
-		border-radius: 9px;
-		display: grid;
-		place-items: center;
-		font-size: 14px;
-		flex-shrink: 0;
-	}
-
 	.member-cards {
 		gap: 8px;
 	}

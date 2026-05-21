@@ -1,12 +1,13 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { PROJECT_COLORS, PROJECT_COLOR_VALUES, tileBackground } from '$lib/colors';
+	import { PROJECT_COLORS, PROJECT_COLOR_VALUES } from '$lib/colors';
 	import CurrencyPicker from '$lib/components/CurrencyPicker.svelte';
 	import EmojiListEditor from '$lib/components/EmojiListEditor.svelte';
 	import type { EditorItem } from '$lib/components/EmojiListEditor.svelte';
 	import EmojiTilePicker from '$lib/components/EmojiTilePicker.svelte';
 	import IdentityCard from '$lib/components/IdentityCard.svelte';
+	import ScreenAppBar from '$lib/components/ScreenAppBar.svelte';
 	import { getCurrentMember, setCurrentMember, setCurrentProject } from '$lib/storage';
 	import {
 		addCategory,
@@ -125,15 +126,7 @@
 </svelte:head>
 
 <div class="screen" data-page="settings">
-	<header class="app-bar">
-		<div class="row gap-8" style="flex: 1; align-items: center;">
-			<a class="icon-btn" href="/p/{roomId}" aria-label="Back">
-				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 6l-6 6 6 6" /></svg>
-			</a>
-		</div>
-		<div class="app-bar-title">Settings</div>
-		<div class="row gap-6" style="flex: 1;"></div>
-	</header>
+	<ScreenAppBar title="Settings" backHref="/p/{roomId}" />
 
 	{#if project}
 		<div class="scroll">
