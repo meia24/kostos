@@ -25,6 +25,8 @@
 	"dependencies": {
 		"@fontsource/instrument-serif": "^5.2.8",
 		"@fontsource/inter": "^5.2.8",
-		"@fontsource/jetbrains-mono": "^5.2.8"
+		"@fontsource/jetbrains-mono": "^5.2.8",
+		"y-indexeddb": "^9.0.12",
+		"yjs": "^13.6.30"
 	}
 }
