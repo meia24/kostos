@@ -1,5 +1,28 @@
 export type CurrencyPreset = { code: string; sym: string; name: string };
 
+const ZERO_DECIMAL_CURRENCIES = new Set([
+	'JPY',
+	'KRW',
+	'VND',
+	'ISK',
+	'CLP',
+	'PYG',
+	'UGX',
+	'XAF',
+	'XOF',
+	'XPF',
+	'BIF',
+	'DJF',
+	'GNF',
+	'KMF',
+	'RWF'
+]);
+
+export function currencyDecimals(code: string | undefined | null): number {
+	if (!code) return 2;
+	return ZERO_DECIMAL_CURRENCIES.has(code.toUpperCase()) ? 0 : 2;
+}
+
 export const CURRENCY_PRESETS: CurrencyPreset[] = [
 	{ code: 'EUR', sym: '€', name: 'Euro' },
 	{ code: 'USD', sym: '$', name: 'US Dollar' },
