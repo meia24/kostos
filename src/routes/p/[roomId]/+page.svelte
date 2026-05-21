@@ -6,6 +6,7 @@
 	import { formatAmount } from '$lib/money';
 	import { getCurrentMember, getCurrentProject } from '$lib/storage';
 	import { openRoom, readExpenses, readMembers, readProject } from '$lib/sync/doc';
+	import type { ConnectionStatus } from '$lib/sync/provider';
 	import type { Expense, Member, Project } from '$lib/types';
 
 	const roomId = $derived(page.params.roomId ?? '');
@@ -16,6 +17,7 @@
 	let expenses = $state<Expense[]>([]);
 	let copied = $state(false);
 	let showShare = $state(false);
+	let syncStatus = $state<ConnectionStatus>('idle');
 
 	$effect(() => {
 		const h = handle;
@@ -28,11 +30,28 @@
 		h.project.observeDeep(sync);
 		h.members.observeDeep(sync);
 		h.expenses.observeDeep(sync);
+		const offStatus = h.syncProvider?.onStatusChange((s) => (syncStatus = s));
 		return () => {
 			h.project.unobserveDeep(sync);
 			h.members.unobserveDeep(sync);
 			h.expenses.unobserveDeep(sync);
+			offStatus?.();
 		};
+	});
+
+	const syncLabel = $derived.by(() => {
+		switch (syncStatus) {
+			case 'connected':
+				return 'Synced';
+			case 'connecting':
+				return 'Connecting…';
+			case 'reconnecting':
+				return 'Reconnecting…';
+			case 'offline':
+				return 'Offline';
+			default:
+				return 'Local only';
+		}
 	});
 
 	const currentMemberId = $derived.by(() => getCurrentMember());
@@ -104,7 +123,10 @@
 			</span>
 			<span class="project-label col">
 				<span class="app-bar-title project-name">{project?.name ?? 'Loading'}</span>
-				<span class="dim mono project-token">{roomId}</span>
+				<span class="dim mono project-token">
+					<span class="sync-dot" data-state={syncStatus} aria-hidden="true"></span>
+					<span class="sync-text" title={syncLabel}>{roomId}</span>
+				</span>
 			</span>
 		</a>
 		<div class="row gap-6" style="flex: 0; justify-content: flex-end;">
@@ -321,6 +343,37 @@
 	.project-token {
 		font-size: 10px;
 		letter-spacing: 0.04em;
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+	}
+
+	.sync-dot {
+		width: 6px;
+		height: 6px;
+		border-radius: 999px;
+		background: var(--ink-3);
+		flex-shrink: 0;
+	}
+
+	.sync-dot[data-state='connected'] {
+		background: var(--accent);
+		box-shadow: 0 0 0 2px color-mix(in oklab, var(--accent) 25%, transparent);
+	}
+
+	.sync-dot[data-state='connecting'],
+	.sync-dot[data-state='reconnecting'] {
+		background: var(--warn);
+		animation: sync-pulse 1.4s ease-in-out infinite;
+	}
+
+	.sync-dot[data-state='offline'] {
+		background: var(--owe);
+	}
+
+	@keyframes sync-pulse {
+		0%, 100% { opacity: 0.4; }
+		50% { opacity: 1; }
 	}
 
 	.balance-block {
