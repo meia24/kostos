@@ -178,6 +178,108 @@ export function addMember(handle: RoomHandle, member: Member): void {
 	});
 }
 
+export function updateMember(handle: RoomHandle, id: string, updates: Partial<Omit<Member, 'id'>>): void {
+	for (let i = 0; i < handle.members.length; i++) {
+		const entry = handle.members.get(i);
+		if (entry.get('id') !== id) continue;
+		handle.doc.transact(() => {
+			if (updates.name !== undefined) entry.set('name', updates.name);
+		});
+		return;
+	}
+}
+
+export function removeMember(handle: RoomHandle, id: string): void {
+	for (let i = 0; i < handle.members.length; i++) {
+		if (handle.members.get(i).get('id') === id) {
+			handle.doc.transact(() => handle.members.delete(i, 1));
+			return;
+		}
+	}
+}
+
+export function updateProject(
+	handle: RoomHandle,
+	updates: Partial<Pick<Project, 'name' | 'description' | 'emoji' | 'color' | 'currency' | 'currencySymbol' | 'defaultSplit'>>
+): void {
+	handle.doc.transact(() => {
+		for (const [key, value] of Object.entries(updates)) {
+			if (value === undefined) continue;
+			if (value === '' && key === 'description') {
+				handle.project.delete('description');
+			} else {
+				handle.project.set(key, value);
+			}
+		}
+	});
+}
+
+export function updateCategory(handle: RoomHandle, id: string, updates: Partial<Omit<Category, 'id'>>): void {
+	const arr = handle.project.get('categories') as Y.Array<Y.Map<unknown>> | undefined;
+	if (!arr) return;
+	for (let i = 0; i < arr.length; i++) {
+		const entry = arr.get(i);
+		if (entry.get('id') !== id) continue;
+		handle.doc.transact(() => {
+			if (updates.name !== undefined) entry.set('name', updates.name);
+			if (updates.emoji !== undefined) entry.set('emoji', updates.emoji);
+		});
+		return;
+	}
+}
+
+export function removeCategory(handle: RoomHandle, id: string): void {
+	const arr = handle.project.get('categories') as Y.Array<Y.Map<unknown>> | undefined;
+	if (!arr) return;
+	for (let i = 0; i < arr.length; i++) {
+		if (arr.get(i).get('id') === id) {
+			handle.doc.transact(() => arr.delete(i, 1));
+			return;
+		}
+	}
+}
+
+export function updatePaymentMethod(
+	handle: RoomHandle,
+	id: string,
+	updates: Partial<Omit<PaymentMethodItem, 'id'>>
+): void {
+	const arr = handle.project.get('paymentMethods') as Y.Array<Y.Map<unknown>> | undefined;
+	if (!arr) return;
+	for (let i = 0; i < arr.length; i++) {
+		const entry = arr.get(i);
+		if (entry.get('id') !== id) continue;
+		handle.doc.transact(() => {
+			if (updates.name !== undefined) entry.set('name', updates.name);
+			if (updates.emoji !== undefined) entry.set('emoji', updates.emoji);
+		});
+		return;
+	}
+}
+
+export function removePaymentMethod(handle: RoomHandle, id: string): void {
+	const arr = handle.project.get('paymentMethods') as Y.Array<Y.Map<unknown>> | undefined;
+	if (!arr) return;
+	for (let i = 0; i < arr.length; i++) {
+		if (arr.get(i).get('id') === id) {
+			handle.doc.transact(() => arr.delete(i, 1));
+			return;
+		}
+	}
+}
+
+/** How many expenses reference this member (as payer, as split target, or as createdBy). */
+export function memberHistoryCount(handle: RoomHandle, memberId: string): number {
+	const expenses = readExpenses(handle);
+	let count = 0;
+	for (const e of expenses) {
+		if (e.createdBy === memberId) count += 1;
+		else if (e.payments.some((p) => p.memberId === memberId)) count += 1;
+		else if (e.splits.some((s) => s.memberId === memberId)) count += 1;
+	}
+	return count;
+}
+
 export function readExpenses(handle: RoomHandle): Expense[] {
 	return handle.expenses.toArray().map(readExpenseEntry);
 }
