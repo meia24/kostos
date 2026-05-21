@@ -160,12 +160,13 @@
 
 		{#if yourPlan.length > 0 && currentMemberId}
 			<section class="plan-section">
-				<div class="section-head">
+				<a class="section-head plan-link" href="/p/{roomId}/settle">
 					<div class="eyebrow">Settle up</div>
 					<span class="dim mono plan-count">
 						{yourPlan.length} {yourPlan.length === 1 ? 'transaction' : 'transactions'}
+						<span class="plan-chevron" aria-hidden="true">›</span>
 					</span>
-				</div>
+				</a>
 				<div class="card plan-list">
 					{#each yourPlan as t, i (i)}
 						{@const youPay = t.from === currentMemberId}
@@ -192,10 +193,13 @@
 
 		{#if plan.length > 0}
 			<section class="plan-section">
-				<div class="section-head">
+				<a class="section-head plan-link" href="/p/{roomId}/settle">
 					<div class="eyebrow">Group plan</div>
-					<span class="dim mono plan-count">{plan.length} TOTAL</span>
-				</div>
+					<span class="dim mono plan-count">
+						{plan.length} TOTAL
+						<span class="plan-chevron" aria-hidden="true">›</span>
+					</span>
+				</a>
 				<div class="card plan-list compact">
 					{#each plan as t, i (i)}
 						<div class="plan-row compact">
@@ -378,6 +382,18 @@
 
 	.plan-section {
 		margin-top: 4px;
+	}
+
+	.plan-link {
+		text-decoration: none;
+		color: inherit;
+	}
+
+	.plan-chevron {
+		display: inline-block;
+		margin-left: 4px;
+		font-size: 13px;
+		opacity: 0.6;
 	}
 
 	.plan-count {

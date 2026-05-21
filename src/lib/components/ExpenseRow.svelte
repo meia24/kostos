@@ -93,13 +93,17 @@
 </script>
 
 <a class="expense-row" {href}>
-	<span class="cat-tile row-cat">{category?.emoji ?? '📦'}</span>
+	<span class="cat-tile row-cat" class:is-settlement={expense.isSettlement}>
+		{expense.isSettlement ? '🤝' : (category?.emoji ?? '📦')}
+	</span>
 	<span class="col row-text">
 		<span class="row title-row">
 			<span class="row-title">
 				<Highlight text={expense.description || 'Expense'} {query} />
 			</span>
-			{#if expense.splitMode === 'shares'}
+			{#if expense.isSettlement}
+				<span class="sticker mode-sticker settle-sticker">SETTLEMENT</span>
+			{:else if expense.splitMode === 'shares'}
 				<span class="sticker mode-sticker">SHARES</span>
 			{:else if expense.splitMode === 'amount'}
 				<span class="sticker mode-sticker">AMOUNTS</span>
@@ -153,6 +157,16 @@
 	.row-cat {
 		font-size: 20px;
 		flex-shrink: 0;
+	}
+
+	.row-cat.is-settlement {
+		background: color-mix(in oklab, var(--accent) 16%, transparent);
+	}
+
+	.settle-sticker {
+		background: var(--accent);
+		color: var(--accent-ink);
+		border-color: var(--accent);
 	}
 
 	.row-text {

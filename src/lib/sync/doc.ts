@@ -239,6 +239,7 @@ function readExpenseEntry(entry: Y.Map<unknown>): Expense {
 		splitMode: entry.get('splitMode') as Expense['splitMode'],
 		splits,
 		notes: entry.get('notes') as string | undefined,
+		isSettlement: entry.get('isSettlement') as boolean | undefined,
 		createdAt: entry.get('createdAt') as number,
 		createdBy: entry.get('createdBy') as string
 	};
@@ -272,6 +273,7 @@ function expenseMap(e: Expense): Y.Map<unknown> {
 	}
 	ym.set('splits', ysplits);
 	if (e.notes) ym.set('notes', e.notes);
+	if (e.isSettlement) ym.set('isSettlement', true);
 	ym.set('createdAt', e.createdAt);
 	ym.set('createdBy', e.createdBy);
 	return ym;

@@ -173,6 +173,26 @@ describe('computeBalances', () => {
 		expect(byId.c).toBe(-300);
 	});
 
+	it('zeroes out a debt when a settlement expense is applied', () => {
+		const members = [member('a'), member('b')];
+		const debt: Expense = expense({
+			id: 'e1',
+			amount: 5000,
+			payerId: 'a',
+			splits: [{ memberId: 'a' }, { memberId: 'b' }]
+		});
+		const settlement: Expense = expense({
+			id: 's1',
+			amount: 2500,
+			payerId: 'b',
+			splits: [{ memberId: 'a' }]
+		});
+		const balances = computeBalances(members, [debt, settlement]);
+		const byId = Object.fromEntries(balances.map((b) => [b.memberId, b.net]));
+		expect(byId.a).toBe(0);
+		expect(byId.b).toBe(0);
+	});
+
 	it('credits multiple payers in proportion to what they paid', () => {
 		const members = [member('a'), member('b'), member('c')];
 		const expenses: Expense[] = [
