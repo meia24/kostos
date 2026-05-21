@@ -26,6 +26,18 @@ export default {
 			return env.SYNC_ROOM.get(id).fetch(request);
 		}
 
-		return env.ASSETS.fetch(request);
+		const assetResponse = await env.ASSETS.fetch(request);
+		if (assetResponse.status !== 404) return assetResponse;
+
+		// SPA fallback: serve `200.html` (SvelteKit's static shell) for any
+		// unknown route so the client router can resolve it. The bare `index.html`
+		// is the prerendered landing page; using it as a fallback pins every
+		// route to `/` after hydration.
+		const fallbackUrl = new URL('/200', url);
+		const fallback = await env.ASSETS.fetch(new Request(fallbackUrl, request));
+		return new Response(fallback.body, {
+			status: 200,
+			headers: fallback.headers
+		});
 	}
 } satisfies ExportedHandler<Env>;

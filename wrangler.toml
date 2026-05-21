@@ -10,7 +10,10 @@ routes = [
 [assets]
 directory = "build"
 binding = "ASSETS"
-not_found_handling = "single-page-application"
+# We handle SPA fallback in worker/index.ts so unknown paths fall through to
+# `200.html` (the SvelteKit static shell) rather than `index.html` (the
+# prerendered landing, whose hydration data pins it to the `/` route).
+not_found_handling = "none"
 
 [[durable_objects.bindings]]
 name = "SYNC_ROOM"
