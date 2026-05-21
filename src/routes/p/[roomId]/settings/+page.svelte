@@ -5,6 +5,7 @@
 	import CurrencyPicker from '$lib/components/CurrencyPicker.svelte';
 	import EmojiListEditor from '$lib/components/EmojiListEditor.svelte';
 	import type { EditorItem } from '$lib/components/EmojiListEditor.svelte';
+	import EmojiTilePicker from '$lib/components/EmojiTilePicker.svelte';
 	import IdentityCard from '$lib/components/IdentityCard.svelte';
 	import { getCurrentMember, setCurrentMember, setCurrentProject } from '$lib/storage';
 	import {
@@ -62,13 +63,6 @@
 		const trimmed = value.trim();
 		if (trimmed === (project.description ?? '')) return;
 		updateProject(handle, { description: trimmed });
-	}
-
-	function commitEmoji(value: string) {
-		if (!project) return;
-		const emoji = Array.from(value.trim())[0];
-		if (!emoji || emoji === project.emoji) return;
-		updateProject(handle, { emoji });
 	}
 
 	function setColor(color: ProjectColor) {
@@ -144,18 +138,11 @@
 	{#if project}
 		<div class="scroll">
 			<section class="project-block">
-				<div class="emoji-row">
-					<label class="emoji-tile" style="background: {tileBackground(project.color)};">
-						<span class="emoji-glyph">{project.emoji}</span>
-						<input
-							class="emoji-input"
-							value={project.emoji}
-							maxlength="4"
-							aria-label="Project emoji"
-							onblur={(e) => commitEmoji(e.currentTarget.value)}
-						/>
-					</label>
-				</div>
+				<EmojiTilePicker
+					emoji={project.emoji}
+					color={project.color}
+					onPick={(value) => updateProject(handle, { emoji: value })}
+				/>
 
 				<div class="swatch-row" role="radiogroup" aria-label="Project color">
 					{#each PROJECT_COLORS as c (c)}
@@ -279,43 +266,6 @@
 		align-items: stretch;
 		gap: 12px;
 		padding: 16px 0 18px;
-	}
-
-	.emoji-row {
-		display: flex;
-		justify-content: center;
-	}
-
-	.emoji-tile {
-		width: 72px;
-		height: 72px;
-		border-radius: 22px;
-		display: grid;
-		place-items: center;
-		position: relative;
-		cursor: text;
-	}
-
-	.emoji-glyph {
-		font-size: 36px;
-		pointer-events: none;
-	}
-
-	.emoji-input {
-		position: absolute;
-		inset: 0;
-		opacity: 0;
-		background: transparent;
-		border: 0;
-		outline: none;
-		text-align: center;
-		font-size: 36px;
-		color: transparent;
-		caret-color: var(--ink);
-	}
-
-	.emoji-tile:has(.emoji-input:focus) .emoji-glyph {
-		opacity: 0.4;
 	}
 
 	.swatch-row {

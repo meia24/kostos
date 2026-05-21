@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { PROJECT_COLORS, PROJECT_COLOR_VALUES, tileBackground } from '$lib/colors';
 	import CurrencyPicker from '$lib/components/CurrencyPicker.svelte';
+	import EmojiTilePicker from '$lib/components/EmojiTilePicker.svelte';
 	import { CURRENCY_PRESETS, type CurrencyPreset } from '$lib/currencies';
 	import { setCurrentMember, setCurrentProject } from '$lib/storage';
 	import { generateId, initProject, openRoom } from '$lib/sync/doc';
@@ -16,42 +17,10 @@
 
 	type DraftMember = { id: string; name: string };
 
-	// Emoji presets chosen for reliable color rendering across systems. The first
-	// version of this list included characters like 🏖 ⛰ ⛺ ⛵ ☕ ⚽ that default to
-	// text-style glyphs without the U+FE0F variation selector; we replaced them with
-	// equivalents that render as full-color emoji unambiguously.
-	const EMOJI_PRESETS = [
-		'🏠',
-		'🏡',
-		'🌴',
-		'🗻',
-		'🏨',
-		'✈️',
-		'🚗',
-		'🚐',
-		'🚲',
-		'🚢',
-		'🍕',
-		'🍔',
-		'🍻',
-		'🍷',
-		'🎉',
-		'🎂',
-		'🎸',
-		'🎮',
-		'🎬',
-		'🛒',
-		'💼',
-		'🎓',
-		'🐶',
-		'💸'
-	];
-
 	const roomId = generateRoomId();
 	const secret = generateSecret();
 
-	let emoji = $state('🏖');
-	let emojiCustom = $state('');
+	let emoji = $state('🏠');
 	let color = $state<ProjectColor>('lime');
 	let name = $state('');
 	let description = $state('');
@@ -59,25 +28,10 @@
 	let currencySym = $state(CURRENCY_PRESETS[0].sym);
 	let yourName = $state('');
 	let others = $state<DraftMember[]>([{ id: generateId(), name: '' }]);
-	let emojiOpen = $state(false);
 	let submitting = $state(false);
 
 	const filledOthers = $derived(others.filter((m) => m.name.trim().length > 0));
 	const canCreate = $derived(name.trim().length > 0 && yourName.trim().length > 0);
-
-	function pickEmoji(value: string) {
-		emoji = value;
-		emojiCustom = '';
-		emojiOpen = false;
-	}
-
-	function commitCustomEmoji() {
-		const cleaned = emojiCustom.trim();
-		if (!cleaned) return;
-		emoji = Array.from(cleaned)[0] ?? emoji;
-		emojiCustom = '';
-		emojiOpen = false;
-	}
 
 	function pickCurrency(p: CurrencyPreset) {
 		currencyCode = p.code;
@@ -167,21 +121,7 @@
 
 	<form class="scroll" onsubmit={onSubmit} style="padding-top: 8px;">
 		<div class="col emoji-block">
-			<button
-				type="button"
-				class="emoji-mark"
-				style="background: {tileBackground(color)};"
-				aria-label="Change icon"
-				aria-expanded={emojiOpen}
-				onclick={() => (emojiOpen = !emojiOpen)}
-			>
-				<span>{emoji}</span>
-				<span class="emoji-pencil" aria-hidden="true">
-					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
-						<path d="M4 20h4l11-11-4-4L4 16v4zM14 6l4 4" />
-					</svg>
-				</span>
-			</button>
+			<EmojiTilePicker {emoji} {color} onPick={(value) => (emoji = value)} />
 
 			<div class="swatch-row" role="radiogroup" aria-label="Group color">
 				{#each PROJECT_COLORS as c (c)}
@@ -197,44 +137,6 @@
 					></button>
 				{/each}
 			</div>
-
-			{#if emojiOpen}
-				<div class="picker-panel">
-					<div class="emoji-grid">
-						{#each EMOJI_PRESETS as e (e)}
-							<button
-								type="button"
-								class="emoji-cell"
-								class:on={e === emoji}
-								onclick={() => pickEmoji(e)}
-							>
-								{e}
-							</button>
-						{/each}
-					</div>
-					<div class="picker-custom">
-						<label class="picker-custom-label" for="emoji-custom-input">Or type your own</label>
-						<div class="row gap-6">
-							<input
-								id="emoji-custom-input"
-								class="input picker-input"
-								bind:value={emojiCustom}
-								maxlength="6"
-								placeholder="Paste emoji"
-								autocomplete="off"
-							/>
-							<button
-								type="button"
-								class="btn btn-primary picker-apply"
-								onclick={commitCustomEmoji}
-								disabled={!emojiCustom.trim()}
-							>
-								Use
-							</button>
-						</div>
-					</div>
-				</div>
-			{/if}
 		</div>
 
 		<input
@@ -329,43 +231,6 @@
 		gap: 12px;
 	}
 
-	.emoji-mark {
-		width: 72px;
-		height: 72px;
-		border-radius: 22px;
-		display: grid;
-		place-items: center;
-		font-size: 36px;
-		border: 0;
-		cursor: pointer;
-		color: var(--ink);
-		position: relative;
-		transition: transform 0.12s ease;
-	}
-
-	.emoji-mark:active {
-		transform: scale(0.97);
-	}
-
-	.emoji-pencil {
-		position: absolute;
-		bottom: -6px;
-		right: -6px;
-		width: 28px;
-		height: 28px;
-		border-radius: 999px;
-		background: var(--bg-2);
-		border: 1px solid var(--line);
-		display: grid;
-		place-items: center;
-		color: var(--ink);
-	}
-
-	.emoji-pencil svg {
-		width: 14px;
-		height: 14px;
-	}
-
 	.swatch-row {
 		display: flex;
 		gap: 10px;
@@ -389,75 +254,6 @@
 	.swatch.on {
 		border-color: var(--ink);
 		box-shadow: 0 0 0 2px var(--bg);
-	}
-
-	.picker-panel {
-		width: 100%;
-		background: var(--bg-2);
-		border: 1px solid var(--line);
-		border-radius: var(--radius-lg);
-		padding: 14px;
-		margin-top: 6px;
-	}
-
-	.emoji-grid {
-		display: grid;
-		grid-template-columns: repeat(6, 1fr);
-		gap: 6px;
-	}
-
-	.emoji-cell {
-		aspect-ratio: 1;
-		font-size: 22px;
-		border: 0;
-		border-radius: 12px;
-		background: transparent;
-		cursor: pointer;
-		display: grid;
-		place-items: center;
-		color: var(--ink);
-		transition: background 0.12s ease, transform 0.12s ease;
-	}
-
-	.emoji-cell:hover {
-		background: color-mix(in oklab, var(--ink) 6%, transparent);
-	}
-
-	.emoji-cell.on {
-		background: color-mix(in oklab, var(--accent) 22%, transparent);
-		outline: 1px solid var(--accent);
-	}
-
-	.picker-custom {
-		margin-top: 14px;
-		padding-top: 14px;
-		border-top: 1px solid var(--line);
-	}
-
-	.picker-custom-label {
-		display: block;
-		font-family: var(--font-mono);
-		font-size: 10px;
-		color: var(--ink-2);
-		text-transform: uppercase;
-		letter-spacing: 0.06em;
-		margin-bottom: 8px;
-	}
-
-	.picker-input {
-		flex: 1;
-		padding: 10px 12px;
-		font-size: 14px;
-	}
-
-	.picker-apply {
-		padding: 8px 16px;
-		font-size: 13px;
-	}
-
-	.picker-apply:disabled {
-		opacity: 0.5;
-		cursor: not-allowed;
 	}
 
 	.members-card {
