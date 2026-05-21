@@ -123,10 +123,9 @@
 				</svg>
 			</div>
 			<h1 class="h1 brand-name">Kostos</h1>
-			<p class="muted brand-tagline">
-				The privacy-first group expense splitter. Share a token, split bills with anyone, sync live
-				across devices.
-			</p>
+			{#if !hasProjects}
+				<h2 class="brand-tagline">Privacy-first group expense splitter</h2>
+			{/if}
 		</header>
 
 		{#snippet tokenForm()}
@@ -219,30 +218,32 @@
 				{@render tokenForm()}
 			{/if}
 		{:else}
+			<div class="cta-stack">
+				<a class="btn btn-primary btn-block primary-cta" href="/new">
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 6v12M6 12h12" /></svg>
+					<span>Create your first group</span>
+				</a>
+
+				<button
+					type="button"
+					class="btn btn-block secondary-cta"
+					aria-expanded={tokenInputOpen}
+					onclick={() => (tokenInputOpen = !tokenInputOpen)}
+				>
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+					<span>Or join with a token</span>
+				</button>
+			</div>
+
+			{#if tokenInputOpen}
+				{@render tokenForm()}
+			{/if}
+
 			<p class="lede">
 				Kostos is a <strong>free group expense splitter</strong> that lives on your device. Create a
 				group, share its token, and split bills with friends, family, or housemates. No accounts,
 				end-to-end encrypted, syncs live across devices, works offline.
 			</p>
-
-			<a class="btn btn-primary btn-block primary-cta" href="/new">
-				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 6v12M6 12h12" /></svg>
-				<span>Create your first group</span>
-			</a>
-
-			<button
-				type="button"
-				class="btn btn-block secondary-cta"
-				aria-expanded={tokenInputOpen}
-				onclick={() => (tokenInputOpen = !tokenInputOpen)}
-			>
-				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-				<span>Or join with a token</span>
-			</button>
-
-			{#if tokenInputOpen}
-				{@render tokenForm()}
-			{/if}
 
 			<section class="value-props" aria-labelledby="why-kostos">
 				<h2 id="why-kostos" class="section-title">Why pick Kostos to split expenses</h2>
@@ -411,11 +412,14 @@
 	}
 
 	.brand-tagline {
-		font-size: 13px;
-		margin: 4px 0 0;
+		font-size: 15px;
+		font-weight: 500;
+		color: var(--ink-2);
+		margin: 6px 0 0;
 		text-align: center;
-		max-width: 260px;
-		line-height: 1.5;
+		max-width: 300px;
+		line-height: 1.4;
+		letter-spacing: -0.005em;
 	}
 
 	.projects-section {
@@ -494,7 +498,7 @@
 		font-size: 14px;
 		line-height: 1.55;
 		color: var(--ink-2);
-		margin: 0 0 22px;
+		margin: 26px 0 4px;
 	}
 
 	.lede strong {
@@ -551,12 +555,16 @@
 		margin: 2px 0 0;
 	}
 
-	.primary-cta {
-		margin-bottom: 8px;
+	.cta-stack {
+		display: flex;
+		flex-direction: column;
+		gap: 14px;
+		margin-top: 8px;
 	}
 
+	.primary-cta,
 	.secondary-cta {
-		margin-bottom: 8px;
+		margin: 0;
 	}
 
 	.how-section {
