@@ -3,7 +3,6 @@
 	import { computeBalances, planSettlements } from '$lib/balance';
 	import { PROJECT_COLOR_VALUES, tileBackground } from '$lib/colors';
 	import ExpenseRow from '$lib/components/ExpenseRow.svelte';
-	import SettlementGraph from '$lib/components/SettlementGraph.svelte';
 	import { formatAmount } from '$lib/money';
 	import { getCurrentMember, getCurrentProject } from '$lib/storage';
 	import { openRoom, readExpenses, readMembers, readProject } from '$lib/sync/doc';
@@ -72,6 +71,9 @@
 	const plan = $derived(planSettlements(balances));
 	const yourPlan = $derived(
 		plan.filter((t) => t.from === currentMemberId || t.to === currentMemberId)
+	);
+	const othersPlan = $derived(
+		plan.filter((t) => t.from !== currentMemberId && t.to !== currentMemberId)
 	);
 	const recentExpenses = $derived(
 		[...expenses].sort((a, b) => b.date - a.date || b.createdAt - a.createdAt).slice(0, 6)
@@ -181,56 +183,49 @@
 			</section>
 		{/if}
 
-		{#if yourPlan.length > 0 && currentMemberId}
+		{#if plan.length > 0}
 			<section class="plan-section">
 				<a class="section-head plan-link" href="/p/{roomId}/settle">
 					<div class="eyebrow">Settle up</div>
 					<span class="dim mono plan-count">
-						{yourPlan.length} {yourPlan.length === 1 ? 'transaction' : 'transactions'}
+						{plan.length} {plan.length === 1 ? 'transfer' : 'transfers'}
 						<span class="plan-chevron" aria-hidden="true">›</span>
 					</span>
 				</a>
-				<div class="card plan-list">
-					{#each yourPlan as t, i (i)}
-						{@const youPay = t.from === currentMemberId}
-						<div class="plan-row" class:tone-owe={youPay} class:tone-owed={!youPay}>
-							<span class="av av-sm plan-av">
-								{((youPay ? membersById.get(t.to)?.name : membersById.get(t.from)?.name) ?? '?')[0].toUpperCase()}
-							</span>
-							<span class="col plan-text">
-								<span class="plan-headline">
-									{youPay
-										? `Pay ${membersById.get(t.to)?.name ?? '—'}`
-										: `${membersById.get(t.from)?.name ?? '—'} pays you`}
+				{#if yourPlan.length > 0 && currentMemberId}
+					<div class="card plan-list">
+						{#each yourPlan as t, i (i)}
+							{@const youPay = t.from === currentMemberId}
+							<div class="plan-row" class:tone-owe={youPay} class:tone-owed={!youPay}>
+								<span class="av av-sm plan-av">
+									{((youPay ? membersById.get(t.to)?.name : membersById.get(t.from)?.name) ?? '?')[0].toUpperCase()}
 								</span>
-								<span class="dim plan-sub mono">
-									{youPay ? 'OUTGOING' : 'INCOMING'}
+								<span class="col plan-text">
+									<span class="plan-headline">
+										{youPay
+											? `Pay ${membersById.get(t.to)?.name ?? '—'}`
+											: `${membersById.get(t.from)?.name ?? '—'} pays you`}
+									</span>
+									<span class="dim plan-sub mono">
+										{youPay ? 'OUTGOING' : 'INCOMING'}
+									</span>
 								</span>
-							</span>
-							<span class="num plan-amount">{formatAmount(t.amount, currencySymbol)}</span>
-						</div>
-					{/each}
-				</div>
-			</section>
-		{/if}
-
-		{#if plan.length > 0 && members.length > 1}
-			<section class="plan-section">
-				<a class="section-head plan-link" href="/p/{roomId}/settle">
-					<div class="eyebrow">Group flow</div>
-					<span class="dim mono plan-count">
-						{plan.length} {plan.length === 1 ? 'TRANSFER' : 'TRANSFERS'}
-						<span class="plan-chevron" aria-hidden="true">›</span>
-					</span>
-				</a>
-				<div class="card graph-card">
-					<SettlementGraph {members} {plan} {currentMemberId} symbol={currencySymbol} />
-					<div class="row gap-12 graph-legend">
-						<span class="row gap-6"><span class="legend-dot legend-in"></span>You're owed</span>
-						<span class="row gap-6"><span class="legend-dot legend-out"></span>You owe</span>
-						<span class="row gap-6"><span class="legend-dot legend-other"></span>Between others</span>
+								<span class="num plan-amount">{formatAmount(t.amount, currencySymbol)}</span>
+							</div>
+						{/each}
 					</div>
-				</div>
+				{/if}
+				{#if othersPlan.length > 0}
+					<a class="others-link" href="/p/{roomId}/settle">
+						<span class="dim mono">
+							{#if yourPlan.length === 0}
+								You're clear ·
+							{/if}
+							{othersPlan.length} {othersPlan.length === 1 ? 'transfer' : 'transfers'} between others
+						</span>
+						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+					</a>
+				{/if}
 			</section>
 		{/if}
 
@@ -497,32 +492,32 @@
 		font-size: 15px;
 	}
 
-	.graph-card {
-		padding: 10px 10px 8px;
+	.others-link {
 		display: flex;
-		flex-direction: column;
-		gap: 4px;
-	}
-
-	.graph-legend {
-		flex-wrap: wrap;
-		gap: 10px;
-		font-size: 10px;
+		align-items: center;
+		justify-content: space-between;
+		gap: 8px;
+		padding: 10px 14px;
+		margin-top: 8px;
+		background: transparent;
+		border: 1px dashed var(--line-2);
+		border-radius: var(--radius);
 		color: var(--ink-2);
-		font-family: var(--font-mono);
-		justify-content: center;
+		text-decoration: none;
+		font-size: 12px;
+		transition: border-color 0.12s ease, color 0.12s ease;
 	}
 
-	.legend-dot {
-		width: 10px;
-		height: 2px;
-		border-radius: 1px;
-		flex-shrink: 0;
+	.others-link:hover {
+		border-color: var(--accent);
+		color: var(--ink);
 	}
 
-	.legend-in { background: var(--accent); }
-	.legend-out { background: var(--owe); }
-	.legend-other { background: var(--ink-3); }
+	.others-link svg {
+		width: 14px;
+		height: 14px;
+		color: var(--ink-3);
+	}
 
 	.recent-section {
 		margin-top: 4px;
