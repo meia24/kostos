@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { expenseShares } from '$lib/balance';
-	import { evalExpression, evalToCents, toMinorUnits } from '$lib/math';
+	import { evalToCents } from '$lib/math';
 	import { formatAmount } from '$lib/money';
 	import { getCurrentMember } from '$lib/storage';
 	import { addExpense, generateId, openRoom, readMembers, readProject } from '$lib/sync/doc';
@@ -40,6 +40,8 @@
 	const currentMemberId = $derived.by(() => getCurrentMember());
 
 	let amountInput = $state('');
+	let amountCents = $state(0);
+	let amountInputEl = $state<HTMLInputElement | null>(null);
 	let title = $state('');
 	let dateStr = $state(new Date().toISOString().slice(0, 10));
 	let payerId = $state('');
@@ -51,13 +53,19 @@
 	let payerOpen = $state(false);
 	let submitting = $state(false);
 
-	const amountCents = $derived(evalToCents(amountInput) ?? 0);
-	const amountPreview = $derived.by(() => {
-		const result = evalExpression(amountInput);
-		if (result === null) return null;
-		if (!/[+\-*/(),]/.test(amountInput.trim())) return null;
-		return toMinorUnits(result);
+	// Hold the last valid evaluation while the user is still typing an incomplete
+	// expression like `50/`. Empty input resets to zero.
+	$effect(() => {
+		const raw = amountInput.trim();
+		if (raw === '') {
+			amountCents = 0;
+			return;
+		}
+		const evaluated = evalToCents(raw);
+		if (evaluated !== null && evaluated >= 0) amountCents = evaluated;
 	});
+
+	const isExpression = $derived(/[+\-*/()]/.test(amountInput.trim()));
 	const payerName = $derived(members.find((m) => m.id === payerId)?.name ?? 'You');
 	const currencySymbol = $derived(project?.currencySymbol ?? '€');
 	const involvedList = $derived(members.filter((m) => involved.has(m.id)));
@@ -170,23 +178,33 @@
 	</header>
 
 	<form class="scroll" onsubmit={onSave}>
-		<div class="amount-block">
-			<div class="eyebrow">Amount</div>
-			<div class="amount-display">
-				<span class="amount-symbol">{currencySymbol}</span>
-				<span class="amount-value mono">{(amountCents / 100).toFixed(2)}</span>
-			</div>
-			<input
-				class="input amount-input mono"
-				bind:value={amountInput}
-				placeholder="0.00 or 50/20-2"
-				inputmode="decimal"
-				autocomplete="off"
-			/>
-			{#if amountPreview !== null}
-				<p class="dim amount-preview">= {formatAmount(amountPreview, currencySymbol)}</p>
-			{/if}
-		</div>
+		<button
+			type="button"
+			class="amount-block"
+			onclick={() => amountInputEl?.focus()}
+			tabindex="-1"
+		>
+			<span class="eyebrow">Amount</span>
+			<span class="amount-display" class:is-zero={amountCents === 0}>
+				<span class="amount-symbol">{currencySymbol}</span><span class="amount-value mono"
+					>{(amountCents / 100).toFixed(2)}</span
+				>
+			</span>
+			<span class="amount-input-wrap" class:is-expression={isExpression}>
+				<input
+					bind:this={amountInputEl}
+					class="amount-input mono"
+					bind:value={amountInput}
+					placeholder="Type 0.00 or 50/20-2"
+					inputmode="decimal"
+					autocomplete="off"
+					aria-label="Amount, accepts math expressions"
+				/>
+				{#if isExpression}
+					<span class="amount-input-hint mono" aria-hidden="true">fx</span>
+				{/if}
+			</span>
+		</button>
 
 		<input class="input title-input" bind:value={title} placeholder="What was it for?" />
 
@@ -393,21 +411,41 @@
 
 <style>
 	.amount-block {
+		display: flex;
+		flex-direction: column;
+		align-items: stretch;
+		gap: 14px;
+		padding: 22px 0 4px;
+		background: transparent;
+		border: 0;
+		width: 100%;
 		text-align: center;
-		padding: 18px 0 6px;
+		color: inherit;
+		font: inherit;
+		cursor: text;
+	}
+
+	.amount-block .eyebrow {
+		align-self: center;
 	}
 
 	.amount-display {
 		display: inline-flex;
+		justify-content: center;
 		align-items: baseline;
 		gap: 6px;
-		margin-top: 8px;
+		transition: opacity 0.15s ease;
+	}
+
+	.amount-display.is-zero {
+		opacity: 0.4;
 	}
 
 	.amount-symbol {
 		font-family: var(--font-display);
-		font-size: 32px;
+		font-size: 30px;
 		color: var(--ink-2);
+		line-height: 1;
 	}
 
 	.amount-value {
@@ -418,17 +456,55 @@
 		color: var(--accent);
 	}
 
-	.amount-input {
-		margin: 14px auto 0;
-		max-width: 260px;
-		text-align: center;
-		letter-spacing: 0.04em;
+	.amount-input-wrap {
+		position: relative;
+		align-self: center;
+		width: 100%;
+		max-width: 320px;
 	}
 
-	.amount-preview {
-		font-size: 11px;
-		font-family: var(--font-mono);
-		margin: 8px 0 0;
+	.amount-input {
+		width: 100%;
+		background: var(--bg-2);
+		border: 1px solid var(--line);
+		border-radius: var(--radius);
+		color: var(--ink);
+		padding: 12px 14px;
+		font-size: 15px;
+		text-align: center;
+		letter-spacing: 0.04em;
+		outline: none;
+		transition: border-color 0.12s ease, box-shadow 0.12s ease;
+	}
+
+	.amount-input:focus {
+		border-color: var(--accent);
+		box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 22%, transparent);
+	}
+
+	.amount-input::placeholder {
+		color: var(--ink-3);
+		letter-spacing: 0.02em;
+	}
+
+	.is-expression .amount-input {
+		border-color: var(--accent);
+		padding-right: 38px;
+	}
+
+	.amount-input-hint {
+		position: absolute;
+		right: 12px;
+		top: 50%;
+		transform: translateY(-50%);
+		font-size: 10px;
+		font-weight: 700;
+		color: var(--accent-ink);
+		background: var(--accent);
+		border-radius: 6px;
+		padding: 2px 6px;
+		letter-spacing: 0.08em;
+		pointer-events: none;
 	}
 
 	.title-input {
