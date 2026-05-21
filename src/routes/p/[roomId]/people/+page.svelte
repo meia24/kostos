@@ -34,7 +34,7 @@
 		if (editingId && editInputEl) editInputEl.focus();
 	});
 
-	const currentMemberId = $derived.by(() => getCurrentMember());
+	const currentMemberId = $derived.by(() => getCurrentMember(roomId));
 	const currencySymbol = $derived(room.currencySymbol);
 	const balances = $derived(computeBalances(members, expenses));
 	const balanceById = $derived(new Map(balances.map((b) => [b.memberId, b.net])));

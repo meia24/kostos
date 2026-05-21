@@ -4,7 +4,7 @@
 	import CurrencyPicker from '$lib/components/CurrencyPicker.svelte';
 	import EmojiTilePicker from '$lib/components/EmojiTilePicker.svelte';
 	import { CURRENCY_PRESETS, type CurrencyPreset } from '$lib/currencies';
-	import { setCurrentMember, setCurrentProject } from '$lib/storage';
+	import { addProject, setCurrentMember } from '$lib/storage';
 	import { generateId, initProject, openRoom } from '$lib/sync/doc';
 	import { generateRoomId, generateSecret } from '$lib/token';
 	import {
@@ -85,8 +85,15 @@
 		await handle.ready;
 		initProject(handle, project, [creator, ...otherMembers]);
 
-		setCurrentProject({ roomId, secret, name: project.name });
-		setCurrentMember(creator.id);
+		addProject({
+			roomId,
+			secret,
+			name: project.name,
+			emoji: project.emoji,
+			color: project.color,
+			lastActiveAt: Date.now()
+		});
+		setCurrentMember(roomId, creator.id);
 
 		await goto(`/p/${roomId}`);
 	}

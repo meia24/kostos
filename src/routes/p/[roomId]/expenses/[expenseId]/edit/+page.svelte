@@ -34,7 +34,7 @@
 		}
 	});
 
-	const currentMemberId = $derived.by(() => getCurrentMember());
+	const currentMemberId = $derived.by(() => getCurrentMember(roomId));
 
 	async function onSave(expense: Expense) {
 		updateExpense(handle, expense);

@@ -3,10 +3,7 @@
 	import { page } from '$app/state';
 	import { PROJECT_COLOR_VALUES, tileBackground } from '$lib/colors';
 	import EmptyCard from '$lib/components/EmptyCard.svelte';
-	import {
-		setCurrentMember,
-		setCurrentProject
-	} from '$lib/storage';
+	import { addProject, setCurrentMember } from '$lib/storage';
 	import {
 		addMember,
 		generateId,
@@ -71,8 +68,15 @@
 	async function joinAsExisting() {
 		if (!project || !pickedId || joining) return;
 		joining = true;
-		setCurrentProject({ roomId, secret, name: project.name });
-		setCurrentMember(pickedId);
+		addProject({
+			roomId,
+			secret,
+			name: project.name,
+			emoji: project.emoji,
+			color: project.color,
+			lastActiveAt: Date.now()
+		});
+		setCurrentMember(roomId, pickedId);
 		await goto(`/p/${roomId}`);
 	}
 
@@ -85,8 +89,15 @@
 		const handle = openRoom(roomId, secret);
 		const member: Member = { id: generateId(), name, createdAt: Date.now() };
 		addMember(handle, member);
-		setCurrentProject({ roomId, secret, name: project.name });
-		setCurrentMember(member.id);
+		addProject({
+			roomId,
+			secret,
+			name: project.name,
+			emoji: project.emoji,
+			color: project.color,
+			lastActiveAt: Date.now()
+		});
+		setCurrentMember(roomId, member.id);
 		await goto(`/p/${roomId}`);
 	}
 </script>

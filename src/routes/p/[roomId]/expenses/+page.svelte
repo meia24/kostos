@@ -17,7 +17,7 @@
 	const members = $derived(room.members);
 	const expenses = $derived(room.expenses);
 
-	const currentMemberId = $derived.by(() => getCurrentMember());
+	const currentMemberId = $derived.by(() => getCurrentMember(roomId));
 	const currencySymbol = $derived(room.currencySymbol);
 	const membersById = $derived(room.membersById);
 	const categoryById = $derived(room.categoryById);

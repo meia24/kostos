@@ -19,7 +19,7 @@
 	const expenses = $derived(room.expenses);
 	let confirmingDelete = $state(false);
 
-	const currentMemberId = $derived.by(() => getCurrentMember());
+	const currentMemberId = $derived.by(() => getCurrentMember(roomId));
 	const currencySymbol = $derived(room.currencySymbol);
 	const membersById = $derived(room.membersById);
 	const expense = $derived(expenses.find((e) => e.id === expenseId));

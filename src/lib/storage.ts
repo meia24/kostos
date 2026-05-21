@@ -1,4 +1,5 @@
 import { browser } from '$app/environment';
+import type { ProjectColor } from './types';
 
 type Theme = 'light' | 'dark';
 type Palette = 'lime' | 'cyan' | 'violet' | 'amber' | 'coral' | 'blue';
@@ -6,17 +7,25 @@ type Palette = 'lime' | 'cyan' | 'violet' | 'amber' | 'coral' | 'blue';
 const KEY = {
 	theme: 'kostos:theme',
 	palette: 'kostos:palette',
-	currentProject: 'kostos:current_project',
-	currentMember: 'kostos:current_member'
+	projects: 'kostos:projects',
+	memberFor: (roomId: string) => `kostos:member_for:${roomId}`,
+	// Legacy single-project keys; read once for migration, then phased out.
+	legacyCurrentProject: 'kostos:current_project',
+	legacyCurrentMember: 'kostos:current_member'
 } as const;
 
 export type ProjectRef = {
-	/** Short, human-readable room id shown in the UI (e.g. `prt-4f2k-9xba`). */
+	/** Short, human-readable room id shown in the UI (e.g. `PRT-4F2K-9XBA`). */
 	roomId: string;
 	/** Secret half of the token. Lives only in the URL fragment + localStorage; never sent to the server. */
 	secret: string;
 	/** Display name the user gave the project. */
 	name: string;
+	/** Cached presentation for the projects list (refreshed on each project open). */
+	emoji?: string;
+	color?: ProjectColor;
+	/** Unix ms of the last open; drives the project list sort. */
+	lastActiveAt?: number;
 };
 
 function read(key: string): string | null {
@@ -57,28 +66,121 @@ export function setPalette(p: Palette): void {
 	if (browser) document.documentElement.setAttribute('data-palette', p);
 }
 
-export function getCurrentProject(): ProjectRef | null {
-	const raw = read(KEY.currentProject);
+/* --------------------------------- Projects --------------------------------- */
+
+function parseProjectsRaw(): ProjectRef[] | null {
+	const raw = read(KEY.projects);
 	if (!raw) return null;
 	try {
 		const parsed = JSON.parse(raw);
-		if (parsed && typeof parsed.roomId === 'string' && typeof parsed.secret === 'string') {
-			return parsed as ProjectRef;
-		}
+		if (!Array.isArray(parsed)) return null;
+		return parsed.filter(
+			(p): p is ProjectRef => p && typeof p.roomId === 'string' && typeof p.secret === 'string'
+		);
 	} catch {
-		// corrupt payload; treat as no stored project
+		return null;
 	}
-	return null;
 }
 
-export function setCurrentProject(p: ProjectRef | null): void {
-	write(KEY.currentProject, p ? JSON.stringify(p) : null);
+function migrateLegacyIfNeeded(): ProjectRef[] | null {
+	if (parseProjectsRaw() !== null) return null;
+	const legacyRaw = read(KEY.legacyCurrentProject);
+	if (!legacyRaw) return null;
+	try {
+		const legacy = JSON.parse(legacyRaw);
+		if (!legacy || typeof legacy.roomId !== 'string' || typeof legacy.secret !== 'string') return null;
+		const seed: ProjectRef = {
+			roomId: legacy.roomId,
+			secret: legacy.secret,
+			name: legacy.name ?? 'Group',
+			lastActiveAt: Date.now()
+		};
+		write(KEY.projects, JSON.stringify([seed]));
+
+		const legacyMember = read(KEY.legacyCurrentMember);
+		if (legacyMember) write(KEY.memberFor(legacy.roomId), legacyMember);
+
+		// Old keys are no longer authoritative; drop them so future writes don't conflict.
+		write(KEY.legacyCurrentProject, null);
+		write(KEY.legacyCurrentMember, null);
+
+		return [seed];
+	} catch {
+		return null;
+	}
 }
 
-export function getCurrentMember(): string | null {
-	return read(KEY.currentMember);
+export function listProjects(): ProjectRef[] {
+	const migrated = migrateLegacyIfNeeded();
+	const projects = migrated ?? parseProjectsRaw() ?? [];
+	return [...projects].sort((a, b) => (b.lastActiveAt ?? 0) - (a.lastActiveAt ?? 0));
 }
 
-export function setCurrentMember(memberId: string | null): void {
-	write(KEY.currentMember, memberId);
+export function findProject(roomId: string): ProjectRef | null {
+	return listProjects().find((p) => p.roomId === roomId) ?? null;
+}
+
+function writeProjects(projects: ProjectRef[]): void {
+	write(KEY.projects, JSON.stringify(projects));
+}
+
+export function addProject(ref: ProjectRef): void {
+	const existing = (parseProjectsRaw() ?? []).filter((p) => p.roomId !== ref.roomId);
+	const updated: ProjectRef = {
+		...ref,
+		lastActiveAt: ref.lastActiveAt ?? Date.now()
+	};
+	writeProjects([updated, ...existing]);
+}
+
+export function removeProject(roomId: string): void {
+	const remaining = (parseProjectsRaw() ?? []).filter((p) => p.roomId !== roomId);
+	writeProjects(remaining);
+	write(KEY.memberFor(roomId), null);
+}
+
+export function updateProjectMetadata(
+	roomId: string,
+	patch: Partial<Pick<ProjectRef, 'name' | 'emoji' | 'color' | 'lastActiveAt'>>
+): void {
+	const projects = parseProjectsRaw();
+	if (!projects) return;
+	let touched = false;
+	const next = projects.map((p) => {
+		if (p.roomId !== roomId) return p;
+		const merged = { ...p, ...patch };
+		// Avoid noisy writes when nothing actually changed.
+		if (JSON.stringify(merged) === JSON.stringify(p)) return p;
+		touched = true;
+		return merged;
+	});
+	if (touched) writeProjects(next);
+}
+
+/* --------------------------------- Members ---------------------------------- */
+
+export function getCurrentMember(roomId: string): string | null {
+	if (!roomId) return null;
+	return read(KEY.memberFor(roomId));
+}
+
+export function setCurrentMember(roomId: string, memberId: string | null): void {
+	if (!roomId) return;
+	write(KEY.memberFor(roomId), memberId);
+}
+
+/* --------------------------- Backward compatibility ------------------------- */
+
+/** Most-recently-active project, or null. */
+export function getCurrentProject(): ProjectRef | null {
+	return listProjects()[0] ?? null;
+}
+
+/** Shorthand for adding/promoting a project to most-recent. Pass null to forget all. */
+export function setCurrentProject(ref: ProjectRef | null): void {
+	if (ref === null) {
+		writeProjects([]);
+		return;
+	}
+	addProject(ref);
 }

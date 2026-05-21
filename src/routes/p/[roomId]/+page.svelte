@@ -43,7 +43,7 @@
 		}
 	});
 
-	const currentMemberId = $derived.by(() => getCurrentMember());
+	const currentMemberId = $derived.by(() => getCurrentMember(roomId));
 	const youMember = $derived(members.find((m) => m.id === currentMemberId) ?? null);
 	const currencySymbol = $derived(room.currencySymbol);
 	const membersById = $derived(room.membersById);

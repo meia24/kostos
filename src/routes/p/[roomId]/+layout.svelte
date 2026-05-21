@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import LoadingScreen from '$lib/components/LoadingScreen.svelte';
+	import { updateProjectMetadata } from '$lib/storage';
 	import { openRoom, readProject } from '$lib/sync/doc';
 
 	let { children } = $props();
@@ -18,6 +19,14 @@
 				goto('/', { replaceState: true });
 				return;
 			}
+			// Refresh the cached projects-list entry every time we enter the room so the
+			// landing page shows current name/emoji/color and bumps the "most recent" sort.
+			updateProjectMetadata(roomId, {
+				name: project.name,
+				emoji: project.emoji,
+				color: project.color,
+				lastActiveAt: Date.now()
+			});
 			loaded = true;
 		});
 	});

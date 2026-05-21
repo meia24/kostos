@@ -8,7 +8,7 @@
 	import EmojiTilePicker from '$lib/components/EmojiTilePicker.svelte';
 	import IdentityCard from '$lib/components/IdentityCard.svelte';
 	import ScreenAppBar from '$lib/components/ScreenAppBar.svelte';
-	import { getCurrentMember, setCurrentMember, setCurrentProject } from '$lib/storage';
+	import { getCurrentMember, removeProject, setCurrentMember } from '$lib/storage';
 	import {
 		addCategory,
 		addPaymentMethod,
@@ -33,7 +33,7 @@
 	let signingOut = $state(false);
 	let switchingMember = $state(false);
 
-	const currentMemberId = $derived.by(() => getCurrentMember());
+	const currentMemberId = $derived.by(() => getCurrentMember(roomId));
 	const currentMember = $derived(
 		currentMemberId ? members.find((m) => m.id === currentMemberId) : null
 	);
@@ -93,15 +93,14 @@
 	function signOut() {
 		if (signingOut) return;
 		signingOut = true;
-		setCurrentProject(null);
-		setCurrentMember(null);
+		removeProject(roomId);
 		goto('/', { replaceState: true });
 	}
 
 	function pickMember(id: string) {
-		setCurrentMember(id);
-		// Forcing a navigation with reload makes every $derived(getCurrentMember()) on the
-		// dashboard re-evaluate, since localStorage reads aren't tracked by Svelte's runtime.
+		setCurrentMember(roomId, id);
+		// Force a reload so every $derived(getCurrentMember(roomId)) re-evaluates;
+		// localStorage reads aren't tracked by Svelte's runtime.
 		window.location.href = `/p/${roomId}`;
 	}
 </script>
