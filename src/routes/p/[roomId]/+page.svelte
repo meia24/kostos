@@ -3,6 +3,7 @@
 	import { computeBalances, planSettlements } from '$lib/balance';
 	import { PROJECT_COLOR_VALUES, tileBackground } from '$lib/colors';
 	import ExpenseRow from '$lib/components/ExpenseRow.svelte';
+	import SettlementGraph from '$lib/components/SettlementGraph.svelte';
 	import { formatAmount } from '$lib/money';
 	import { getCurrentMember, getCurrentProject } from '$lib/storage';
 	import { openRoom, readExpenses, readMembers, readProject } from '$lib/sync/doc';
@@ -99,11 +100,6 @@
 		return 'All settled';
 	}
 
-	function payerName(id: string): string {
-		const m = membersById.get(id);
-		if (!m) return '—';
-		return m.id === currentMemberId ? 'You' : m.name;
-	}
 </script>
 
 <svelte:head>
@@ -218,28 +214,22 @@
 			</section>
 		{/if}
 
-		{#if plan.length > 0}
+		{#if plan.length > 0 && members.length > 1}
 			<section class="plan-section">
 				<a class="section-head plan-link" href="/p/{roomId}/settle">
-					<div class="eyebrow">Group plan</div>
+					<div class="eyebrow">Group flow</div>
 					<span class="dim mono plan-count">
-						{plan.length} TOTAL
+						{plan.length} {plan.length === 1 ? 'TRANSFER' : 'TRANSFERS'}
 						<span class="plan-chevron" aria-hidden="true">›</span>
 					</span>
 				</a>
-				<div class="card plan-list compact">
-					{#each plan as t, i (i)}
-						<div class="plan-row compact">
-							<span class="num plan-name">{payerName(t.from)}</span>
-							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" class="plan-arrow">
-								<path d="M5 12h14M13 6l6 6-6 6" />
-							</svg>
-							<span class="num plan-name">{payerName(t.to)}</span>
-							<span class="num plan-amount" style="margin-left: auto;">
-								{formatAmount(t.amount, currencySymbol)}
-							</span>
-						</div>
-					{/each}
+				<div class="card graph-card">
+					<SettlementGraph {members} {plan} {currentMemberId} symbol={currencySymbol} />
+					<div class="row gap-12 graph-legend">
+						<span class="row gap-6"><span class="legend-dot legend-in"></span>You're owed</span>
+						<span class="row gap-6"><span class="legend-dot legend-out"></span>You owe</span>
+						<span class="row gap-6"><span class="legend-dot legend-other"></span>Between others</span>
+					</div>
 				</div>
 			</section>
 		{/if}
@@ -507,21 +497,32 @@
 		font-size: 15px;
 	}
 
-	.plan-list.compact .plan-row {
-		padding: 10px 12px;
+	.graph-card {
+		padding: 14px;
+		display: flex;
+		flex-direction: column;
 		gap: 8px;
 	}
 
-	.plan-arrow {
-		width: 14px;
-		height: 14px;
-		color: var(--ink-3);
+	.graph-legend {
+		flex-wrap: wrap;
+		gap: 12px;
+		font-size: 11px;
+		color: var(--ink-2);
+		font-family: var(--font-mono);
+		justify-content: center;
 	}
 
-	.plan-name {
-		font-size: 12px;
-		font-weight: 500;
+	.legend-dot {
+		width: 10px;
+		height: 2px;
+		border-radius: 1px;
+		flex-shrink: 0;
 	}
+
+	.legend-in { background: var(--accent); }
+	.legend-out { background: var(--owe); }
+	.legend-other { background: var(--ink-3); }
 
 	.recent-section {
 		margin-top: 4px;
