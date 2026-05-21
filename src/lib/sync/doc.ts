@@ -58,7 +58,8 @@ export function readProject(handle: RoomHandle): Project | null {
 		id: p.get('id') as string,
 		name: p.get('name') as string,
 		description: p.get('description') as string | undefined,
-		emoji: p.get('emoji') as string | undefined,
+		emoji: (p.get('emoji') as string | undefined) ?? '🏖',
+		color: (p.get('color') as Project['color']) ?? 'lime',
 		currency: p.get('currency') as string,
 		currencySymbol: p.get('currencySymbol') as string,
 		defaultSplit: p.get('defaultSplit') as Project['defaultSplit'],
@@ -80,7 +81,8 @@ export function initProject(handle: RoomHandle, project: Project, members: Membe
 		handle.project.set('id', project.id);
 		handle.project.set('name', project.name);
 		if (project.description) handle.project.set('description', project.description);
-		if (project.emoji) handle.project.set('emoji', project.emoji);
+		handle.project.set('emoji', project.emoji);
+		handle.project.set('color', project.color);
 		handle.project.set('currency', project.currency);
 		handle.project.set('currencySymbol', project.currencySymbol);
 		handle.project.set('defaultSplit', project.defaultSplit);

@@ -2,11 +2,14 @@ export type DefaultSplit = 'even' | 'shares' | 'amount';
 
 export type PaymentMethod = 'cash' | 'card' | 'bank' | 'other';
 
+export type ProjectColor = 'lime' | 'cyan' | 'violet' | 'amber' | 'coral' | 'blue';
+
 export type Project = {
 	id: string;
 	name: string;
 	description?: string;
-	emoji?: string;
+	emoji: string;
+	color: ProjectColor;
 	currency: string;
 	currencySymbol: string;
 	defaultSplit: DefaultSplit;

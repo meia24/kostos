@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { PROJECT_COLOR_VALUES, tileBackground } from '$lib/colors';
 	import { openRoom, readMembers, readProject } from '$lib/sync/doc';
 	import { getCurrentMember, getCurrentProject } from '$lib/storage';
 	import type { Member, Project } from '$lib/types';
@@ -73,7 +74,14 @@
 		<section class="hero-block">
 			<div class="eyebrow">You are</div>
 			<div class="hero-title">
-				<span class="hero-emoji">{project?.emoji ?? '🏖'}</span>
+				<span
+					class="hero-tile"
+					style={project
+						? `background: ${tileBackground(project.color)}; color: ${PROJECT_COLOR_VALUES[project.color]};`
+						: ''}
+				>
+					{project?.emoji ?? '🏖'}
+				</span>
 				<span>{project?.name ?? 'Loading…'}</span>
 			</div>
 			{#if youMember}
@@ -184,8 +192,14 @@
 		gap: 10px;
 	}
 
-	.hero-emoji {
+	.hero-tile {
+		width: 56px;
+		height: 56px;
+		border-radius: 18px;
+		display: grid;
+		place-items: center;
 		font-size: 30px;
+		flex-shrink: 0;
 	}
 
 	.hero-sub {
