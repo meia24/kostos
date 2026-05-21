@@ -1,6 +1,7 @@
 import * as Y from 'yjs';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import { browser } from '$app/environment';
+import { getCurrentProject } from '$lib/storage';
 import {
 	DEFAULT_CATEGORIES,
 	DEFAULT_PAYMENT_METHODS,
@@ -12,6 +13,14 @@ import {
 	type PaymentMethodItem,
 	type Project
 } from '$lib/types';
+import { createSyncProvider, type EncryptedSyncProvider } from './provider';
+
+const DEFAULT_SYNC_URL = 'ws://localhost:1234';
+
+function syncUrl(): string {
+	const env = (import.meta.env.VITE_SYNC_URL as string | undefined) ?? '';
+	return env || DEFAULT_SYNC_URL;
+}
 
 export type RoomHandle = {
 	roomId: string;
@@ -20,6 +29,7 @@ export type RoomHandle = {
 	members: Y.Array<Y.Map<unknown>>;
 	expenses: Y.Array<Y.Map<unknown>>;
 	ready: Promise<void>;
+	syncProvider?: EncryptedSyncProvider;
 };
 
 type CacheEntry = {
@@ -29,9 +39,19 @@ type CacheEntry = {
 
 const cache = new Map<string, CacheEntry>();
 
-export function openRoom(roomId: string): RoomHandle {
+export function openRoom(roomId: string, secret?: string): RoomHandle {
 	const cached = cache.get(roomId);
-	if (cached) return cached.handle;
+	if (cached) {
+		// Attach sync lazily if the secret was unknown at first open
+		if (browser && !cached.handle.syncProvider) {
+			const effectiveSecret = secret ?? secretFromStorage(roomId);
+			if (effectiveSecret) {
+				cached.handle.syncProvider =
+					createSyncProvider(cached.handle.doc, syncUrl(), roomId, effectiveSecret) ?? undefined;
+			}
+		}
+		return cached.handle;
+	}
 
 	const doc = new Y.Doc();
 	const project = doc.getMap('project');
@@ -47,14 +67,38 @@ export function openRoom(roomId: string): RoomHandle {
 		ready = Promise.resolve();
 	}
 
-	const handle: RoomHandle = { roomId, doc, project, members, expenses, ready };
+	let syncProvider: EncryptedSyncProvider | undefined;
+	if (browser) {
+		const effectiveSecret = secret ?? secretFromStorage(roomId);
+		if (effectiveSecret) {
+			syncProvider =
+				createSyncProvider(doc, syncUrl(), roomId, effectiveSecret) ?? undefined;
+		}
+	}
+
+	const handle: RoomHandle = {
+		roomId,
+		doc,
+		project,
+		members,
+		expenses,
+		ready,
+		syncProvider
+	};
 	cache.set(roomId, { handle, persistence });
 	return handle;
+}
+
+function secretFromStorage(roomId: string): string | undefined {
+	const stored = getCurrentProject();
+	if (!stored || stored.roomId !== roomId) return undefined;
+	return stored.secret;
 }
 
 export async function destroyRoom(roomId: string): Promise<void> {
 	const entry = cache.get(roomId);
 	if (!entry) return;
+	if (entry.handle.syncProvider) entry.handle.syncProvider.destroy();
 	if (entry.persistence) {
 		await entry.persistence.destroy();
 		await entry.persistence.clearData();
