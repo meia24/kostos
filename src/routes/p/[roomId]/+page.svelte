@@ -4,6 +4,7 @@
 	import { PROJECT_COLOR_VALUES, tileBackground } from '$lib/colors';
 	import EmptyCard from '$lib/components/EmptyCard.svelte';
 	import ExpenseRow from '$lib/components/ExpenseRow.svelte';
+	import QrCode from '$lib/components/QrCode.svelte';
 	import TabBar from '$lib/components/TabBar.svelte';
 	import { formatAmount } from '$lib/money';
 	import { getCurrentMember, getCurrentProject } from '$lib/storage';
@@ -180,6 +181,10 @@
 				</div>
 				<span class="token-pill">{roomId}</span>
 				{#if shareUrl}
+					<div class="qr-wrap">
+						<QrCode value={shareUrl} size={200} />
+						<p class="dim mono qr-caption">SCAN TO JOIN</p>
+					</div>
 					<input id="share-url-display" class="share-url-display" value={shareUrl} readonly />
 				{/if}
 				<p class="dim share-hint">
@@ -390,6 +395,20 @@
 	.copy-btn:disabled {
 		opacity: 0.5;
 		cursor: not-allowed;
+	}
+
+	.qr-wrap {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 6px;
+		margin: 16px auto 4px;
+	}
+
+	.qr-caption {
+		font-size: 10px;
+		letter-spacing: 0.08em;
+		margin: 0;
 	}
 
 	.share-url-display {
