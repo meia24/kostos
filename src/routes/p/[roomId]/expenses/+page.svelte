@@ -42,11 +42,53 @@
 		new Map((project?.paymentMethods ?? []).map((m) => [m.id, m]))
 	);
 
+	let searching = $state(false);
+	let query = $state('');
+	let searchEl = $state<HTMLInputElement | null>(null);
+
+	$effect(() => {
+		if (searching && searchEl) searchEl.focus();
+	});
+
+	function toggleSearch() {
+		searching = !searching;
+		if (!searching) query = '';
+	}
+
+	function clearQuery() {
+		query = '';
+		searchEl?.focus();
+	}
+
+	function matchesQuery(e: Expense, q: string): boolean {
+		if (e.description && e.description.toLowerCase().includes(q)) return true;
+		if (e.notes && e.notes.toLowerCase().includes(q)) return true;
+		for (const p of e.payments) {
+			const name = membersById.get(p.memberId)?.name?.toLowerCase();
+			if (name && name.includes(q)) return true;
+		}
+		if (e.categoryId) {
+			const cat = categoryById.get(e.categoryId)?.name?.toLowerCase();
+			if (cat && cat.includes(q)) return true;
+		}
+		if (e.paymentMethodId) {
+			const method = methodById.get(e.paymentMethodId)?.name?.toLowerCase();
+			if (method && method.includes(q)) return true;
+		}
+		return false;
+	}
+
+	const filtered = $derived.by(() => {
+		const trimmed = query.trim().toLowerCase();
+		if (!trimmed) return expenses;
+		return expenses.filter((e) => matchesQuery(e, trimmed));
+	});
+
 	type DayGroup = { key: string; label: string; total: number; items: Expense[] };
 
 	const groups = $derived.by<DayGroup[]>(() => {
 		const buckets = new Map<string, DayGroup>();
-		const sorted = [...expenses].sort((a, b) => b.date - a.date || b.createdAt - a.createdAt);
+		const sorted = [...filtered].sort((a, b) => b.date - a.date || b.createdAt - a.createdAt);
 		for (const e of sorted) {
 			const key = dayKey(e.date);
 			let bucket = buckets.get(key);
@@ -60,7 +102,8 @@
 		return [...buckets.values()];
 	});
 
-	const overallTotal = $derived(expenses.reduce((s, e) => s + e.amount, 0));
+	const overallTotal = $derived(filtered.reduce((s, e) => s + e.amount, 0));
+	const isFiltering = $derived(query.trim().length > 0);
 
 	function dayKey(ts: number): string {
 		const d = new Date(ts);
@@ -111,23 +154,65 @@
 		</div>
 		<div class="app-bar-title">Expenses</div>
 		<div class="row gap-6" style="flex: 1; justify-content: flex-end;">
+			<button
+				class="icon-btn"
+				type="button"
+				aria-label={searching ? 'Close search' : 'Search expenses'}
+				aria-pressed={searching}
+				onclick={toggleSearch}
+			>
+				{#if searching}
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
+				{:else}
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="6" /><path d="M16 16l4 4" /></svg>
+				{/if}
+			</button>
 			<a class="icon-btn" href="/p/{roomId}/add" aria-label="Add expense">
 				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 6v12M6 12h12" /></svg>
 			</a>
 		</div>
 	</header>
 
+	{#if searching}
+		<div class="search-bar">
+			<span class="search-icon" aria-hidden="true">
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="6" /><path d="M16 16l4 4" /></svg>
+			</span>
+			<input
+				bind:this={searchEl}
+				bind:value={query}
+				class="search-input"
+				placeholder="Search title, payer, category, method, notes"
+				type="search"
+				autocomplete="off"
+				spellcheck="false"
+			/>
+			{#if query}
+				<button
+					class="search-clear"
+					type="button"
+					onclick={clearQuery}
+					aria-label="Clear search"
+				>
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
+				</button>
+			{/if}
+		</div>
+	{/if}
+
 	<div class="scroll">
 		<section class="card summary-card">
 			<div class="col">
-				<div class="eyebrow summary-eyebrow">Total spent</div>
+				<div class="eyebrow summary-eyebrow">
+					{isFiltering ? 'Matches' : 'Total spent'}
+				</div>
 				<div class="num summary-amount">
 					<span class="summary-sym">{currencySymbol}</span>{(overallTotal / 100).toFixed(2)}
 				</div>
 			</div>
 			<div class="col" style="align-items: flex-end;">
 				<div class="dim mono summary-count">
-					{expenses.length} {expenses.length === 1 ? 'EXPENSE' : 'EXPENSES'}
+					{filtered.length} {filtered.length === 1 ? 'EXPENSE' : 'EXPENSES'}
 				</div>
 				<div class="dim mono summary-count">
 					{groups.length} {groups.length === 1 ? 'DAY' : 'DAYS'}
@@ -138,6 +223,10 @@
 		{#if expenses.length === 0}
 			<div class="card empty-state">
 				<p>No expenses yet. Tap the + button to add the first one.</p>
+			</div>
+		{:else if filtered.length === 0}
+			<div class="card empty-state">
+				<p>No expenses match <strong>“{query.trim()}”</strong>.</p>
 			</div>
 		{:else}
 			{#each groups as g (g.key)}
@@ -260,4 +349,60 @@
 		padding: 4px;
 	}
 
+	.search-bar {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		padding: 8px 22px 4px;
+		background: var(--bg);
+	}
+
+	.search-icon {
+		display: grid;
+		place-items: center;
+		color: var(--ink-3);
+	}
+
+	.search-icon svg {
+		width: 18px;
+		height: 18px;
+	}
+
+	.search-input {
+		flex: 1;
+		background: var(--bg-2);
+		border: 1px solid var(--line);
+		border-radius: var(--radius);
+		color: var(--ink);
+		padding: 10px 14px;
+		font-size: 14px;
+		outline: none;
+		font-family: var(--font-sans);
+	}
+
+	.search-input:focus {
+		border-color: var(--accent);
+		box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 22%, transparent);
+	}
+
+	.search-input::placeholder {
+		color: var(--ink-3);
+	}
+
+	.search-clear {
+		display: grid;
+		place-items: center;
+		width: 30px;
+		height: 30px;
+		border-radius: 999px;
+		background: transparent;
+		border: 0;
+		color: var(--ink-2);
+		cursor: pointer;
+	}
+
+	.search-clear svg {
+		width: 14px;
+		height: 14px;
+	}
 </style>
