@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { PROJECT_COLORS, PROJECT_COLOR_VALUES, tileBackground } from '$lib/colors';
+	import CurrencyPicker from '$lib/components/CurrencyPicker.svelte';
+	import { CURRENCY_PRESETS, type CurrencyPreset } from '$lib/currencies';
 	import { setCurrentMember, setCurrentProject } from '$lib/storage';
 	import { generateId, initProject, openRoom } from '$lib/sync/doc';
 	import { generateRoomId, generateSecret } from '$lib/token';
@@ -13,7 +15,6 @@
 	} from '$lib/types';
 
 	type DraftMember = { id: string; name: string };
-	type Picker = null | 'emoji' | 'currency';
 
 	const EMOJI_PRESETS = [
 		'🏖',
@@ -42,25 +43,6 @@
 		'❤️'
 	];
 
-	const CURRENCY_PRESETS: { code: string; sym: string; name: string }[] = [
-		{ code: 'EUR', sym: '€', name: 'Euro' },
-		{ code: 'USD', sym: '$', name: 'US Dollar' },
-		{ code: 'GBP', sym: '£', name: 'British Pound' },
-		{ code: 'JPY', sym: '¥', name: 'Japanese Yen' },
-		{ code: 'CHF', sym: 'Fr', name: 'Swiss Franc' },
-		{ code: 'CAD', sym: 'C$', name: 'Canadian Dollar' },
-		{ code: 'AUD', sym: 'A$', name: 'Australian Dollar' },
-		{ code: 'BRL', sym: 'R$', name: 'Brazilian Real' },
-		{ code: 'MXN', sym: 'Mex$', name: 'Mexican Peso' },
-		{ code: 'INR', sym: '₹', name: 'Indian Rupee' },
-		{ code: 'CNY', sym: '¥', name: 'Chinese Yuan' },
-		{ code: 'KRW', sym: '₩', name: 'South Korean Won' },
-		{ code: 'SEK', sym: 'kr', name: 'Swedish Krona' },
-		{ code: 'NOK', sym: 'kr', name: 'Norwegian Krone' },
-		{ code: 'PLN', sym: 'zł', name: 'Polish Złoty' },
-		{ code: 'TRY', sym: '₺', name: 'Turkish Lira' }
-	];
-
 	const roomId = generateRoomId();
 	const secret = generateSecret();
 
@@ -69,13 +51,11 @@
 	let color = $state<ProjectColor>('lime');
 	let name = $state('');
 	let description = $state('');
-	let currencyCode = $state('EUR');
-	let currencySym = $state('€');
-	let currencyName = $state('Euro');
-	let customSym = $state('');
+	let currencyCode = $state(CURRENCY_PRESETS[0].code);
+	let currencySym = $state(CURRENCY_PRESETS[0].sym);
 	let yourName = $state('');
 	let others = $state<DraftMember[]>([{ id: generateId(), name: '' }]);
-	let picker = $state<Picker>(null);
+	let emojiOpen = $state(false);
 	let submitting = $state(false);
 
 	const filledOthers = $derived(others.filter((m) => m.name.trim().length > 0));
@@ -84,7 +64,7 @@
 	function pickEmoji(value: string) {
 		emoji = value;
 		emojiCustom = '';
-		picker = null;
+		emojiOpen = false;
 	}
 
 	function commitCustomEmoji() {
@@ -92,24 +72,17 @@
 		if (!cleaned) return;
 		emoji = Array.from(cleaned)[0] ?? emoji;
 		emojiCustom = '';
-		picker = null;
+		emojiOpen = false;
 	}
 
-	function pickCurrency(p: { code: string; sym: string; name: string }) {
+	function pickCurrency(p: CurrencyPreset) {
 		currencyCode = p.code;
 		currencySym = p.sym;
-		currencyName = p.name;
-		customSym = '';
-		picker = null;
 	}
 
-	function commitCustomCurrency() {
-		const cleaned = customSym.trim().slice(0, 4);
-		if (!cleaned) return;
+	function customCurrency(sym: string) {
 		currencyCode = '—';
-		currencySym = cleaned;
-		currencyName = 'Custom';
-		picker = null;
+		currencySym = sym;
 	}
 
 	function addAnother() {
@@ -195,8 +168,8 @@
 				class="emoji-mark"
 				style="background: {tileBackground(color)};"
 				aria-label="Change icon"
-				aria-expanded={picker === 'emoji'}
-				onclick={() => (picker = picker === 'emoji' ? null : 'emoji')}
+				aria-expanded={emojiOpen}
+				onclick={() => (emojiOpen = !emojiOpen)}
 			>
 				<span>{emoji}</span>
 				<span class="emoji-pencil" aria-hidden="true">
@@ -221,7 +194,7 @@
 				{/each}
 			</div>
 
-			{#if picker === 'emoji'}
+			{#if emojiOpen}
 				<div class="picker-panel">
 					<div class="emoji-grid">
 						{#each EMOJI_PRESETS as e (e)}
@@ -273,73 +246,13 @@
 			style="font-size: 13px; text-align: center; padding: 12px; color: var(--ink-2);"
 		/>
 
-		<div class="card field-card" style="margin-top: 18px;">
-			<button
-				type="button"
-				class="field field-button"
-				aria-expanded={picker === 'currency'}
-				onclick={() => (picker = picker === 'currency' ? null : 'currency')}
-			>
-				<span class="field-icon num">{currencySym}</span>
-				<span class="col" style="flex: 1; align-items: flex-start;">
-					<span class="field-label">Default currency</span>
-					<span class="field-value-static">{currencyCode === '—' ? 'Custom' : currencyCode} · {currencyName}</span>
-				</span>
-				<span class="field-chevron" aria-hidden="true">
-					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
-						<path d="M6 9l6 6 6-6" />
-					</svg>
-				</span>
-			</button>
-			{#if picker === 'currency'}
-				<div class="picker-panel currency-panel">
-					<ul class="currency-list">
-						{#each CURRENCY_PRESETS as p (p.code)}
-							<li>
-								<button
-									type="button"
-									class="currency-row"
-									class:on={p.code === currencyCode}
-									onclick={() => pickCurrency(p)}
-								>
-									<span class="currency-sym num">{p.sym}</span>
-									<span class="col currency-text">
-										<span class="currency-code">{p.code}</span>
-										<span class="dim currency-name">{p.name}</span>
-									</span>
-									{#if p.code === currencyCode}
-										<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="currency-check">
-											<path d="M5 12l5 5L20 7" />
-										</svg>
-									{/if}
-								</button>
-							</li>
-						{/each}
-					</ul>
-					<div class="picker-custom">
-						<label class="picker-custom-label" for="currency-custom-input">Or use a custom symbol</label>
-						<div class="row gap-6">
-							<input
-								id="currency-custom-input"
-								class="input picker-input mono"
-								bind:value={customSym}
-								maxlength="4"
-								placeholder="e.g. ₿ or kr"
-								autocomplete="off"
-							/>
-							<button
-								type="button"
-								class="btn btn-primary picker-apply"
-								onclick={commitCustomCurrency}
-								disabled={!customSym.trim()}
-							>
-								Use
-							</button>
-						</div>
-						<p class="dim picker-hint">Up to 4 characters.</p>
-					</div>
-				</div>
-			{/if}
+		<div class="card field-card" style="margin-top: 18px; padding: 4px;">
+			<CurrencyPicker
+				code={currencyCode}
+				symbol={currencySym}
+				onSelect={pickCurrency}
+				onCustom={customCurrency}
+			/>
 		</div>
 
 		<div class="section-head">
@@ -541,131 +454,6 @@
 	.picker-apply:disabled {
 		opacity: 0.5;
 		cursor: not-allowed;
-	}
-
-	.picker-hint {
-		font-size: 11px;
-		font-family: var(--font-mono);
-		margin: 8px 0 0;
-	}
-
-	.field-card {
-		padding: 4px;
-	}
-
-	.field {
-		display: flex;
-		align-items: center;
-		gap: 12px;
-		padding: 14px 12px;
-	}
-
-	.field-button {
-		width: 100%;
-		background: transparent;
-		border: 0;
-		color: inherit;
-		cursor: pointer;
-		text-align: left;
-	}
-
-	.field-icon {
-		font-family: var(--font-mono);
-		font-size: 18px;
-		width: 40px;
-		text-align: center;
-		font-weight: 700;
-		color: var(--accent);
-	}
-
-	.field-label {
-		font-family: var(--font-mono);
-		font-size: 10px;
-		color: var(--ink-2);
-		text-transform: uppercase;
-		letter-spacing: 0.06em;
-	}
-
-	.field-value-static {
-		font-size: 14px;
-		color: var(--ink);
-		padding-top: 4px;
-	}
-
-	.field-chevron {
-		color: var(--ink-3);
-		display: grid;
-		place-items: center;
-	}
-
-	.field-chevron svg {
-		width: 18px;
-		height: 18px;
-	}
-
-	.currency-panel {
-		margin-top: 0;
-		border-top-left-radius: 0;
-		border-top-right-radius: 0;
-		border-top: 0;
-	}
-
-	.currency-list {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-		max-height: 280px;
-		overflow-y: auto;
-	}
-
-	.currency-list li + li {
-		border-top: 1px solid var(--line);
-	}
-
-	.currency-row {
-		width: 100%;
-		display: flex;
-		align-items: center;
-		gap: 12px;
-		padding: 10px 4px;
-		background: transparent;
-		border: 0;
-		color: inherit;
-		cursor: pointer;
-		text-align: left;
-	}
-
-	.currency-sym {
-		width: 36px;
-		text-align: center;
-		font-size: 16px;
-		font-weight: 600;
-		color: var(--accent);
-	}
-
-	.currency-text {
-		flex: 1;
-		gap: 2px;
-	}
-
-	.currency-code {
-		font-size: 14px;
-		font-weight: 600;
-	}
-
-	.currency-name {
-		font-size: 11px;
-		font-family: var(--font-mono);
-	}
-
-	.currency-check {
-		width: 18px;
-		height: 18px;
-		color: var(--accent);
-	}
-
-	.currency-row.on .currency-code {
-		color: var(--accent);
 	}
 
 	.members-card {
