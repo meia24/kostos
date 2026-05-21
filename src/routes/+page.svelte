@@ -129,6 +129,42 @@
 			</p>
 		</header>
 
+		{#snippet tokenForm()}
+			<form class="card token-form" onsubmit={onJoinSubmit}>
+				<div class="eyebrow" style="margin-bottom: 8px;">Paste a group token</div>
+				<div class="input-wrap">
+					<input
+						class="input token-input"
+						placeholder="PRT-XXXX-XXXX"
+						bind:value={token}
+						autocomplete="off"
+						autocapitalize="characters"
+						spellcheck="false"
+						aria-invalid={error ? 'true' : 'false'}
+					/>
+					<button type="button" class="icon-btn qr-btn" aria-label="Scan QR code" onclick={() => goto('/scan')}>
+						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
+							<rect x="3" y="3" width="7" height="7" rx="1" />
+							<rect x="14" y="3" width="7" height="7" rx="1" />
+							<rect x="3" y="14" width="7" height="7" rx="1" />
+							<rect x="14" y="14" width="3" height="3" />
+							<rect x="18" y="18" width="3" height="3" />
+							<rect x="14" y="18" width="3" height="3" />
+							<rect x="18" y="14" width="3" height="3" />
+						</svg>
+					</button>
+				</div>
+				<div class="dim hint">OR PASTE A FULL LINK FROM YOUR INVITE</div>
+				{#if error}
+					<div class="error" role="alert">{error}</div>
+				{/if}
+				<button type="submit" class="btn btn-primary btn-block continue-btn">
+					Continue
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+				</button>
+			</form>
+		{/snippet}
+
 		{#if hasProjects}
 			<section class="projects-section">
 				<div class="section-head">
@@ -178,6 +214,10 @@
 					<span>Join with token</span>
 				</button>
 			</div>
+
+			{#if tokenInputOpen}
+				{@render tokenForm()}
+			{/if}
 		{:else}
 			<p class="lede">
 				Kostos is a <strong>free group expense splitter</strong> that lives on your device. Create a
@@ -199,6 +239,10 @@
 				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
 				<span>Or join with a token</span>
 			</button>
+
+			{#if tokenInputOpen}
+				{@render tokenForm()}
+			{/if}
 
 			<section class="value-props" aria-labelledby="why-kostos">
 				<h2 id="why-kostos" class="section-title">Why pick Kostos to split expenses</h2>
@@ -337,42 +381,6 @@
 					</p>
 				</details>
 			</section>
-		{/if}
-
-		{#if tokenInputOpen}
-			<form class="card token-form" onsubmit={onJoinSubmit}>
-				<div class="eyebrow" style="margin-bottom: 8px;">Paste a group token</div>
-				<div class="input-wrap">
-					<input
-						class="input token-input"
-						placeholder="PRT-XXXX-XXXX"
-						bind:value={token}
-						autocomplete="off"
-						autocapitalize="characters"
-						spellcheck="false"
-						aria-invalid={error ? 'true' : 'false'}
-					/>
-					<button type="button" class="icon-btn qr-btn" aria-label="Scan QR code" onclick={() => goto('/scan')}>
-						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
-							<rect x="3" y="3" width="7" height="7" rx="1" />
-							<rect x="14" y="3" width="7" height="7" rx="1" />
-							<rect x="3" y="14" width="7" height="7" rx="1" />
-							<rect x="14" y="14" width="3" height="3" />
-							<rect x="18" y="18" width="3" height="3" />
-							<rect x="14" y="18" width="3" height="3" />
-							<rect x="18" y="14" width="3" height="3" />
-						</svg>
-					</button>
-				</div>
-				<div class="dim hint">OR PASTE A FULL LINK FROM YOUR INVITE</div>
-				{#if error}
-					<div class="error" role="alert">{error}</div>
-				{/if}
-				<button type="submit" class="btn btn-primary btn-block continue-btn">
-					Continue
-					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-				</button>
-			</form>
 		{/if}
 	</div>
 </div>
