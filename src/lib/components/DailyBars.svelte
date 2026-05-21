@@ -88,7 +88,7 @@
 
 	.daily-bars {
 		display: flex;
-		align-items: flex-end;
+		align-items: stretch;
 		gap: 2px;
 		height: 92px;
 	}
@@ -99,6 +99,7 @@
 		flex-direction: column;
 		justify-content: flex-end;
 		min-width: 1px;
+		height: 100%;
 	}
 
 	.daily-bar {
