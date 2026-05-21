@@ -1,35 +1,56 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { computeBalances, expenseShares, planSettlements } from '$lib/balance';
 	import { PROJECT_COLOR_VALUES, tileBackground } from '$lib/colors';
-	import { openRoom, readMembers, readProject } from '$lib/sync/doc';
+	import { formatAmount, formatSigned } from '$lib/money';
 	import { getCurrentMember, getCurrentProject } from '$lib/storage';
-	import type { Member, Project } from '$lib/types';
+	import { openRoom, readExpenses, readMembers, readProject } from '$lib/sync/doc';
+	import type { Expense, Member, Project } from '$lib/types';
 
 	const roomId = $derived(page.params.roomId ?? '');
 	const handle = $derived(openRoom(roomId));
 
 	let project = $state<Project | null>(null);
 	let members = $state<Member[]>([]);
+	let expenses = $state<Expense[]>([]);
 	let copied = $state(false);
+	let showShare = $state(false);
 
 	$effect(() => {
 		const h = handle;
 		const sync = () => {
 			project = readProject(h);
 			members = readMembers(h);
+			expenses = readExpenses(h);
 		};
 		sync();
 		h.project.observeDeep(sync);
 		h.members.observeDeep(sync);
+		h.expenses.observeDeep(sync);
 		return () => {
 			h.project.unobserveDeep(sync);
 			h.members.unobserveDeep(sync);
+			h.expenses.unobserveDeep(sync);
 		};
 	});
 
 	const currentMemberId = $derived.by(() => getCurrentMember());
 	const youMember = $derived(members.find((m) => m.id === currentMemberId) ?? null);
+	const currencySymbol = $derived(project?.currencySymbol ?? '€');
+	const membersById = $derived(new Map(members.map((m) => [m.id, m])));
 
+	const balances = $derived(computeBalances(members, expenses));
+	const yourBalance = $derived.by(() => {
+		if (!currentMemberId) return 0;
+		return balances.find((b) => b.memberId === currentMemberId)?.net ?? 0;
+	});
+	const plan = $derived(planSettlements(balances));
+	const yourPlan = $derived(
+		plan.filter((t) => t.from === currentMemberId || t.to === currentMemberId)
+	);
+	const recentExpenses = $derived(
+		[...expenses].sort((a, b) => b.date - a.date || b.createdAt - a.createdAt).slice(0, 6)
+	);
 	const shareUrl = $derived.by(() => {
 		const stored = getCurrentProject();
 		if (!stored || stored.roomId !== roomId) return null;
@@ -43,10 +64,32 @@
 			copied = true;
 			setTimeout(() => (copied = false), 1800);
 		} catch {
-			// clipboard blocked; surface the URL by selecting it instead
 			const el = document.getElementById('share-url-display');
 			if (el && el instanceof HTMLInputElement) el.select();
 		}
+	}
+
+	function balanceEyebrow(value: number): string {
+		if (value > 0) return "You're owed";
+		if (value < 0) return 'You owe';
+		return 'All settled';
+	}
+
+	function yourShareOf(e: Expense): number {
+		if (!currentMemberId) return 0;
+		const map = expenseShares(e);
+		return map.get(currentMemberId) ?? 0;
+	}
+
+	function payerName(id: string): string {
+		const m = membersById.get(id);
+		if (!m) return '—';
+		return m.id === currentMemberId ? 'You' : m.name;
+	}
+
+	function formatDate(ts: number): string {
+		const d = new Date(ts);
+		return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 	}
 </script>
 
@@ -56,89 +99,167 @@
 
 <div class="screen" data-page="dashboard">
 	<header class="app-bar">
-		<div class="row gap-8" style="flex: 1;">
-			<span class="app-bar-title">{roomId}</span>
+		<div class="row gap-8" style="flex: 1; align-items: center;">
+			<span
+				class="project-tile"
+				style={project
+					? `background: ${tileBackground(project.color)}; color: ${PROJECT_COLOR_VALUES[project.color]};`
+					: ''}
+			>
+				{project?.emoji ?? '🏖'}
+			</span>
+			<span class="project-label col">
+				<span class="app-bar-title project-name">{project?.name ?? 'Loading'}</span>
+				<span class="dim mono project-token">{roomId}</span>
+			</span>
 		</div>
-		<div class="app-bar-title">Home</div>
-		<div class="row gap-6" style="flex: 1; justify-content: flex-end;">
-			<a href="/p/{roomId}/settings" class="icon-btn" aria-label="Settings">
-				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
-					<circle cx="12" cy="12" r="2.6" />
-					<path d="M19 12a7 7 0 0 0-.16-1.5l2.05-1.58-2-3.46-2.43.83a7 7 0 0 0-2.59-1.5L13.5 2h-3l-.37 2.79a7 7 0 0 0-2.59 1.5l-2.43-.83-2 3.46L5.16 10.5A7 7 0 0 0 5 12a7 7 0 0 0 .16 1.5l-2.05 1.58 2 3.46 2.43-.83a7 7 0 0 0 2.59 1.5L10.5 22h3l.37-2.79a7 7 0 0 0 2.59-1.5l2.43.83 2-3.46-2.05-1.58A7 7 0 0 0 19 12z" />
-				</svg>
-			</a>
+		<div class="row gap-6" style="flex: 0; justify-content: flex-end;">
+			<button class="icon-btn" aria-label="Share" onclick={() => (showShare = !showShare)}>
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 4v12M8 8l4-4 4 4M5 14v5h14v-5" /></svg>
+			</button>
 		</div>
 	</header>
 
 	<div class="scroll">
-		<section class="hero-block">
-			<div class="eyebrow">You are</div>
-			<div class="hero-title">
-				<span
-					class="hero-tile"
-					style={project
-						? `background: ${tileBackground(project.color)}; color: ${PROJECT_COLOR_VALUES[project.color]};`
-						: ''}
-				>
-					{project?.emoji ?? '🏖'}
-				</span>
-				<span>{project?.name ?? 'Loading…'}</span>
+		<section class="balance-block">
+			<div class="eyebrow balance-eyebrow">
+				{balanceEyebrow(yourBalance)}
+			</div>
+			<div class="balance-amount" class:tone-owed={yourBalance > 0} class:tone-owe={yourBalance < 0}>
+				<span class="symbol">{currencySymbol}</span>{(Math.abs(yourBalance) / 100).toFixed(2)}
 			</div>
 			{#if youMember}
-				<p class="muted hero-sub">
-					Signed in on this device as <strong>{youMember.name}</strong>.
-				</p>
+				<p class="dim balance-sub">as <strong>{youMember.name}</strong></p>
 			{:else}
-				<p class="muted hero-sub">No member claimed on this device yet.</p>
+				<p class="dim balance-sub">No member claimed on this device.</p>
 			{/if}
 		</section>
 
-		<section class="card share-card">
-			<div class="row between" style="margin-bottom: 10px;">
-				<span class="eyebrow">Invite token</span>
-				<button class="btn btn-ghost copy-btn" type="button" onclick={copyShareUrl} disabled={!shareUrl}>
-					{#if copied}
-						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7" /></svg>
-						<span>Copied</span>
-					{:else}
-						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="8" y="8" width="12" height="12" rx="2" /><path d="M16 4H6a2 2 0 0 0-2 2v10" /></svg>
-						<span>Copy link</span>
-					{/if}
-				</button>
-			</div>
-			<span class="token-pill">{roomId}</span>
-			{#if shareUrl}
-				<input id="share-url-display" class="share-url-display" value={shareUrl} readonly />
-			{/if}
-			<p class="dim share-hint">
-				Anyone with this link joins instantly; the secret part lives in the URL fragment and is never sent to the server.
-			</p>
-		</section>
+		{#if showShare}
+			<section class="card share-card">
+				<div class="row between" style="margin-bottom: 10px;">
+					<span class="eyebrow">Invite token</span>
+					<button
+						class="btn btn-ghost copy-btn"
+						type="button"
+						onclick={copyShareUrl}
+						disabled={!shareUrl}
+					>
+						{#if copied}
+							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7" /></svg>
+							<span>Copied</span>
+						{:else}
+							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="8" y="8" width="12" height="12" rx="2" /><path d="M16 4H6a2 2 0 0 0-2 2v10" /></svg>
+							<span>Copy link</span>
+						{/if}
+					</button>
+				</div>
+				<span class="token-pill">{roomId}</span>
+				{#if shareUrl}
+					<input id="share-url-display" class="share-url-display" value={shareUrl} readonly />
+				{/if}
+				<p class="dim share-hint">
+					Anyone with this link joins instantly; the secret lives in the URL fragment so the server never sees it.
+				</p>
+			</section>
+		{/if}
 
-		<section class="members-section">
-			<div class="section-head">
-				<div class="eyebrow">Members</div>
-				<span class="dim mono members-count-tag">{members.length} TOTAL</span>
-			</div>
-			<div class="card" style="padding: 4px;">
-				{#each members as m, i (m.id)}
-					{#if i > 0}<hr class="hairline" style="margin-left: 56px;" />{/if}
-					<div class="list-item member-row">
-						<div class="av av-them">{(m.name[0] ?? '?').toUpperCase()}</div>
-						<div class="col" style="flex: 1;">
-							<div class="member-name">{m.name}</div>
-							<div class="dim member-meta">
-								{m.id === currentMemberId ? 'YOU · this device' : 'No devices claimed yet'}
-							</div>
+		{#if yourPlan.length > 0 && currentMemberId}
+			<section class="plan-section">
+				<div class="section-head">
+					<div class="eyebrow">Settle up</div>
+					<span class="dim mono plan-count">
+						{yourPlan.length} {yourPlan.length === 1 ? 'transaction' : 'transactions'}
+					</span>
+				</div>
+				<div class="card plan-list">
+					{#each yourPlan as t, i (i)}
+						{@const youPay = t.from === currentMemberId}
+						<div class="plan-row" class:tone-owe={youPay} class:tone-owed={!youPay}>
+							<span class="av av-sm plan-av">
+								{((youPay ? membersById.get(t.to)?.name : membersById.get(t.from)?.name) ?? '?')[0].toUpperCase()}
+							</span>
+							<span class="col plan-text">
+								<span class="plan-headline">
+									{youPay
+										? `Pay ${membersById.get(t.to)?.name ?? '—'}`
+										: `${membersById.get(t.from)?.name ?? '—'} pays you`}
+								</span>
+								<span class="dim plan-sub mono">
+									{youPay ? 'OUTGOING' : 'INCOMING'}
+								</span>
+							</span>
+							<span class="num plan-amount">{formatAmount(t.amount, currencySymbol)}</span>
 						</div>
-					</div>
-				{/each}
-			</div>
-		</section>
+					{/each}
+				</div>
+			</section>
+		{/if}
 
-		<p class="dim coming-soon">
-			Expenses, stats, and settle-up flows ship in the next iteration.
-		</p>
+		{#if plan.length > 0}
+			<section class="plan-section">
+				<div class="section-head">
+					<div class="eyebrow">Group plan</div>
+					<span class="dim mono plan-count">{plan.length} TOTAL</span>
+				</div>
+				<div class="card plan-list compact">
+					{#each plan as t, i (i)}
+						<div class="plan-row compact">
+							<span class="num plan-name">{payerName(t.from)}</span>
+							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" class="plan-arrow">
+								<path d="M5 12h14M13 6l6 6-6 6" />
+							</svg>
+							<span class="num plan-name">{payerName(t.to)}</span>
+							<span class="num plan-amount" style="margin-left: auto;">
+								{formatAmount(t.amount, currencySymbol)}
+							</span>
+						</div>
+					{/each}
+				</div>
+			</section>
+		{/if}
+
+		<section class="recent-section">
+			<div class="section-head">
+				<div class="eyebrow">Recent expenses</div>
+				<a href="/p/{roomId}/expenses" class="dim mono recent-all">VIEW ALL</a>
+			</div>
+			{#if recentExpenses.length === 0}
+				<div class="card empty-state">
+					<p>No expenses yet. Tap the green button to add the first one.</p>
+				</div>
+			{:else}
+				<div class="card recent-list">
+					{#each recentExpenses as e, i (e.id)}
+						{#if i > 0}<hr class="hairline" style="margin-left: 56px;" />{/if}
+						<a href="/p/{roomId}/expenses/{e.id}" class="recent-row">
+							<span class="av av-sm recent-av">
+								{(membersById.get(e.payerId)?.name?.[0] ?? '?').toUpperCase()}
+							</span>
+							<span class="col recent-text">
+								<span class="recent-title">{e.description ?? 'Expense'}</span>
+								<span class="dim mono recent-meta">
+									{formatDate(e.date)} · {payerName(e.payerId)} paid
+								</span>
+							</span>
+							<span class="col" style="align-items: flex-end;">
+								<span class="num recent-amount">{formatAmount(e.amount, currencySymbol)}</span>
+								<span class="num recent-share dim">
+									{currentMemberId
+										? formatSigned(
+												(e.payerId === currentMemberId
+													? e.amount
+													: 0) - yourShareOf(e),
+												currencySymbol
+											)
+										: ''}
+								</span>
+							</span>
+						</a>
+					{/each}
+				</div>
+			{/if}
+		</section>
 	</div>
 
 	<nav class="tabbar">
@@ -177,40 +298,68 @@
 </div>
 
 <style>
-	.hero-block {
-		padding: 22px 0 18px;
-	}
-
-	.hero-title {
-		font-family: var(--font-display);
-		font-size: 38px;
-		line-height: 1.05;
-		letter-spacing: -0.02em;
-		margin-top: 4px;
-		display: flex;
-		align-items: center;
-		gap: 10px;
-	}
-
-	.hero-tile {
-		width: 56px;
-		height: 56px;
-		border-radius: 18px;
+	.project-tile {
+		width: 36px;
+		height: 36px;
+		border-radius: 12px;
 		display: grid;
 		place-items: center;
-		font-size: 30px;
+		font-size: 22px;
 		flex-shrink: 0;
 	}
 
-	.hero-sub {
+	.project-label {
+		gap: 0;
+		justify-content: center;
+	}
+
+	.project-name {
+		font-family: var(--font-sans);
+		font-size: 14px;
+		text-transform: none;
+		letter-spacing: 0;
+		color: var(--ink);
+	}
+
+	.project-token {
+		font-size: 10px;
+		letter-spacing: 0.04em;
+	}
+
+	.balance-block {
+		padding: 24px 0 18px;
+		text-align: center;
+	}
+
+	.balance-eyebrow {
+		margin-bottom: 8px;
+	}
+
+	.balance-amount {
+		font-family: var(--font-display);
+		font-size: 64px;
+		line-height: 1;
+		letter-spacing: -0.03em;
+		font-weight: 400;
+	}
+
+	.balance-amount .symbol {
+		font-size: 32px;
+		vertical-align: top;
+		margin-right: 4px;
+		opacity: 0.7;
+	}
+
+	.balance-sub {
 		margin: 12px 0 0;
-		font-size: 13px;
-		line-height: 1.5;
+		font-size: 12px;
+		font-family: var(--font-mono);
 	}
 
 	.share-card {
 		display: flex;
 		flex-direction: column;
+		margin-bottom: 14px;
 	}
 
 	.copy-btn {
@@ -246,39 +395,129 @@
 		margin: 10px 0 0;
 	}
 
-	.members-section {
-		margin-top: 8px;
+	.plan-section {
+		margin-top: 4px;
 	}
 
-	.members-count-tag {
+	.plan-count {
 		font-size: 11px;
 	}
 
-	.member-row {
+	.plan-list {
+		padding: 4px;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.plan-row {
+		display: flex;
+		align-items: center;
+		gap: 12px;
 		padding: 12px;
 	}
 
-	.av-them {
+	.plan-row + .plan-row {
+		border-top: 1px solid var(--line);
+	}
+
+	.plan-av {
 		background: color-mix(in oklab, var(--ink) 12%, transparent);
 		color: var(--ink);
 	}
 
-	.member-name {
+	.plan-text {
+		flex: 1;
+	}
+
+	.plan-headline {
 		font-size: 14px;
 		font-weight: 600;
 	}
 
-	.member-meta {
+	.plan-sub {
+		font-size: 10px;
+		margin-top: 2px;
+		letter-spacing: 0.06em;
+	}
+
+	.plan-amount {
+		font-weight: 700;
+		font-size: 15px;
+	}
+
+	.plan-list.compact .plan-row {
+		padding: 10px 12px;
+		gap: 8px;
+	}
+
+	.plan-arrow {
+		width: 14px;
+		height: 14px;
+		color: var(--ink-3);
+	}
+
+	.plan-name {
+		font-size: 12px;
+		font-weight: 500;
+	}
+
+	.recent-section {
+		margin-top: 4px;
+	}
+
+	.recent-all {
 		font-size: 11px;
-		font-family: var(--font-mono);
+		text-decoration: none;
+		color: var(--ink-3);
+	}
+
+	.empty-state {
+		text-align: center;
+		color: var(--ink-2);
+		font-size: 13px;
+		line-height: 1.5;
+		padding: 24px 16px;
+	}
+
+	.recent-list {
+		padding: 4px;
+	}
+
+	.recent-row {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		padding: 12px;
+		text-decoration: none;
+		color: inherit;
+	}
+
+	.recent-av {
+		background: color-mix(in oklab, var(--ink) 12%, transparent);
+		color: var(--ink);
+	}
+
+	.recent-text {
+		flex: 1;
+	}
+
+	.recent-title {
+		font-size: 14px;
+		font-weight: 600;
+	}
+
+	.recent-meta {
+		font-size: 11px;
 		margin-top: 2px;
 	}
 
-	.coming-soon {
+	.recent-amount {
+		font-size: 14px;
+		font-weight: 700;
+	}
+
+	.recent-share {
 		font-size: 11px;
-		font-family: var(--font-mono);
-		text-align: center;
-		margin: 24px 0 0;
-		line-height: 1.5;
+		margin-top: 2px;
 	}
 </style>
