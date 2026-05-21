@@ -136,7 +136,7 @@
 							<div class="col plan-text">
 								<span class="plan-headline">
 									<strong>{memberName(t.from)}</strong>
-									<span class="muted plan-verb">pays</span>
+									<span class="muted plan-verb">{youFrom ? 'pay' : 'pays'}</span>
 									<strong>{memberName(t.to)}</strong>
 								</span>
 								<span class="dim mono plan-flow">

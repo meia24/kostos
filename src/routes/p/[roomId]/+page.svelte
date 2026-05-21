@@ -108,6 +108,11 @@
 			</span>
 		</div>
 		<div class="row gap-6" style="flex: 0; justify-content: flex-end;">
+			<a class="icon-btn" href="/p/{roomId}/settle" aria-label="Settle up" title="Settle up">
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+					<path d="M12 4v16M6 7h12M4 11l2-4 2 4a2 2 0 1 1-4 0zM16 11l2-4 2 4a2 2 0 1 1-4 0z" />
+				</svg>
+			</a>
 			<button class="icon-btn" aria-label="Share" onclick={() => (showShare = !showShare)}>
 				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 4v12M8 8l4-4 4 4M5 14v5h14v-5" /></svg>
 			</button>
