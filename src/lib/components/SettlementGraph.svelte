@@ -12,10 +12,13 @@
 
 	let { members, plan, currentMemberId, symbol }: Props = $props();
 
-	const VIEW_W = 320;
-	const VIEW_H = 240;
+	const VIEW_W = 280;
+	const VIEW_H = 170;
 	const CX = VIEW_W / 2;
 	const CY = VIEW_H / 2;
+	const NODE_R = 16;
+	const EDGE_CLIP = 18;
+	const CURVE_OFFSET = 11;
 
 	// Pack nodes onto a circle. Centre the current member at the top so the
 	// incoming/outgoing arrows feel intuitive (you sit at "12 o'clock").
@@ -26,7 +29,7 @@
 			const [you] = sorted.splice(youIdx, 1);
 			sorted.unshift(you);
 		}
-		const radius = Math.min(VIEW_W, VIEW_H) / 2 - 38;
+		const radius = Math.min(VIEW_W, VIEW_H) / 2 - 28;
 		const count = sorted.length;
 		return sorted.map((m, i) => {
 			const angle = -Math.PI / 2 + (i / count) * Math.PI * 2;
@@ -63,12 +66,12 @@
 			const ux = dx / len;
 			const uy = dy / len;
 			// Clip ends so the arrowhead doesn't bury itself inside the node.
-			const fromX = a.x + ux * 22;
-			const fromY = a.y + uy * 22;
-			const toX = b.x - ux * 22;
-			const toY = b.y - uy * 22;
-			const midX = (fromX + toX) / 2 + uy * 14;
-			const midY = (fromY + toY) / 2 - ux * 14;
+			const fromX = a.x + ux * EDGE_CLIP;
+			const fromY = a.y + uy * EDGE_CLIP;
+			const toX = b.x - ux * EDGE_CLIP;
+			const toY = b.y - uy * EDGE_CLIP;
+			const midX = (fromX + toX) / 2 + uy * CURVE_OFFSET;
+			const midY = (fromY + toY) / 2 - ux * CURVE_OFFSET;
 			const tone: Edge['tone'] =
 				t.to === currentMemberId ? 'in' : t.from === currentMemberId ? 'out' : 'other';
 			out.push({
@@ -115,8 +118,8 @@
 				marker-end={arrowMarker(e.tone)}
 			/>
 			<g transform="translate({e.mid.x} {e.mid.y})">
-				<rect x="-24" y="-9" width="48" height="16" rx="4" class="edge-label-bg" />
-				<text x="0" y="2.5" class="edge-label" text-anchor="middle">
+				<rect x="-20" y="-7" width="40" height="13" rx="3" class="edge-label-bg" />
+				<text x="0" y="2" class="edge-label" text-anchor="middle">
 					{formatAmount(e.amount, symbol)}
 				</text>
 			</g>
@@ -126,9 +129,9 @@
 	{#each positions as p (p.id)}
 		{@const isYou = p.id === currentMemberId}
 		<g transform="translate({p.x} {p.y})">
-			<circle r="22" class="node-bg" class:node-you={isYou} />
-			<text y="4" text-anchor="middle" class="node-initial">{initial(p.name)}</text>
-			<text y="38" text-anchor="middle" class="node-label">
+			<circle r={NODE_R} class="node-bg" class:node-you={isYou} />
+			<text y="3.5" text-anchor="middle" class="node-initial">{initial(p.name)}</text>
+			<text y="28" text-anchor="middle" class="node-label">
 				{isYou ? 'YOU' : p.name.toUpperCase()}
 			</text>
 		</g>
@@ -138,15 +141,13 @@
 <style>
 	.net-svg {
 		width: 100%;
+		max-width: 320px;
 		display: block;
+		margin: 0 auto;
 	}
 
-	.edge path {
-		stroke-width: 1.4;
-	}
-
-	.edge-in path { stroke: var(--accent); stroke-width: 1.8; }
-	.edge-out path { stroke: var(--owe); stroke-width: 1.8; stroke-dasharray: 3 3; }
+	.edge-in path { stroke: var(--accent); stroke-width: 1.6; }
+	.edge-out path { stroke: var(--owe); stroke-width: 1.6; stroke-dasharray: 3 3; }
 	.edge-other path { stroke: var(--ink-3); stroke-width: 1.2; }
 
 	.edge-label-bg {
@@ -155,7 +156,7 @@
 	}
 
 	.edge-label {
-		font-size: 10px;
+		font-size: 8.5px;
 		font-family: var(--font-mono);
 		font-weight: 600;
 	}
@@ -172,19 +173,19 @@
 
 	.node-you {
 		stroke: var(--accent);
-		stroke-width: 2.4;
+		stroke-width: 2;
 	}
 
 	.node-initial {
 		fill: var(--ink);
 		font-family: var(--font-sans);
 		font-weight: 700;
-		font-size: 12px;
+		font-size: 11px;
 	}
 
 	.node-label {
 		fill: var(--ink-2);
-		font-size: 9px;
+		font-size: 7.5px;
 		font-family: var(--font-mono);
 		letter-spacing: 0.04em;
 	}

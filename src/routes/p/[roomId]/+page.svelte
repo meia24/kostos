@@ -498,16 +498,16 @@
 	}
 
 	.graph-card {
-		padding: 14px;
+		padding: 10px 10px 8px;
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: 4px;
 	}
 
 	.graph-legend {
 		flex-wrap: wrap;
-		gap: 12px;
-		font-size: 11px;
+		gap: 10px;
+		font-size: 10px;
 		color: var(--ink-2);
 		font-family: var(--font-mono);
 		justify-content: center;
