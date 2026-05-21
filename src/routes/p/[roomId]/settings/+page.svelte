@@ -5,7 +5,8 @@
 	import CurrencyPicker from '$lib/components/CurrencyPicker.svelte';
 	import EmojiListEditor from '$lib/components/EmojiListEditor.svelte';
 	import type { EditorItem } from '$lib/components/EmojiListEditor.svelte';
-	import { setCurrentMember, setCurrentProject } from '$lib/storage';
+	import IdentityCard from '$lib/components/IdentityCard.svelte';
+	import { getCurrentMember, setCurrentMember, setCurrentProject } from '$lib/storage';
 	import {
 		addCategory,
 		addPaymentMethod,
@@ -43,6 +44,12 @@
 	});
 
 	let signingOut = $state(false);
+	let switchingMember = $state(false);
+
+	const currentMemberId = $derived.by(() => getCurrentMember());
+	const currentMember = $derived(
+		currentMemberId ? members.find((m) => m.id === currentMemberId) : null
+	);
 
 	function commitName(value: string) {
 		const trimmed = value.trim();
@@ -110,6 +117,13 @@
 		setCurrentMember(null);
 		goto('/', { replaceState: true });
 	}
+
+	function pickMember(id: string) {
+		setCurrentMember(id);
+		// Forcing a navigation with reload makes every $derived(getCurrentMember()) on the
+		// dashboard re-evaluate, since localStorage reads aren't tracked by Svelte's runtime.
+		window.location.href = `/p/${roomId}`;
+	}
 </script>
 
 <svelte:head>
@@ -171,6 +185,26 @@
 					onblur={(e) => commitDescription(e.currentTarget.value)}
 				/>
 			</section>
+
+			<div class="section-head">
+				<div class="eyebrow">Signed in as</div>
+				{#if currentMember}
+					<button
+						type="button"
+						class="btn btn-ghost switch-btn"
+						aria-expanded={switchingMember}
+						onclick={() => (switchingMember = !switchingMember)}
+					>
+						{switchingMember ? 'Cancel' : 'Switch'}
+					</button>
+				{/if}
+			</div>
+			<IdentityCard
+				current={currentMember ?? null}
+				{members}
+				expanded={switchingMember}
+				onPick={pickMember}
+			/>
 
 			<div class="section-head">
 				<div class="eyebrow">Currency</div>
@@ -330,6 +364,13 @@
 
 	.field-card {
 		padding: 4px;
+	}
+
+	.switch-btn {
+		font-size: 12px;
+		padding: 4px 10px;
+		border-radius: 999px;
+		color: var(--accent);
 	}
 
 	.editor-card {
