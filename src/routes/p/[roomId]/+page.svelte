@@ -2,6 +2,7 @@
 	import { page } from '$app/state';
 	import { computeBalances, planSettlements } from '$lib/balance';
 	import { PROJECT_COLOR_VALUES, tileBackground } from '$lib/colors';
+	import EmptyCard from '$lib/components/EmptyCard.svelte';
 	import ExpenseRow from '$lib/components/ExpenseRow.svelte';
 	import TabBar from '$lib/components/TabBar.svelte';
 	import { formatAmount } from '$lib/money';
@@ -221,9 +222,9 @@
 				<a href="/p/{roomId}/expenses" class="dim mono recent-all">VIEW ALL</a>
 			</div>
 			{#if recentExpenses.length === 0}
-				<div class="card empty-state">
+				<EmptyCard>
 					<p>No expenses yet. Tap the green button to add the first one.</p>
-				</div>
+				</EmptyCard>
 			{:else}
 				<div class="card recent-list">
 					{#each recentExpenses as e, i (e.id)}
@@ -481,14 +482,6 @@
 		font-size: 11px;
 		text-decoration: none;
 		color: var(--ink-3);
-	}
-
-	.empty-state {
-		text-align: center;
-		color: var(--ink-2);
-		font-size: 13px;
-		line-height: 1.5;
-		padding: 24px 16px;
 	}
 
 	.recent-list {

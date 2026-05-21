@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { PROJECT_COLOR_VALUES, tileBackground } from '$lib/colors';
+	import EmptyCard from '$lib/components/EmptyCard.svelte';
 	import {
 		setCurrentMember,
 		setCurrentProject
@@ -107,10 +108,10 @@
 
 	<div class="scroll">
 		{#if status === 'invalid'}
-			<div class="card empty-state">
+			<EmptyCard>
 				<p>This invite link is missing the room or the secret. Ask the sender to share the full link from their <strong>Share</strong> button.</p>
 				<a href="/" class="btn btn-block back-btn">Back</a>
-			</div>
+			</EmptyCard>
 		{:else if status === 'parsing' || status === 'syncing'}
 			<div class="loading-block">
 				<div class="loading-pulse" aria-hidden="true"></div>
@@ -120,7 +121,7 @@
 				</p>
 			</div>
 		{:else if status === 'empty'}
-			<div class="card empty-state">
+			<EmptyCard>
 				<p>
 					No project state arrived for <strong>{roomId}</strong>. The creator might be offline, or the
 					token might be wrong.
@@ -129,7 +130,7 @@
 					<a href="/" class="btn">Cancel</a>
 					<button type="button" class="btn btn-primary" onclick={retry}>Try again</button>
 				</div>
-			</div>
+			</EmptyCard>
 		{:else if project}
 			<section class="hero">
 				<div class="row gap-10 hero-row">
@@ -211,15 +212,6 @@
 </div>
 
 <style>
-	.empty-state {
-		text-align: center;
-		padding: 24px 18px;
-		margin-top: 20px;
-		color: var(--ink-2);
-		font-size: 13px;
-		line-height: 1.5;
-	}
-
 	.back-btn {
 		margin-top: 14px;
 	}

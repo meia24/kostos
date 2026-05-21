@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import EmptyCard from '$lib/components/EmptyCard.svelte';
 	import ExpenseRow from '$lib/components/ExpenseRow.svelte';
 	import ScreenAppBar from '$lib/components/ScreenAppBar.svelte';
 	import TabBar from '$lib/components/TabBar.svelte';
@@ -162,13 +163,13 @@
 		</section>
 
 		{#if expenses.length === 0}
-			<div class="card empty-state">
+			<EmptyCard>
 				<p>No expenses yet. Tap the + button to add the first one.</p>
-			</div>
+			</EmptyCard>
 		{:else if filtered.length === 0}
-			<div class="card empty-state">
+			<EmptyCard>
 				<p>No expenses match <strong>“{query.trim()}”</strong>.</p>
-			</div>
+			</EmptyCard>
 		{:else}
 			{#each groups as g (g.key)}
 				<div class="section-head day-head">
@@ -226,15 +227,6 @@
 	.summary-count {
 		font-size: 10px;
 		letter-spacing: 0.06em;
-	}
-
-	.empty-state {
-		text-align: center;
-		color: var(--ink-2);
-		font-size: 13px;
-		line-height: 1.5;
-		padding: 24px 16px;
-		margin-top: 16px;
 	}
 
 	.day-head {

@@ -4,6 +4,7 @@
 	import ScreenAppBar from '$lib/components/ScreenAppBar.svelte';
 	import type { CategoryRollup } from '$lib/components/CategoryBreakdown.svelte';
 	import DailyBars from '$lib/components/DailyBars.svelte';
+	import EmptyCard from '$lib/components/EmptyCard.svelte';
 	import TabBar from '$lib/components/TabBar.svelte';
 	import MemberBars from '$lib/components/MemberBars.svelte';
 	import type { MemberContribution } from '$lib/components/MemberBars.svelte';
@@ -178,9 +179,9 @@
 		</div>
 
 		{#if expenseCount === 0}
-			<div class="card empty-state">
+			<EmptyCard>
 				<p>No spending in {periodLabel(period).toLowerCase()} yet. Add an expense or widen the period.</p>
-			</div>
+			</EmptyCard>
 		{:else}
 			<div class="row gap-8 hero-row">
 				<div class="stat hero-tile">
@@ -293,14 +294,6 @@
 
 	.period-picker button {
 		flex: 1;
-	}
-
-	.empty-state {
-		text-align: center;
-		padding: 24px 16px;
-		color: var(--ink-2);
-		font-size: 13px;
-		line-height: 1.5;
 	}
 
 	.hero-row {
