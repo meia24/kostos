@@ -1,0 +1,20 @@
+name = "kostos"
+main = "worker/index.ts"
+compatibility_date = "2025-05-01"
+compatibility_flags = ["nodejs_compat"]
+
+[assets]
+directory = "build"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+
+[[durable_objects.bindings]]
+name = "SYNC_ROOM"
+class_name = "SyncRoom"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["SyncRoom"]
+
+[observability]
+enabled = true

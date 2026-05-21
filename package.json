@@ -13,10 +13,13 @@
 		"test": "vitest run",
 		"test:watch": "vitest",
 		"sync": "node scripts/sync-server.js",
-		"icons": "pwa-assets-generator"
+		"icons": "pwa-assets-generator",
+		"cf:dev": "wrangler dev",
+		"cf:deploy": "vite build && wrangler deploy"
 	},
 	"devDependencies": {
-		"@sveltejs/adapter-auto": "^7.0.1",
+		"@cloudflare/workers-types": "^4.20260521.1",
+		"@sveltejs/adapter-static": "^3.0.10",
 		"@sveltejs/kit": "^2.57.0",
 		"@sveltejs/vite-plugin-svelte": "^7.0.0",
 		"@types/node": "^25.9.1",
@@ -28,7 +31,8 @@
 		"svelte-check": "^4.4.6",
 		"typescript": "^6.0.2",
 		"vite": "^8.0.7",
-		"vitest": "^4.1.7"
+		"vitest": "^4.1.7",
+		"wrangler": "^4.93.1"
 	},
 	"dependencies": {
 		"@fontsource/instrument-serif": "^5.2.8",

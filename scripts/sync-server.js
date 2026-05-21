@@ -35,7 +35,8 @@ const wss = new WebSocketServer({ port: PORT, host: HOST });
 
 wss.on('connection', (ws, req) => {
 	const url = new URL(req.url ?? '/', 'http://localhost');
-	const roomId = decodeURIComponent(url.pathname.replace(/^\//, ''));
+	const match = url.pathname.match(/^\/sync\/(.+)$/);
+	const roomId = match ? decodeURIComponent(match[1]).toUpperCase() : '';
 	if (!roomId) {
 		ws.close(1008, 'missing room');
 		return;

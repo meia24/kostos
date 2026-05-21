@@ -3,6 +3,15 @@ import { SvelteKitPWA } from '@vite-pwa/sveltekit';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
+	server: {
+		proxy: {
+			'/sync': {
+				target: 'ws://localhost:1234',
+				ws: true,
+				rewriteWsOrigin: true
+			}
+		}
+	},
 	plugins: [
 		sveltekit(),
 		SvelteKitPWA({

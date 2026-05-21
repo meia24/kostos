@@ -15,11 +15,12 @@ import {
 } from '$lib/types';
 import { createSyncProvider, type EncryptedSyncProvider } from './provider';
 
-const DEFAULT_SYNC_URL = 'ws://localhost:1234';
-
 function syncUrl(): string {
 	const env = (import.meta.env.VITE_SYNC_URL as string | undefined) ?? '';
-	return env || DEFAULT_SYNC_URL;
+	if (env) return env;
+	if (typeof location === 'undefined') return '';
+	const scheme = location.protocol === 'https:' ? 'wss' : 'ws';
+	return `${scheme}://${location.host}/sync`;
 }
 
 export type RoomHandle = {
