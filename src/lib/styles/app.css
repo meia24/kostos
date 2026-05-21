@@ -47,7 +47,8 @@ select {
   position: relative;
   width: 100%;
   max-width: 480px;
-  min-height: 100dvh;
+  height: 100svh;
+  height: 100dvh;
   margin: 0 auto;
   background: var(--bg);
   color: var(--ink);
