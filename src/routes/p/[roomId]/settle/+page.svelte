@@ -50,6 +50,13 @@
 	const totalToSettle = $derived(plan.reduce((s, t) => s + t.amount, 0));
 	const openCount = $derived(balances.filter((b) => b.net !== 0).length);
 
+	// Cap the graph at 8 members — beyond that the polygon becomes too dense to glance
+	// and the transfer cards below remain the authoritative source.
+	const MAX_GRAPH_MEMBERS = 8;
+	const showGraph = $derived(
+		plan.length > 0 && members.length > 1 && members.length <= MAX_GRAPH_MEMBERS
+	);
+
 	function memberName(id: string): string {
 		const m = membersById.get(id);
 		if (!m) return '—';
@@ -125,7 +132,7 @@
 			{/if}
 		</section>
 
-		{#if plan.length > 0 && members.length > 1}
+		{#if showGraph}
 			<div class="card graph-card">
 				<SettlementGraph {members} {plan} {currentMemberId} symbol={currencySymbol} />
 				<div class="row gap-12 graph-legend">
