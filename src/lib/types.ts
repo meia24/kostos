@@ -22,12 +22,15 @@ export type Member = {
 	createdAt: number;
 };
 
+export type SplitMode = 'even' | 'shares' | 'amount';
+
 export type ExpenseSplit = {
 	memberId: string;
 	shares?: number;
 	amount?: number;
 };
 
+/** Expense amounts are stored in minor units (cents) to avoid float drift. */
 export type Expense = {
 	id: string;
 	payerId: string;
@@ -37,7 +40,9 @@ export type Expense = {
 	category?: string;
 	paymentMethod?: PaymentMethod;
 	date: number;
+	splitMode: SplitMode;
 	splits: ExpenseSplit[];
+	notes?: string;
 	createdAt: number;
 	createdBy: string;
 };
