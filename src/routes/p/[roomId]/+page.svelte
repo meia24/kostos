@@ -97,7 +97,7 @@
 
 <div class="screen" data-page="dashboard">
 	<header class="app-bar">
-		<a class="project-link row gap-8" href="/p/{roomId}/settings" aria-label="Project settings">
+		<a class="project-link row gap-8" href="/" aria-label="Switch group" title="Switch group">
 			<span
 				class="project-tile"
 				style={project
@@ -107,7 +107,19 @@
 				{project?.emoji ?? '🏖'}
 			</span>
 			<span class="project-label col">
-				<span class="app-bar-title project-name">{project?.name ?? 'Loading'}</span>
+				<span class="app-bar-title project-name">
+					{project?.name ?? 'Loading'}
+					<svg
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="1.6"
+						class="switch-chevron"
+						aria-hidden="true"
+					>
+						<path d="M6 9l6 6 6-6" />
+					</svg>
+				</span>
 				<span class="dim mono project-token">
 					<span class="sync-dot" data-state={syncStatus} aria-hidden="true"></span>
 					<span class="sync-text" title={syncLabel}>{roomId}</span>
@@ -123,6 +135,12 @@
 			<button class="icon-btn" aria-label="Share" onclick={() => (showShare = !showShare)}>
 				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 4v12M8 8l4-4 4 4M5 14v5h14v-5" /></svg>
 			</button>
+			<a class="icon-btn" href="/p/{roomId}/settings" aria-label="Project settings" title="Project settings">
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+					<circle cx="12" cy="12" r="2.6" />
+					<path d="M19 12a7 7 0 0 0-.16-1.5l2.05-1.58-2-3.46-2.43.83a7 7 0 0 0-2.59-1.5L13.5 2h-3l-.37 2.79a7 7 0 0 0-2.59 1.5l-2.43-.83-2 3.46L5.16 10.5A7 7 0 0 0 5 12a7 7 0 0 0 .16 1.5l-2.05 1.58 2 3.46 2.43-.83a7 7 0 0 0 2.59 1.5L10.5 22h3l.37-2.79a7 7 0 0 0 2.59-1.5l2.43.83 2-3.46-2.05-1.58A7 7 0 0 0 19 12z" />
+				</svg>
+			</a>
 		</div>
 	</header>
 
@@ -278,6 +296,15 @@
 		text-transform: none;
 		letter-spacing: 0;
 		color: var(--ink);
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+	}
+
+	.switch-chevron {
+		width: 12px;
+		height: 12px;
+		color: var(--ink-3);
 	}
 
 	.project-token {
