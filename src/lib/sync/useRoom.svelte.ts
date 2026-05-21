@@ -26,6 +26,7 @@ export class RoomState {
 		new Map((this.project?.paymentMethods ?? []).map((m) => [m.id, m]))
 	);
 	currencySymbol = $derived(this.project?.currencySymbol ?? '€');
+	currency = $derived(this.project?.currency ?? 'EUR');
 
 	constructor(handle: RoomHandle) {
 		this.handle = handle;

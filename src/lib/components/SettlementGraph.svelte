@@ -8,9 +8,10 @@
 		plan: Settlement[];
 		currentMemberId: string | null;
 		symbol: string;
+		currency: string;
 	};
 
-	let { members, plan, currentMemberId, symbol }: Props = $props();
+	let { members, plan, currentMemberId, symbol, currency }: Props = $props();
 
 	const VIEW_W = 280;
 	const VIEW_H = 170;
@@ -120,7 +121,7 @@
 			<g transform="translate({e.mid.x} {e.mid.y})">
 				<rect x="-20" y="-7" width="40" height="13" rx="3" class="edge-label-bg" />
 				<text x="0" y="2" class="edge-label" text-anchor="middle">
-					{formatAmount(e.amount, symbol)}
+					{formatAmount(e.amount, symbol, currency)}
 				</text>
 			</g>
 		</g>

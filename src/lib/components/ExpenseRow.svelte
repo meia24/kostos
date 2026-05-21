@@ -17,6 +17,7 @@
 		methodById: Map<string, PaymentMethodItem>;
 		currentMemberId: string | null;
 		symbol: string;
+		currency: string;
 		totalMembers: number;
 		showDate?: boolean;
 		showInvolvedCount?: boolean;
@@ -31,6 +32,7 @@
 		methodById,
 		currentMemberId,
 		symbol,
+		currency,
 		totalMembers,
 		showDate = true,
 		showInvolvedCount = true,
@@ -129,7 +131,7 @@
 		{/if}
 	</span>
 	<span class="col row-amount-col">
-		<span class="num row-amount">{formatAmount(expense.amount, symbol)}</span>
+		<span class="num row-amount">{formatAmount(expense.amount, symbol, currency)}</span>
 		{#if currentMemberId}
 			{#if !inExpense && yourImpact === 0}
 				<span class="dim mono row-impact">not in</span>
@@ -138,7 +140,7 @@
 					class="num mono row-impact"
 					class:tone-owed={yourImpact > 0}
 					class:tone-owe={yourImpact < 0}
-				>{formatSigned(yourImpact, symbol)}</span>
+				>{formatSigned(yourImpact, symbol, currency)}</span>
 			{/if}
 		{/if}
 	</span>

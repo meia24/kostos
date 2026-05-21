@@ -21,6 +21,7 @@
 
 	const currentMemberId = $derived.by(() => getCurrentMember(roomId));
 	const currencySymbol = $derived(room.currencySymbol);
+	const currency = $derived(room.currency);
 	const membersById = $derived(room.membersById);
 	const expense = $derived(expenses.find((e) => e.id === expenseId));
 
@@ -126,7 +127,7 @@
 					</div>
 				</div>
 				<div class="hero-amount">
-					<span class="hero-sym">{currencySymbol}</span>{(expense.amount / 100).toFixed(2)}
+					<span class="hero-sym">{currencySymbol}</span>{formatAmount(expense.amount, "", currency)}
 				</div>
 				<div class="row gap-8 hero-stickers">
 					{#each expense.payments as p, idx (idx)}
@@ -136,7 +137,7 @@
 							</span>
 							{memberLabel(p.memberId)}
 							{#if expense.payments.length > 1}
-								<span class="dim">{formatAmount(p.amount, currencySymbol)}</span>
+								<span class="dim">{formatAmount(p.amount, currencySymbol, currency)}</span>
 							{/if}
 						</span>
 					{/each}
@@ -156,7 +157,7 @@
 						<div class="row between">
 							<div class="col">
 								<div class="eyebrow share-eyebrow">Your share</div>
-								<div class="num share-amount">{formatAmount(yourShareCents, currencySymbol)}</div>
+								<div class="num share-amount">{formatAmount(yourShareCents, currencySymbol, currency)}</div>
 								<div class="dim mono share-sub">{shareLabelFor(currentMemberId)}</div>
 							</div>
 							<div class="col" style="align-items: flex-end;">
@@ -166,7 +167,7 @@
 									class:tone-owed={yourImpact > 0}
 									class:tone-owe={yourImpact < 0}
 								>
-									{formatSigned(yourImpact, currencySymbol)}
+									{formatSigned(yourImpact, currencySymbol, currency)}
 								</div>
 							</div>
 						</div>
@@ -195,7 +196,7 @@
 							</div>
 							<div class="dim mono breakdown-meta">{shareLabelFor(s.memberId)}</div>
 						</div>
-						<span class="num breakdown-amount">{formatAmount(cents, currencySymbol)}</span>
+						<span class="num breakdown-amount">{formatAmount(cents, currencySymbol, currency)}</span>
 					</div>
 				{/each}
 			</div>

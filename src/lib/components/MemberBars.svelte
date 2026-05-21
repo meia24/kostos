@@ -7,9 +7,10 @@
 		rows: MemberContribution[];
 		currentMemberId: string | null;
 		symbol: string;
+		currency: string;
 	};
 
-	let { rows, currentMemberId, symbol }: Props = $props();
+	let { rows, currentMemberId, symbol, currency }: Props = $props();
 
 	const max = $derived(Math.max(1, ...rows.map((r) => r.paid)));
 </script>
@@ -30,7 +31,7 @@
 					></div>
 				</div>
 			</div>
-			<span class="num member-amount">{formatAmount(m.paid, symbol)}</span>
+			<span class="num member-amount">{formatAmount(m.paid, symbol, currency)}</span>
 		</div>
 	{/each}
 </div>

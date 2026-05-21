@@ -21,6 +21,7 @@
 
 	const currentMemberId = $derived.by(() => getCurrentMember(roomId));
 	const currencySymbol = $derived(room.currencySymbol);
+	const currency = $derived(room.currency);
 	const membersById = $derived(room.membersById);
 
 	const balances = $derived(computeBalances(members, expenses));
@@ -78,7 +79,7 @@
 			{#if plan.length === 0}
 				<div class="eyebrow">Everyone is settled</div>
 				<div class="hero-amount tone-flat">
-					<span class="hero-sym">{currencySymbol}</span>0.00
+					<span class="hero-sym">{currencySymbol}</span>{formatAmount(0, "", currency)}
 				</div>
 				<div class="dim mono hero-caption">NO OPEN BALANCES</div>
 			{:else}
@@ -86,7 +87,7 @@
 					{plan.length} {plan.length === 1 ? 'transfer settles' : 'transfers settle'} everyone
 				</div>
 				<div class="hero-amount">
-					<span class="hero-sym">{currencySymbol}</span>{(totalToSettle / 100).toFixed(2)}
+					<span class="hero-sym">{currencySymbol}</span>{formatAmount(totalToSettle, "", currency)}
 				</div>
 				<div class="dim mono hero-caption">
 					MINIMISED FROM {openCount} OPEN {openCount === 1 ? 'BALANCE' : 'BALANCES'} · ALGORITHMIC
@@ -96,7 +97,7 @@
 
 		{#if showGraph}
 			<div class="card graph-card">
-				<SettlementGraph {members} {plan} {currentMemberId} symbol={currencySymbol} />
+				<SettlementGraph {members} {plan} {currentMemberId} symbol={currencySymbol} {currency} />
 				<div class="row gap-12 graph-legend">
 					<span class="row gap-6"><span class="legend-dot legend-in"></span>You're owed</span>
 					<span class="row gap-6"><span class="legend-dot legend-out"></span>You owe</span>
@@ -129,7 +130,7 @@
 						<hr class="hairline plan-rule" />
 						<div class="row between plan-bottom">
 							<div class="num plan-amount">
-								<span class="plan-sym">{currencySymbol}</span>{(t.amount / 100).toFixed(2)}
+								<span class="plan-sym">{currencySymbol}</span>{formatAmount(t.amount, "", currency)}
 							</div>
 							{#if youFrom}
 								<button class="btn btn-primary mark-btn" type="button" onclick={() => markPaid(t)}>

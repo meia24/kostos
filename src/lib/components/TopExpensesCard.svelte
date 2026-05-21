@@ -8,6 +8,7 @@
 		membersById: Map<string, Member>;
 		currentMemberId: string | null;
 		symbol: string;
+		currency: string;
 		hrefBase: string;
 	};
 
@@ -17,6 +18,7 @@
 		membersById,
 		currentMemberId,
 		symbol,
+		currency,
 		hrefBase
 	}: Props = $props();
 
@@ -38,7 +40,7 @@
 					{formatDay(e.date)} · {e.payments[0]?.memberId === currentMemberId ? 'You' : payerName} paid
 				</span>
 			</div>
-			<span class="num top-amount">{formatAmount(e.amount, symbol)}</span>
+			<span class="num top-amount">{formatAmount(e.amount, symbol, currency)}</span>
 		</a>
 	{/each}
 </div>

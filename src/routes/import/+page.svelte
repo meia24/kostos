@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { currencyDecimals } from '$lib/currencies';
 	import { isV1Export, mapV1ToV2, type ImportResult } from '$lib/import/v1';
 	import { addProject } from '$lib/storage';
 	import { addExpense, initProject, openRoom } from '$lib/sync/doc';
@@ -90,13 +91,12 @@
 	}
 
 	function formatAmount(cents: number, currency: string): string {
+		const decimals = currencyDecimals(currency);
+		const value = cents / 10 ** decimals;
 		try {
-			return new Intl.NumberFormat(undefined, {
-				style: 'currency',
-				currency
-			}).format(cents / 100);
+			return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(value);
 		} catch {
-			return `${cents / 100} ${currency}`;
+			return `${value} ${currency}`;
 		}
 	}
 

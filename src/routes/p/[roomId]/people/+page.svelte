@@ -36,6 +36,7 @@
 
 	const currentMemberId = $derived.by(() => getCurrentMember(roomId));
 	const currencySymbol = $derived(room.currencySymbol);
+	const currency = $derived(room.currency);
 	const balances = $derived(computeBalances(members, expenses));
 	const balanceById = $derived(new Map(balances.map((b) => [b.memberId, b.net])));
 
@@ -167,7 +168,7 @@
 							{/if}
 						</div>
 						<div class="col member-balance">
-							<span class="num {balanceTone(balance)}">{formatSigned(balance, currencySymbol)}</span>
+							<span class="num {balanceTone(balance)}">{formatSigned(balance, currencySymbol, currency)}</span>
 							<span class="dim mono balance-label">{balanceLabel(balance)}</span>
 						</div>
 					</div>
@@ -177,11 +178,11 @@
 						<div class="row between stat-row">
 							<div class="col stat-cell">
 								<span class="dim mono stat-label">PAID</span>
-								<span class="num stat-value">{formatAmount(stats.paid, currencySymbol)}</span>
+								<span class="num stat-value">{formatAmount(stats.paid, currencySymbol, currency)}</span>
 							</div>
 							<div class="col stat-cell">
 								<span class="dim mono stat-label">OWES SHARE</span>
-								<span class="num stat-value">{formatAmount(stats.owes, currencySymbol)}</span>
+								<span class="num stat-value">{formatAmount(stats.owes, currencySymbol, currency)}</span>
 							</div>
 							<div class="row gap-6 member-actions">
 								<button class="icon-btn" type="button" onclick={() => startEdit(m)} aria-label="Rename">
@@ -201,7 +202,7 @@
 								<p class="remove-warning">
 									<strong>{m.name}</strong> shows up in <strong>{history}</strong>
 									{history === 1 ? 'expense' : 'expenses'}{balance !== 0
-										? ` and has an open balance of ${formatSigned(balance, currencySymbol)}`
+										? ` and has an open balance of ${formatSigned(balance, currencySymbol, currency)}`
 										: ''}.
 									Removing them keeps the history but new transactions can no longer reference them.
 								</p>

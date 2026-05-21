@@ -2,42 +2,66 @@
 	import { formatAmount } from '$lib/money';
 
 	type Bucket = { date: number; total: number };
+	type BucketSize = 'day' | 'week' | 'month';
 
 	type Props = {
 		buckets: Bucket[];
+		bucketSize?: BucketSize;
 		symbol: string;
+		currency: string;
 	};
 
-	let { buckets, symbol }: Props = $props();
+	let { buckets, bucketSize = 'day', symbol, currency }: Props = $props();
 
 	const max = $derived(Math.max(1, ...buckets.map((b) => b.total)));
 
-	function formatDay(ts: number): string {
-		return new Date(ts).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+	const headTitle = $derived(
+		bucketSize === 'month'
+			? 'Monthly spend'
+			: bucketSize === 'week'
+				? 'Weekly spend'
+				: 'Daily spend'
+	);
+
+	const headCount = $derived(
+		bucketSize === 'month'
+			? `${buckets.length} ${buckets.length === 1 ? 'MONTH' : 'MONTHS'}`
+			: bucketSize === 'week'
+				? `${buckets.length} ${buckets.length === 1 ? 'WEEK' : 'WEEKS'}`
+				: `${buckets.length} ${buckets.length === 1 ? 'DAY' : 'DAYS'}`
+	);
+
+	function formatBucket(ts: number, size: BucketSize): string {
+		const d = new Date(ts);
+		if (size === 'month') {
+			return d.toLocaleDateString(undefined, { month: 'short', year: '2-digit' });
+		}
+		return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 	}
 
 	const labels = $derived(() => {
 		if (buckets.length === 0) return [];
-		const first = formatDay(buckets[0].date);
-		const last = formatDay(buckets[buckets.length - 1].date);
+		const first = formatBucket(buckets[0].date, bucketSize);
+		const last = formatBucket(buckets[buckets.length - 1].date, bucketSize);
 		if (buckets.length < 3) return [first, last];
-		const mid = formatDay(buckets[Math.floor(buckets.length / 2)].date);
+		const mid = formatBucket(buckets[Math.floor(buckets.length / 2)].date, bucketSize);
 		return [first, mid, last];
 	});
+
+	const tooltip = (b: Bucket): string =>
+		`${formatBucket(b.date, bucketSize)}: ${formatAmount(b.total, symbol, currency)}`;
 </script>
 
 <div class="card daily-card">
 	<div class="row between daily-head">
-		<div class="eyebrow">Daily spend</div>
-		<div class="dim mono daily-range">
-			{buckets.length} {buckets.length === 1 ? 'DAY' : 'DAYS'}
-		</div>
+		<div class="eyebrow">{headTitle}</div>
+		<div class="dim mono daily-range">{headCount}</div>
 	</div>
 	<div class="daily-bars">
 		{#each buckets as b (b.date)}
 			{@const heightPct = (b.total / max) * 100}
 			{@const isPeak = b.total === max && b.total > 0}
-			<div class="daily-col" title="{formatDay(b.date)}: {formatAmount(b.total, symbol)}">
+			<div class="daily-col" title={tooltip(b)}>
 				<div class="daily-bar" class:peak={isPeak} style="height: max(2px, {heightPct}%);"></div>
 			</div>
 		{/each}
@@ -65,7 +89,7 @@
 	.daily-bars {
 		display: flex;
 		align-items: flex-end;
-		gap: 3px;
+		gap: 2px;
 		height: 92px;
 	}
 
@@ -74,7 +98,7 @@
 		display: flex;
 		flex-direction: column;
 		justify-content: flex-end;
-		min-width: 0;
+		min-width: 1px;
 	}
 
 	.daily-bar {

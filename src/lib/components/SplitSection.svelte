@@ -8,6 +8,7 @@
 		members: Member[];
 		amountCents: number;
 		symbol: string;
+		currency: string;
 		currentMemberId: string | null;
 		splitMode: SplitMode;
 		involved: Set<string>;
@@ -30,6 +31,7 @@
 		members,
 		amountCents,
 		symbol,
+		currency,
 		currentMemberId,
 		splitMode,
 		involved,
@@ -70,7 +72,7 @@
 			<span class="split-tab-label">Evenly</span>
 			<span class="split-tab-sub">
 				{involvedList.length > 0
-					? `${formatAmount(Math.trunc(amountCents / involvedList.length), symbol)} each`
+					? `${formatAmount(Math.trunc(amountCents / involvedList.length), symbol, currency)} each`
 					: '—'}
 			</span>
 		</button>
@@ -111,7 +113,7 @@
 				<path d="M18 14l.8 2.2L21 17l-2.2.8L18 20l-.8-2.2L15 17l2.2-.8z" />
 			</svg>
 			<span class="auto-fill-text">
-				Split the remaining <span class="num">{formatAmount(remaining, symbol)}</span> among
+				Split the remaining <span class="num">{formatAmount(remaining, symbol, currency)}</span> among
 				{emptyInvolvedCount} {emptyInvolvedCount === 1 ? 'person' : 'people'}
 			</span>
 		</button>
@@ -140,14 +142,14 @@
 				{#if !isIn}
 					<span class="dim mono dash">—</span>
 				{:else if splitMode === 'even'}
-					<span class="num member-amount">{formatAmount(portion, symbol)}</span>
+					<span class="num member-amount">{formatAmount(portion, symbol, currency)}</span>
 				{:else if splitMode === 'shares'}
 					<div class="row gap-6 shares-controls">
 						<button type="button" class="step-btn" onclick={() => onStepShare(m.id, -1)} aria-label="Decrease shares">−</button>
 						<span class="num share-value">{shares[m.id] ?? 0}</span>
 						<button type="button" class="step-btn" onclick={() => onStepShare(m.id, 1)} aria-label="Increase shares">+</button>
 					</div>
-					<span class="num member-amount">{formatAmount(portion, symbol)}</span>
+					<span class="num member-amount">{formatAmount(portion, symbol, currency)}</span>
 				{:else}
 					<div class="split-amount-wrap">
 						<input
@@ -171,7 +173,7 @@
 	<div class="row between sanity">
 		<div class="row gap-6">
 			<span class="dim mono">SUM</span>
-			<span class="num sanity-value">{formatAmount(amountCents, symbol)}</span>
+			<span class="num sanity-value">{formatAmount(amountCents, symbol, currency)}</span>
 		</div>
 		{#if splitMode === 'amount'}
 			<div class="row gap-6">
@@ -180,7 +182,7 @@
 					class="num sanity-value"
 					class:tone-owed={remaining === 0}
 					class:tone-owe={remaining !== 0}
-				>{formatAmount(remaining, symbol)}</span>
+				>{formatAmount(remaining, symbol, currency)}</span>
 			</div>
 		{:else if splitMode === 'shares'}
 			<div class="row gap-6">
@@ -191,7 +193,7 @@
 			<div class="row gap-6">
 				<span class="dim mono">PER PERSON</span>
 				<span class="num sanity-value">
-					{formatAmount(Math.trunc(amountCents / involvedList.length), symbol)}
+					{formatAmount(Math.trunc(amountCents / involvedList.length), symbol, currency)}
 				</span>
 			</div>
 		{/if}

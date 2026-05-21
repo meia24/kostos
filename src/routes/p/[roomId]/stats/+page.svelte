@@ -27,6 +27,7 @@
 
 	const currentMemberId = $derived.by(() => getCurrentMember(roomId));
 	const currencySymbol = $derived(room.currencySymbol);
+	const currency = $derived(room.currency);
 	const membersById = $derived(room.membersById);
 	const categoryById = $derived(room.categoryById);
 	const methodById = $derived(room.methodById);
@@ -74,22 +75,84 @@
 	const perPerson = $derived(members.length > 0 ? Math.round(totalSpent / members.length) : 0);
 	const expenseCount = $derived(periodExpenses.length);
 	const avgExpense = $derived(expenseCount > 0 ? Math.round(totalSpent / expenseCount) : 0);
+	const daysWithActivity = $derived(
+		new Set(periodExpenses.map((e) => startOfDay(e.date))).size
+	);
 
-	type DailyBucket = { date: number; total: number };
-	const dailyBuckets = $derived.by<DailyBucket[]>(() => {
+	type SpendBucket = { date: number; total: number };
+	type BucketSize = 'day' | 'week' | 'month';
+
+	function startOfWeek(ts: number): number {
+		const d = new Date(ts);
+		d.setHours(0, 0, 0, 0);
+		// snap to Monday
+		const day = (d.getDay() + 6) % 7;
+		d.setDate(d.getDate() - day);
+		return d.getTime();
+	}
+
+	function startOfMonth(ts: number): number {
+		const d = new Date(ts);
+		d.setHours(0, 0, 0, 0);
+		d.setDate(1);
+		return d.getTime();
+	}
+
+	const spendBucketSize = $derived.by<BucketSize>(() => {
+		if (periodExpenses.length === 0) return 'day';
+		const cutoff = periodCutoff(period);
+		const startMs = cutoff > 0 ? cutoff : Math.min(...periodExpenses.map((e) => e.date));
+		const days = Math.ceil((Date.now() - startMs) / (86400 * 1000));
+		if (days > 365) return 'month';
+		if (days > 60) return 'week';
+		return 'day';
+	});
+
+	const spendBuckets = $derived.by<SpendBucket[]>(() => {
 		if (periodExpenses.length === 0) return [];
 		const cutoff = periodCutoff(period);
 		const startMs = cutoff > 0 ? cutoff : Math.min(...periodExpenses.map((e) => e.date));
-		const start = startOfDay(startMs);
-		const end = startOfDay(Date.now());
-		const buckets: DailyBucket[] = [];
-		for (let t = start; t <= end; t += 86400 * 1000) {
-			buckets.push({ date: t, total: 0 });
+
+		if (spendBucketSize === 'day') {
+			const start = startOfDay(startMs);
+			const end = startOfDay(Date.now());
+			const buckets: SpendBucket[] = [];
+			for (let t = start; t <= end; t += 86400 * 1000) {
+				buckets.push({ date: t, total: 0 });
+			}
+			for (const e of periodExpenses) {
+				const idx = Math.round((startOfDay(e.date) - start) / (86400 * 1000));
+				if (idx >= 0 && idx < buckets.length) buckets[idx].total += e.amount;
+			}
+			return buckets;
 		}
+
+		if (spendBucketSize === 'week') {
+			const startW = startOfWeek(startMs);
+			const endW = startOfWeek(Date.now());
+			const buckets: SpendBucket[] = [];
+			for (let t = startW; t <= endW; t += 7 * 86400 * 1000) {
+				buckets.push({ date: t, total: 0 });
+			}
+			for (const e of periodExpenses) {
+				const idx = Math.round((startOfWeek(e.date) - startW) / (7 * 86400 * 1000));
+				if (idx >= 0 && idx < buckets.length) buckets[idx].total += e.amount;
+			}
+			return buckets;
+		}
+
+		// monthly: variable month lengths, so iterate explicitly
+		const buckets: SpendBucket[] = [];
+		const cursor = new Date(startOfMonth(startMs));
+		const endMs = startOfMonth(Date.now());
+		while (cursor.getTime() <= endMs) {
+			buckets.push({ date: cursor.getTime(), total: 0 });
+			cursor.setMonth(cursor.getMonth() + 1);
+		}
+		const indexByMonth = new Map(buckets.map((b, i) => [b.date, i]));
 		for (const e of periodExpenses) {
-			const dayStart = startOfDay(e.date);
-			const idx = Math.round((dayStart - start) / (86400 * 1000));
-			if (idx >= 0 && idx < buckets.length) buckets[idx].total += e.amount;
+			const idx = indexByMonth.get(startOfMonth(e.date));
+			if (idx !== undefined) buckets[idx].total += e.amount;
 		}
 		return buckets;
 	});
@@ -160,7 +223,7 @@
 		const topPct = Math.round((top.amount / totalSpent) * 100);
 		const biggestPayer = membersById.get(biggest.payments[0]?.memberId ?? '')?.name ?? '—';
 		const biggestLabel = biggest.description || 'Untitled expense';
-		return `${topPct}% went to ${top.emoji} ${top.name}. Biggest single hit: ${biggestLabel} (${formatAmount(biggest.amount, currencySymbol)}, paid by ${biggestPayer}).`;
+		return `${topPct}% went to ${top.emoji} ${top.name}. Biggest single hit: ${biggestLabel} (${formatAmount(biggest.amount, currencySymbol, currency)}, paid by ${biggestPayer}).`;
 	});
 </script>
 
@@ -186,12 +249,12 @@
 			<div class="row gap-8 hero-row">
 				<div class="stat hero-tile">
 					<div class="stat-label">Total spent</div>
-					<div class="stat-value mono">{formatAmount(totalSpent, currencySymbol)}</div>
+					<div class="stat-value mono">{formatAmount(totalSpent, currencySymbol, currency)}</div>
 					<div class="stat-sub">{periodLabel(period)}</div>
 				</div>
 				<div class="stat hero-tile">
 					<div class="stat-label">Per person</div>
-					<div class="stat-value mono">{formatAmount(perPerson, currencySymbol)}</div>
+					<div class="stat-value mono">{formatAmount(perPerson, currencySymbol, currency)}</div>
 					<div class="stat-sub">across {members.length} {members.length === 1 ? 'member' : 'members'}</div>
 				</div>
 			</div>
@@ -203,22 +266,27 @@
 				</div>
 				<div class="stat mini-tile">
 					<div class="stat-label">Avg expense</div>
-					<div class="num mini-value">{formatAmount(avgExpense, currencySymbol)}</div>
+					<div class="num mini-value">{formatAmount(avgExpense, currencySymbol, currency)}</div>
 				</div>
 				<div class="stat mini-tile">
 					<div class="stat-label">Days active</div>
-					<div class="num mini-value">{dailyBuckets.filter((b) => b.total > 0).length}</div>
+					<div class="num mini-value">{daysWithActivity}</div>
 				</div>
 			</div>
 
-			<DailyBars buckets={dailyBuckets} symbol={currencySymbol} />
+			<DailyBars
+				buckets={spendBuckets}
+				bucketSize={spendBucketSize}
+				symbol={currencySymbol}
+				{currency}
+			/>
 
 			{#if byCategory.length > 0}
 				<div class="section-head">
 					<div class="eyebrow">By category</div>
 					<span class="dim mono section-count">{byCategory.length}</span>
 				</div>
-				<CategoryBreakdown rows={byCategory} total={totalSpent} symbol={currencySymbol} />
+				<CategoryBreakdown rows={byCategory} total={totalSpent} symbol={currencySymbol} {currency} />
 			{/if}
 
 			{#if byMemberPaid.length > 0}
@@ -226,7 +294,7 @@
 					<div class="eyebrow">Out of pocket</div>
 					<span class="dim mono section-count">WHO PAID</span>
 				</div>
-				<MemberBars rows={byMemberPaid} {currentMemberId} symbol={currencySymbol} />
+				<MemberBars rows={byMemberPaid} {currentMemberId} symbol={currencySymbol} {currency} />
 			{/if}
 
 			{#if byMethod.length > 0}
@@ -240,7 +308,7 @@
 							<div
 								class="method-seg"
 								style="width: {w}%; background: {m.color};"
-								title="{m.emoji} {m.name}: {formatAmount(m.amount, currencySymbol)}"
+								title="{m.emoji} {m.name}: {formatAmount(m.amount, currencySymbol, currency)}"
 							></div>
 						{/each}
 					</div>
@@ -266,7 +334,7 @@
 					{categoryById}
 					{membersById}
 					{currentMemberId}
-					symbol={currencySymbol}
+					symbol={currencySymbol} {currency}
 					hrefBase="/p/{roomId}/expenses"
 				/>
 			{/if}

@@ -130,6 +130,7 @@
 
 	const isExpression = $derived(/[+\-*/()]/.test(amountInput.trim()));
 	const currencySymbol = $derived(project.currencySymbol);
+	const currency = $derived(project.currency);
 	const involvedList = $derived(members.filter((m) => involved.has(m.id)));
 
 	const payerCents = $derived(payers.map((p) => evalToCents(p.amount) ?? 0));
@@ -337,6 +338,7 @@
 			bind:value={amountInput}
 			cents={amountCents}
 			symbol={currencySymbol}
+			{currency}
 			{isExpression}
 		/>
 
@@ -369,6 +371,7 @@
 			{paidTotal}
 			{paidShort}
 			symbol={currencySymbol}
+			{currency}
 			{currentMemberId}
 			bind:dateStr
 			onUpdatePayer={setPayerRow}
@@ -381,6 +384,7 @@
 			{members}
 			{amountCents}
 			symbol={currencySymbol}
+			{currency}
 			{currentMemberId}
 			{splitMode}
 			{involved}

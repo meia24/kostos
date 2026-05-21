@@ -1,13 +1,18 @@
 <script lang="ts">
 	import { mathInput } from '$lib/actions/mathInput';
+	import { currencyDecimals } from '$lib/currencies';
 
 	type Props = {
 		value: string;
 		cents: number;
 		symbol: string;
+		currency: string;
 		isExpression: boolean;
 	};
-	let { value = $bindable(), cents, symbol, isExpression }: Props = $props();
+	let { value = $bindable(), cents, symbol, currency, isExpression }: Props = $props();
+
+	const decimals = $derived(currencyDecimals(currency));
+	const display = $derived((cents / 10 ** decimals).toFixed(decimals));
 
 	let inputEl = $state<HTMLInputElement | null>(null);
 </script>
@@ -15,9 +20,7 @@
 <button type="button" class="amount-block" onclick={() => inputEl?.focus()} tabindex="-1">
 	<span class="eyebrow">Amount</span>
 	<span class="amount-display" class:is-zero={cents === 0}>
-		<span class="amount-symbol">{symbol}</span><span class="amount-value mono"
-			>{(cents / 100).toFixed(2)}</span
-		>
+		<span class="amount-symbol">{symbol}</span><span class="amount-value mono">{display}</span>
 	</span>
 	<span class="amount-input-wrap" class:is-expression={isExpression}>
 		<input

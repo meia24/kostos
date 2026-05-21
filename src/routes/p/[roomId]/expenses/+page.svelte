@@ -19,6 +19,7 @@
 
 	const currentMemberId = $derived.by(() => getCurrentMember(roomId));
 	const currencySymbol = $derived(room.currencySymbol);
+	const currency = $derived(room.currency);
 	const membersById = $derived(room.membersById);
 	const categoryById = $derived(room.categoryById);
 	const methodById = $derived(room.methodById);
@@ -149,7 +150,7 @@
 					{isFiltering ? 'Matches' : 'Total spent'}
 				</div>
 				<div class="num summary-amount">
-					<span class="summary-sym">{currencySymbol}</span>{(overallTotal / 100).toFixed(2)}
+					<span class="summary-sym">{currencySymbol}</span>{formatAmount(overallTotal, "", currency)}
 				</div>
 			</div>
 			<div class="col" style="align-items: flex-end;">
@@ -174,7 +175,7 @@
 			{#each groups as g (g.key)}
 				<div class="section-head day-head">
 					<div class="eyebrow">{g.label}</div>
-					<div class="dim mono day-total">{formatAmount(g.total, currencySymbol)}</div>
+					<div class="dim mono day-total">{formatAmount(g.total, currencySymbol, currency)}</div>
 				</div>
 				<div class="card day-card">
 					{#each g.items as e, i (e.id)}
@@ -186,7 +187,7 @@
 							{categoryById}
 							{methodById}
 							{currentMemberId}
-							symbol={currencySymbol}
+							symbol={currencySymbol} {currency}
 							totalMembers={members.length}
 							showDate={false}
 							{query}

@@ -47,6 +47,7 @@
 	const currentMemberId = $derived.by(() => getCurrentMember(roomId));
 	const youMember = $derived(members.find((m) => m.id === currentMemberId) ?? null);
 	const currencySymbol = $derived(room.currencySymbol);
+	const currency = $derived(room.currency);
 	const membersById = $derived(room.membersById);
 	const categoryById = $derived(room.categoryById);
 	const methodById = $derived(room.methodById);
@@ -151,7 +152,7 @@
 				{balanceEyebrow(yourBalance)}
 			</div>
 			<div class="balance-amount" class:tone-owed={yourBalance > 0} class:tone-owe={yourBalance < 0}>
-				<span class="symbol">{currencySymbol}</span>{(Math.abs(yourBalance) / 100).toFixed(2)}
+				<span class="symbol">{currencySymbol}</span>{formatAmount(Math.abs(yourBalance), '', currency)}
 			</div>
 			{#if youMember}
 				<p class="dim balance-sub">as <strong>{youMember.name}</strong></p>
@@ -220,7 +221,7 @@
 										{youPay ? 'OUTGOING' : 'INCOMING'}
 									</span>
 								</span>
-								<span class="num plan-amount">{formatAmount(t.amount, currencySymbol)}</span>
+								<span class="num plan-amount">{formatAmount(t.amount, currencySymbol, currency)}</span>
 							</div>
 						{/each}
 					</div>
@@ -260,6 +261,7 @@
 							{methodById}
 							{currentMemberId}
 							symbol={currencySymbol}
+							{currency}
 							totalMembers={members.length}
 							showInvolvedCount={false}
 						/>

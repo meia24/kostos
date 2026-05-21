@@ -17,6 +17,16 @@ describe('formatAmount', () => {
 	it('thousands separator on large totals', () => {
 		expect(formatAmount(123456789, '€')).toBe('€1,234,567.89');
 	});
+
+	it('renders JPY (zero-decimal) as whole units without a dot', () => {
+		expect(formatAmount(990430, '¥', 'JPY')).toBe('¥990,430');
+		expect(formatAmount(7861, '¥', 'JPY')).toBe('¥7,861');
+		expect(formatAmount(-1350, '¥', 'JPY')).toBe('−¥1,350');
+	});
+
+	it('renders KRW (zero-decimal) as whole units', () => {
+		expect(formatAmount(50000, '₩', 'KRW')).toBe('₩50,000');
+	});
 });
 
 describe('formatSigned', () => {
@@ -37,5 +47,10 @@ describe('toInputValue', () => {
 	it('renders an input-friendly decimal', () => {
 		expect(toInputValue(1550)).toBe('15.50');
 		expect(toInputValue(0)).toBe('0.00');
+	});
+
+	it('renders zero-decimal currencies as whole numbers', () => {
+		expect(toInputValue(1350, 'JPY')).toBe('1350');
+		expect(toInputValue(50000, 'KRW')).toBe('50000');
 	});
 });

@@ -15,9 +15,10 @@
 		rows: CategoryRollup[];
 		total: number;
 		symbol: string;
+		currency: string;
 	};
 
-	let { rows, total, symbol }: Props = $props();
+	let { rows, total, symbol, currency }: Props = $props();
 
 	const slices = $derived<DonutSlice[]>(
 		rows.map((r) => ({ key: r.id, value: r.amount, color: r.color }))
@@ -29,7 +30,7 @@
 		<Donut
 			{slices}
 			centerLabel="TOTAL"
-			centerValue={formatAmount(total, symbol)}
+			centerValue={formatAmount(total, symbol, currency)}
 		/>
 		<div class="col category-list">
 			{#each rows as c (c.id)}
@@ -39,7 +40,7 @@
 					<span class="category-emoji">{c.emoji}</span>
 					<span class="category-name">{c.name}</span>
 					<span class="dim mono category-pct">{pct}%</span>
-					<span class="num category-amount">{formatAmount(c.amount, symbol)}</span>
+					<span class="num category-amount">{formatAmount(c.amount, symbol, currency)}</span>
 				</div>
 			{/each}
 		</div>

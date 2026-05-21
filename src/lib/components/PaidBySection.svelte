@@ -13,6 +13,7 @@
 		paidTotal: number;
 		paidShort: number;
 		symbol: string;
+		currency: string;
 		currentMemberId: string | null;
 		dateStr: string;
 		onUpdatePayer: (id: string, updates: Partial<PaymentRow>) => void;
@@ -28,6 +29,7 @@
 		paidTotal,
 		paidShort,
 		symbol,
+		currency,
 		currentMemberId,
 		dateStr = $bindable(),
 		onUpdatePayer,
@@ -188,7 +190,7 @@
 				class:tone-owed={paidShort === 0}
 				class:tone-owe={paidShort !== 0}
 			>
-				PAID {formatAmount(paidTotal, symbol)} / {formatAmount(amountCents, symbol)}
+				PAID {formatAmount(paidTotal, symbol, currency)} / {formatAmount(amountCents, symbol, currency)}
 			</span>
 		</div>
 	{/if}
