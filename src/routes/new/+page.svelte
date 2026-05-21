@@ -4,7 +4,13 @@
 	import { setCurrentMember, setCurrentProject } from '$lib/storage';
 	import { generateId, initProject, openRoom } from '$lib/sync/doc';
 	import { generateRoomId, generateSecret } from '$lib/token';
-	import type { Member, Project, ProjectColor } from '$lib/types';
+	import {
+		DEFAULT_CATEGORIES,
+		DEFAULT_PAYMENT_METHODS,
+		type Member,
+		type Project,
+		type ProjectColor
+	} from '$lib/types';
 
 	type DraftMember = { id: string; name: string };
 	type Picker = null | 'emoji' | 'currency';
@@ -139,6 +145,8 @@
 			currency: currencyCode,
 			currencySymbol: currencySym,
 			defaultSplit: 'even',
+			categories: DEFAULT_CATEGORIES,
+			paymentMethods: DEFAULT_PAYMENT_METHODS,
 			createdAt: Date.now()
 		};
 

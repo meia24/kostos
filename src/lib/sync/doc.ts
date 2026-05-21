@@ -1,7 +1,15 @@
 import * as Y from 'yjs';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import { browser } from '$app/environment';
-import type { Expense, ExpenseSplit, Member, Payment, Project } from '$lib/types';
+import type {
+	Category,
+	Expense,
+	ExpenseSplit,
+	Member,
+	Payment,
+	PaymentMethodItem,
+	Project
+} from '$lib/types';
 
 export type RoomHandle = {
 	roomId: string;
@@ -56,6 +64,22 @@ export async function destroyRoom(roomId: string): Promise<void> {
 export function readProject(handle: RoomHandle): Project | null {
 	const p = handle.project;
 	if (!p.has('id')) return null;
+	const rawCategories = p.get('categories') as Y.Array<Y.Map<unknown>> | undefined;
+	const categories: Category[] = rawCategories
+		? rawCategories.toArray().map((c) => ({
+				id: c.get('id') as string,
+				name: c.get('name') as string,
+				emoji: c.get('emoji') as string
+			}))
+		: [];
+	const rawMethods = p.get('paymentMethods') as Y.Array<Y.Map<unknown>> | undefined;
+	const paymentMethods: PaymentMethodItem[] = rawMethods
+		? rawMethods.toArray().map((m) => ({
+				id: m.get('id') as string,
+				name: m.get('name') as string,
+				emoji: m.get('emoji') as string
+			}))
+		: [];
 	return {
 		id: p.get('id') as string,
 		name: p.get('name') as string,
@@ -65,6 +89,8 @@ export function readProject(handle: RoomHandle): Project | null {
 		currency: p.get('currency') as string,
 		currencySymbol: p.get('currencySymbol') as string,
 		defaultSplit: p.get('defaultSplit') as Project['defaultSplit'],
+		categories,
+		paymentMethods,
 		createdAt: p.get('createdAt') as number
 	};
 }
@@ -89,9 +115,45 @@ export function initProject(handle: RoomHandle, project: Project, members: Membe
 		handle.project.set('currencySymbol', project.currencySymbol);
 		handle.project.set('defaultSplit', project.defaultSplit);
 		handle.project.set('createdAt', project.createdAt);
+		handle.project.set('categories', yArrayOf(project.categories, categoryMap));
+		handle.project.set('paymentMethods', yArrayOf(project.paymentMethods, paymentMethodMap));
 
 		for (const m of members) handle.members.push([memberMap(m)]);
 	});
+}
+
+export function addCategory(handle: RoomHandle, category: Category): void {
+	const arr = handle.project.get('categories') as Y.Array<Y.Map<unknown>> | undefined;
+	if (!arr) return;
+	handle.doc.transact(() => arr.push([categoryMap(category)]));
+}
+
+export function addPaymentMethod(handle: RoomHandle, method: PaymentMethodItem): void {
+	const arr = handle.project.get('paymentMethods') as Y.Array<Y.Map<unknown>> | undefined;
+	if (!arr) return;
+	handle.doc.transact(() => arr.push([paymentMethodMap(method)]));
+}
+
+function categoryMap(c: Category): Y.Map<unknown> {
+	const ym = new Y.Map<unknown>();
+	ym.set('id', c.id);
+	ym.set('name', c.name);
+	ym.set('emoji', c.emoji);
+	return ym;
+}
+
+function paymentMethodMap(p: PaymentMethodItem): Y.Map<unknown> {
+	const ym = new Y.Map<unknown>();
+	ym.set('id', p.id);
+	ym.set('name', p.name);
+	ym.set('emoji', p.emoji);
+	return ym;
+}
+
+function yArrayOf<T>(items: T[], toMap: (item: T) => Y.Map<unknown>): Y.Array<Y.Map<unknown>> {
+	const arr = new Y.Array<Y.Map<unknown>>();
+	for (const item of items) arr.push([toMap(item)]);
+	return arr;
 }
 
 export function addMember(handle: RoomHandle, member: Member): void {
@@ -120,6 +182,19 @@ export function removeExpense(handle: RoomHandle, id: string): void {
 	}
 }
 
+export function updateExpense(handle: RoomHandle, expense: Expense): void {
+	const items = handle.expenses;
+	for (let i = 0; i < items.length; i++) {
+		if (items.get(i).get('id') === expense.id) {
+			handle.doc.transact(() => {
+				items.delete(i, 1);
+				items.insert(i, [expenseMap(expense)]);
+			});
+			return;
+		}
+	}
+}
+
 function readExpenseEntry(entry: Y.Map<unknown>): Expense {
 	const rawSplits = entry.get('splits') as Y.Array<Y.Map<unknown>> | undefined;
 	const splits: ExpenseSplit[] = rawSplits
@@ -142,8 +217,8 @@ function readExpenseEntry(entry: Y.Map<unknown>): Expense {
 		amount: entry.get('amount') as number,
 		currency: entry.get('currency') as string,
 		description: entry.get('description') as string | undefined,
-		category: entry.get('category') as string | undefined,
-		paymentMethod: entry.get('paymentMethod') as Expense['paymentMethod'] | undefined,
+		categoryId: entry.get('categoryId') as string | undefined,
+		paymentMethodId: entry.get('paymentMethodId') as string | undefined,
 		date: entry.get('date') as number,
 		splitMode: entry.get('splitMode') as Expense['splitMode'],
 		splits,
@@ -167,8 +242,8 @@ function expenseMap(e: Expense): Y.Map<unknown> {
 	ym.set('amount', e.amount);
 	ym.set('currency', e.currency);
 	if (e.description) ym.set('description', e.description);
-	if (e.category) ym.set('category', e.category);
-	if (e.paymentMethod) ym.set('paymentMethod', e.paymentMethod);
+	if (e.categoryId) ym.set('categoryId', e.categoryId);
+	if (e.paymentMethodId) ym.set('paymentMethodId', e.paymentMethodId);
 	ym.set('date', e.date);
 	ym.set('splitMode', e.splitMode);
 	const ysplits = new Y.Array<Y.Map<unknown>>();
