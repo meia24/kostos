@@ -3,6 +3,10 @@ main = "worker/index.ts"
 compatibility_date = "2025-05-01"
 compatibility_flags = ["nodejs_compat"]
 
+routes = [
+	{ pattern = "kostos.shynewt.com", custom_domain = true }
+]
+
 [assets]
 directory = "build"
 binding = "ASSETS"
