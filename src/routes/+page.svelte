@@ -1,9 +1,15 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { getCurrentProject, type ProjectRef } from '$lib/storage';
 	import { parseToken } from '$lib/token';
 
 	let token = $state('');
 	let error = $state<string | null>(null);
+	let existing = $state<ProjectRef | null>(null);
+
+	$effect(() => {
+		existing = getCurrentProject();
+	});
 
 	function onContinue(event: SubmitEvent) {
 		event.preventDefault();
@@ -18,6 +24,10 @@
 
 	function onStartNew() {
 		goto('/new');
+	}
+
+	function onContinueExisting() {
+		if (existing) goto(`/p/${existing.roomId}`);
 	}
 </script>
 
@@ -43,6 +53,24 @@
 			<div class="h1" style="margin-top: 18px;">Kostos</div>
 			<p class="muted brand-tagline">Even out group expenses with just a token, no accounts needed.</p>
 		</div>
+
+		{#if existing}
+			<button class="btn btn-block continue-existing" onclick={onContinueExisting}>
+				<span class="col" style="align-items: flex-start; gap: 2px;">
+					<span class="continue-name">{existing.name}</span>
+					<span class="dim mono continue-token">{existing.roomId}</span>
+				</span>
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="margin-left: auto;">
+					<path d="M5 12h14M13 6l6 6-6 6" />
+				</svg>
+			</button>
+
+			<div class="row or-row">
+				<div class="rule"></div>
+				<span class="dim mono or-label">OR JOIN ANOTHER</span>
+				<div class="rule"></div>
+			</div>
+		{/if}
 
 		<form onsubmit={onContinue}>
 			<div class="eyebrow" style="margin-bottom: 8px;">Paste a group token</div>
@@ -183,6 +211,23 @@
 		flex: 1;
 		height: 1px;
 		background: var(--line);
+	}
+
+	.continue-existing {
+		justify-content: flex-start;
+		gap: 12px;
+		padding: 14px 16px;
+		text-align: left;
+	}
+
+	.continue-name {
+		font-weight: 600;
+		font-size: 14px;
+	}
+
+	.continue-token {
+		font-size: 11px;
+		letter-spacing: 0.04em;
 	}
 
 	.how-card {
