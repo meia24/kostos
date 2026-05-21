@@ -14,12 +14,18 @@
 	let project = $state<Project | null>(null);
 	let members = $state<Member[]>([]);
 
+	type PaymentRow = { id: string; memberId: string; amount: string };
+
 	$effect(() => {
 		const h = handle;
 		const sync = () => {
 			project = readProject(h);
 			members = readMembers(h);
-			if (!payerId && members.length > 0) payerId = currentMemberId ?? members[0].id;
+			if (payers.length === 0 && members.length > 0) {
+				payers = [
+					{ id: generateId(), memberId: currentMemberId ?? members[0].id, amount: '' }
+				];
+			}
 			if (involved.size === 0 && members.length > 0) {
 				involved = new Set(members.map((m) => m.id));
 				for (const m of members) {
@@ -44,13 +50,13 @@
 	let amountInputEl = $state<HTMLInputElement | null>(null);
 	let title = $state('');
 	let dateStr = $state(new Date().toISOString().slice(0, 10));
-	let payerId = $state('');
+	let payers = $state<PaymentRow[]>([]);
 	let splitMode = $state<SplitMode>('even');
 	let involved = $state<Set<string>>(new Set());
 	let shares = $state<Record<string, number>>({});
 	let amounts = $state<Record<string, string>>({});
 	let notes = $state('');
-	let payerOpen = $state(false);
+	let payerOpenRow = $state<string | null>(null);
 	let submitting = $state(false);
 
 	// Hold the last valid evaluation while the user is still typing an incomplete
@@ -66,12 +72,80 @@
 	});
 
 	const isExpression = $derived(/[+\-*/()]/.test(amountInput.trim()));
-	const payerName = $derived(members.find((m) => m.id === payerId)?.name ?? 'You');
 	const currencySymbol = $derived(project?.currencySymbol ?? '€');
 	const involvedList = $derived(members.filter((m) => involved.has(m.id)));
-	const canSave = $derived(
-		amountCents > 0 && title.trim().length > 0 && payerId && involvedList.length > 0
+
+	const payerCents = $derived(payers.map((p) => evalToCents(p.amount) ?? 0));
+	const paidTotal = $derived(payerCents.reduce((sum, c) => sum + c, 0));
+	const paidShort = $derived(amountCents - paidTotal);
+	const isMultiPayer = $derived(payers.length > 1);
+	const paymentsValid = $derived(
+		payers.length > 0 &&
+			payers.every((p) => p.memberId) &&
+			(!isMultiPayer || (paidTotal === amountCents && payerCents.every((c) => c > 0)))
 	);
+
+	const canSave = $derived(
+		amountCents > 0 && title.trim().length > 0 && paymentsValid && involvedList.length > 0
+	);
+
+	function memberName(id: string): string {
+		const m = members.find((x) => x.id === id);
+		if (!m) return '—';
+		return m.id === currentMemberId ? `${m.name} (you)` : m.name;
+	}
+
+	function setPayerRow(id: string, updates: Partial<PaymentRow>) {
+		payers = payers.map((p) => (p.id === id ? { ...p, ...updates } : p));
+	}
+
+	function addPayer() {
+		if (payers.length === 0) {
+			payers = [
+				{ id: generateId(), memberId: currentMemberId ?? members[0]?.id ?? '', amount: '' }
+			];
+			return;
+		}
+		if (payers.length === 1) {
+			// Promote the existing single payer to having an explicit amount of the full total
+			// so the user has a clean baseline to redistribute from.
+			payers = [
+				{ ...payers[0], amount: (amountCents / 100).toFixed(2) },
+				{ id: generateId(), memberId: nextAvailableMember(), amount: '' }
+			];
+			return;
+		}
+		payers = [...payers, { id: generateId(), memberId: nextAvailableMember(), amount: '' }];
+	}
+
+	function nextAvailableMember(): string {
+		const taken = new Set(payers.map((p) => p.memberId));
+		const free = members.find((m) => !taken.has(m.id));
+		return free?.id ?? members[0]?.id ?? '';
+	}
+
+	function removePayer(id: string) {
+		if (payers.length <= 1) return;
+		payers = payers.filter((p) => p.id !== id);
+		if (payers.length === 1) payers = [{ ...payers[0], amount: '' }];
+	}
+
+	function fillPayerRow(id: string) {
+		const others = payers.filter((p) => p.id !== id);
+		const sumOthers = others.reduce((sum, p) => sum + (evalToCents(p.amount) ?? 0), 0);
+		const target = amountCents - sumOthers;
+		if (target < 0) return;
+		setPayerRow(id, { amount: (target / 100).toFixed(2) });
+	}
+
+	function fillSplitRow(memberId: string) {
+		const sumOthers = involvedList
+			.filter((m) => m.id !== memberId)
+			.reduce((sum, m) => sum + (evalToCents(amounts[m.id] ?? '') ?? 0), 0);
+		const target = amountCents - sumOthers;
+		if (target < 0) return;
+		amounts = { ...amounts, [memberId]: (target / 100).toFixed(2) };
+	}
 
 	function toggleMember(id: string) {
 		const next = new Set(involved);
@@ -100,7 +174,7 @@
 
 	const previewExpense: Expense | null = $derived.by(() => {
 		if (!project || amountCents <= 0 || involvedList.length === 0) return null;
-		const fallback = payerId || members[0]?.id || '';
+		const fallback = payers[0]?.memberId || members[0]?.id || '';
 		return {
 			id: 'preview',
 			payments: [{ memberId: fallback, amount: amountCents }],
@@ -148,9 +222,13 @@
 		if (submitting || !canSave || !project) return;
 		submitting = true;
 
+		const finalPayments = isMultiPayer
+			? payers.map((p, i) => ({ memberId: p.memberId, amount: payerCents[i] }))
+			: [{ memberId: payers[0].memberId, amount: amountCents }];
+
 		const expense: Expense = {
 			id: generateId(),
-			payments: [{ memberId: payerId, amount: amountCents }],
+			payments: finalPayments,
 			amount: amountCents,
 			currency: project.currency,
 			description: title.trim(),
@@ -159,7 +237,7 @@
 			splits: buildSplitsForPreview(),
 			notes: notes.trim() || undefined,
 			createdAt: Date.now(),
-			createdBy: currentMemberId ?? payerId
+			createdBy: currentMemberId ?? payers[0]?.memberId ?? ''
 		};
 
 		addExpense(handle, expense);
@@ -230,49 +308,151 @@
 		<input class="input title-input" bind:value={title} placeholder="What was it for?" />
 
 		<div class="card field-card">
-			<button
-				type="button"
-				class="field field-button"
-				aria-expanded={payerOpen}
-				onclick={() => (payerOpen = !payerOpen)}
-			>
-				<span class="cat-tile field-tile">
-					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 4v16M6 7h12M4 11l2-4 2 4a2 2 0 1 1-4 0zM16 11l2-4 2 4a2 2 0 1 1-4 0z" /></svg>
-				</span>
-				<span class="col field-text">
-					<span class="field-label">Paid by</span>
-					<span class="field-value-static">
-						{payerId === currentMemberId ? `${payerName} (you)` : payerName}
+			{#if !isMultiPayer}
+				{@const single = payers[0]}
+				<button
+					type="button"
+					class="field field-button"
+					aria-expanded={payerOpenRow === single?.id}
+					onclick={() => (payerOpenRow = payerOpenRow === single?.id ? null : single?.id ?? null)}
+				>
+					<span class="cat-tile field-tile">
+						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 4v16M6 7h12M4 11l2-4 2 4a2 2 0 1 1-4 0zM16 11l2-4 2 4a2 2 0 1 1-4 0z" /></svg>
 					</span>
-				</span>
-				<span class="field-chevron" aria-hidden="true">
-					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 9l6 6 6-6" /></svg>
-				</span>
-			</button>
-			{#if payerOpen}
-				<ul class="payer-list">
-					{#each members as m (m.id)}
-						<li>
-							<button
-								type="button"
-								class="payer-row"
-								class:on={m.id === payerId}
-								onclick={() => {
-									payerId = m.id;
-									payerOpen = false;
-								}}
-							>
-								<span class="av av-sm payer-av">{(m.name[0] ?? '?').toUpperCase()}</span>
-								<span class="col payer-text">
-									<span class="payer-name">{m.name}{m.id === currentMemberId ? ' (you)' : ''}</span>
-								</span>
-								{#if m.id === payerId}
-									<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="payer-check"><path d="M5 12l5 5L20 7" /></svg>
-								{/if}
-							</button>
+					<span class="col field-text">
+						<span class="field-label">Paid by</span>
+						<span class="field-value-static">
+							{single ? memberName(single.memberId) : '—'}
+						</span>
+					</span>
+					<span class="field-chevron" aria-hidden="true">
+						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 9l6 6 6-6" /></svg>
+					</span>
+				</button>
+				{#if payerOpenRow === single?.id}
+					<ul class="payer-list">
+						{#each members as m (m.id)}
+							<li>
+								<button
+									type="button"
+									class="payer-row"
+									class:on={m.id === single.memberId}
+									onclick={() => {
+										setPayerRow(single.id, { memberId: m.id });
+										payerOpenRow = null;
+									}}
+								>
+									<span class="av av-sm payer-av">{(m.name[0] ?? '?').toUpperCase()}</span>
+									<span class="col payer-text">
+										<span class="payer-name">{memberName(m.id)}</span>
+									</span>
+									{#if m.id === single.memberId}
+										<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="payer-check"><path d="M5 12l5 5L20 7" /></svg>
+									{/if}
+								</button>
+							</li>
+						{/each}
+					</ul>
+				{/if}
+				<div class="add-payer-bar">
+					<button type="button" class="add-payer-btn" onclick={addPayer}>
+						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 6v12M6 12h12" /></svg>
+						<span>Add another payer</span>
+					</button>
+				</div>
+			{:else}
+				<div class="multi-payer-header">
+					<span class="cat-tile field-tile">
+						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 4v16M6 7h12M4 11l2-4 2 4a2 2 0 1 1-4 0zM16 11l2-4 2 4a2 2 0 1 1-4 0z" /></svg>
+					</span>
+					<span class="field-label">Paid by</span>
+				</div>
+				<ul class="payer-rows">
+					{#each payers as p (p.id)}
+						<li class="payer-row-multi">
+							<div class="payer-row-top">
+								<button
+									type="button"
+									class="payer-select"
+									aria-expanded={payerOpenRow === p.id}
+									onclick={() => (payerOpenRow = payerOpenRow === p.id ? null : p.id)}
+								>
+									<span class="av av-sm payer-av">
+										{(members.find((m) => m.id === p.memberId)?.name?.[0] ?? '?').toUpperCase()}
+									</span>
+									<span class="payer-select-name">{memberName(p.memberId)}</span>
+									<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" class="payer-select-chevron">
+										<path d="M6 9l6 6 6-6" />
+									</svg>
+								</button>
+								<div class="payer-amount-wrap">
+									<input
+										class="input payer-amount-input mono"
+										value={p.amount}
+										oninput={(e) => setPayerRow(p.id, { amount: e.currentTarget.value })}
+										placeholder="0.00"
+										inputmode="decimal"
+										autocomplete="off"
+										aria-label="Amount paid by {memberName(p.memberId)}"
+									/>
+									<button
+										type="button"
+										class="fill-row-btn"
+										onclick={() => fillPayerRow(p.id)}
+										aria-label="Fill with remaining"
+										title="Fill with remaining"
+									>
+										<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+											<path d="M12 5v14M5 12l7 7 7-7" />
+										</svg>
+									</button>
+								</div>
+								<button
+									type="button"
+									class="icon-btn payer-remove"
+									onclick={() => removePayer(p.id)}
+									aria-label="Remove payer"
+								>
+									<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
+								</button>
+							</div>
+							{#if payerOpenRow === p.id}
+								<ul class="payer-list">
+									{#each members as m (m.id)}
+										<li>
+											<button
+												type="button"
+												class="payer-row"
+												class:on={m.id === p.memberId}
+												onclick={() => {
+													setPayerRow(p.id, { memberId: m.id });
+													payerOpenRow = null;
+												}}
+											>
+												<span class="av av-sm payer-av">{(m.name[0] ?? '?').toUpperCase()}</span>
+												<span class="col payer-text">
+													<span class="payer-name">{memberName(m.id)}</span>
+												</span>
+												{#if m.id === p.memberId}
+													<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="payer-check"><path d="M5 12l5 5L20 7" /></svg>
+												{/if}
+											</button>
+										</li>
+									{/each}
+								</ul>
+							{/if}
 						</li>
 					{/each}
 				</ul>
+				<div class="add-payer-bar">
+					<button type="button" class="add-payer-btn" onclick={addPayer}>
+						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 6v12M6 12h12" /></svg>
+						<span>Add another payer</span>
+					</button>
+					<span class="paid-status mono" class:tone-owed={paidShort === 0} class:tone-owe={paidShort !== 0}>
+						PAID {formatAmount(paidTotal, currencySymbol)} / {formatAmount(amountCents, currencySymbol)}
+					</span>
+				</div>
 			{/if}
 			<hr class="hairline" />
 			<div class="field">
@@ -376,13 +556,27 @@
 							</div>
 							<span class="num member-amount">{formatAmount(portion, currencySymbol)}</span>
 						{:else}
-							<input
-								class="input amount-input-sm mono"
-								bind:value={amounts[m.id]}
-								placeholder="0.00"
-								inputmode="decimal"
-								autocomplete="off"
-							/>
+							<div class="split-amount-wrap">
+								<input
+									class="input amount-input-sm mono"
+									bind:value={amounts[m.id]}
+									placeholder="0.00"
+									inputmode="decimal"
+									autocomplete="off"
+									aria-label="Amount for {m.name}"
+								/>
+								<button
+									type="button"
+									class="fill-row-btn"
+									onclick={() => fillSplitRow(m.id)}
+									aria-label="Fill with remaining"
+									title="Fill with remaining"
+								>
+									<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+										<path d="M12 5v14M5 12l7 7 7-7" />
+									</svg>
+								</button>
+							</div>
 						{/if}
 					</div>
 				{/each}
@@ -823,10 +1017,162 @@
 	}
 
 	.amount-input-sm {
-		width: 96px;
-		padding: 8px 10px;
+		width: 100%;
+		padding: 8px 30px 8px 10px;
 		font-size: 13px;
 		text-align: right;
+	}
+
+	.split-amount-wrap {
+		position: relative;
+		width: 110px;
+	}
+
+	.split-amount-wrap .fill-row-btn {
+		right: 4px;
+	}
+
+	.multi-payer-header {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		padding: 12px 12px 4px;
+	}
+
+	.payer-rows {
+		list-style: none;
+		margin: 0;
+		padding: 0 8px 4px;
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+
+	.payer-row-multi {
+		display: flex;
+		flex-direction: column;
+	}
+
+	.payer-row-top {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+	}
+
+	.payer-select {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		flex: 1;
+		min-width: 0;
+		padding: 8px 10px;
+		background: var(--bg);
+		border: 1px solid var(--line);
+		border-radius: var(--radius);
+		color: var(--ink);
+		cursor: pointer;
+		font: inherit;
+		text-align: left;
+	}
+
+	.payer-select-name {
+		flex: 1;
+		min-width: 0;
+		font-size: 13px;
+		font-weight: 500;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.payer-select-chevron {
+		width: 14px;
+		height: 14px;
+		color: var(--ink-3);
+		flex-shrink: 0;
+	}
+
+	.payer-amount-wrap {
+		position: relative;
+		width: 110px;
+	}
+
+	.payer-amount-input {
+		width: 100%;
+		padding: 8px 30px 8px 10px;
+		font-size: 13px;
+		text-align: right;
+	}
+
+	.fill-row-btn {
+		position: absolute;
+		right: 4px;
+		top: 50%;
+		transform: translateY(-50%);
+		width: 24px;
+		height: 24px;
+		display: grid;
+		place-items: center;
+		background: transparent;
+		border: 0;
+		border-radius: 6px;
+		color: var(--ink-3);
+		cursor: pointer;
+		transition: background 0.12s ease, color 0.12s ease;
+	}
+
+	.fill-row-btn:hover {
+		background: color-mix(in oklab, var(--accent) 20%, transparent);
+		color: var(--accent);
+	}
+
+	.fill-row-btn svg {
+		width: 14px;
+		height: 14px;
+	}
+
+	.payer-remove {
+		flex-shrink: 0;
+		width: 30px;
+		height: 30px;
+	}
+
+	.payer-remove svg {
+		width: 14px;
+		height: 14px;
+	}
+
+	.add-payer-bar {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+		padding: 4px 12px 12px;
+		flex-wrap: wrap;
+	}
+
+	.add-payer-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		background: transparent;
+		border: 0;
+		color: var(--accent);
+		font-size: 13px;
+		font-weight: 600;
+		cursor: pointer;
+		padding: 4px 0;
+	}
+
+	.add-payer-btn svg {
+		width: 14px;
+		height: 14px;
+	}
+
+	.paid-status {
+		font-size: 11px;
+		font-weight: 600;
+		letter-spacing: 0.06em;
 	}
 
 	.sanity {
