@@ -4,6 +4,7 @@
 	import CategoryBreakdown from '$lib/components/CategoryBreakdown.svelte';
 	import type { CategoryRollup } from '$lib/components/CategoryBreakdown.svelte';
 	import DailyBars from '$lib/components/DailyBars.svelte';
+	import TabBar from '$lib/components/TabBar.svelte';
 	import MemberBars from '$lib/components/MemberBars.svelte';
 	import type { MemberContribution } from '$lib/components/MemberBars.svelte';
 	import TopExpensesCard from '$lib/components/TopExpensesCard.svelte';
@@ -315,39 +316,7 @@
 		{/if}
 	</div>
 
-	<nav class="tabbar">
-		<a href="/p/{roomId}" class="tab">
-			<div class="tab-icon">
-				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 11.5L12 4l8 7.5V20a1 1 0 0 1-1 1h-4v-6h-6v6H5a1 1 0 0 1-1-1v-8.5z" /></svg>
-			</div>
-			<span>HOME</span>
-			<span class="tab-dot"></span>
-		</a>
-		<a href="/p/{roomId}/expenses" class="tab">
-			<div class="tab-icon">
-				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 7h14M5 12h14M5 17h9" /></svg>
-			</div>
-			<span>EXPENSES</span>
-			<span class="tab-dot"></span>
-		</a>
-		<a class="fab" href="/p/{roomId}/add" aria-label="Add expense">
-			<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 6v12M6 12h12" /></svg>
-		</a>
-		<a href="/p/{roomId}/stats" class="tab active">
-			<div class="tab-icon">
-				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 20h16M7 20V10M12 20V4M17 20v-7" /></svg>
-			</div>
-			<span>STATS</span>
-			<span class="tab-dot"></span>
-		</a>
-		<a href="/p/{roomId}/people" class="tab">
-			<div class="tab-icon">
-				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="9" cy="9" r="3.2" /><circle cx="16.5" cy="10" r="2.4" /><path d="M3.5 19c.6-3.2 3-5 5.5-5s4.9 1.8 5.5 5M14 19c.4-2.2 2-3.4 4-3.4s3.5 1.2 4 3.4" /></svg>
-			</div>
-			<span>PEOPLE</span>
-			<span class="tab-dot"></span>
-		</a>
-	</nav>
+	<TabBar {roomId} active="stats" />
 </div>
 
 <style>
