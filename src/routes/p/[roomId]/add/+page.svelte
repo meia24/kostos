@@ -2,14 +2,32 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import AmountField from '$lib/components/AmountField.svelte';
+	import EmojiPickerField from '$lib/components/EmojiPickerField.svelte';
+	import type { EmojiItem } from '$lib/components/EmojiPickerField.svelte';
 	import PaidBySection from '$lib/components/PaidBySection.svelte';
 	import type { PaymentRow } from '$lib/components/PaidBySection.svelte';
 	import SplitSection from '$lib/components/SplitSection.svelte';
 	import { expenseShares, splitEvenly } from '$lib/balance';
 	import { evalToCents } from '$lib/math';
 	import { getCurrentMember } from '$lib/storage';
-	import { addExpense, generateId, openRoom, readMembers, readProject } from '$lib/sync/doc';
-	import type { Expense, ExpenseSplit, Member, Project, SplitMode } from '$lib/types';
+	import {
+		addCategory,
+		addExpense,
+		addPaymentMethod,
+		generateId,
+		openRoom,
+		readMembers,
+		readProject
+	} from '$lib/sync/doc';
+	import type {
+		Category,
+		Expense,
+		ExpenseSplit,
+		Member,
+		PaymentMethodItem,
+		Project,
+		SplitMode
+	} from '$lib/types';
 
 	const roomId = $derived(page.params.roomId ?? '');
 	const handle = $derived(openRoom(roomId));
@@ -29,6 +47,8 @@
 	let shares = $state<Record<string, number>>({});
 	let amounts = $state<Record<string, string>>({});
 	let notes = $state('');
+	let categoryId = $state<string | undefined>(undefined);
+	let paymentMethodId = $state<string | undefined>(undefined);
 	let submitting = $state(false);
 
 	$effect(() => {
@@ -214,6 +234,18 @@
 		amounts = { ...amounts, [id]: value };
 	}
 
+	function onAddCategory(item: EmojiItem) {
+		const cat: Category = { id: item.id, name: item.name, emoji: item.emoji };
+		addCategory(handle, cat);
+		categoryId = cat.id;
+	}
+
+	function onAddMethod(item: EmojiItem) {
+		const m: PaymentMethodItem = { id: item.id, name: item.name, emoji: item.emoji };
+		addPaymentMethod(handle, m);
+		paymentMethodId = m.id;
+	}
+
 	async function onSave(event?: Event) {
 		event?.preventDefault();
 		if (submitting || !canSave || !project) return;
@@ -229,6 +261,8 @@
 			amount: amountCents,
 			currency: project.currency,
 			description: title.trim(),
+			categoryId,
+			paymentMethodId,
 			date: new Date(dateStr).getTime() || Date.now(),
 			splitMode,
 			splits: buildSplits(),
@@ -279,6 +313,26 @@
 		/>
 
 		<input class="input title-input" bind:value={title} placeholder="What was it for?" />
+
+		<div class="card field-card meta-card">
+			<EmojiPickerField
+				label="Category"
+				fallbackEmoji="📦"
+				items={project?.categories ?? []}
+				selectedId={categoryId}
+				onSelect={(id) => (categoryId = id)}
+				onAddCustom={onAddCategory}
+			/>
+			<hr class="hairline" />
+			<EmojiPickerField
+				label="Payment method"
+				fallbackEmoji="💳"
+				items={project?.paymentMethods ?? []}
+				selectedId={paymentMethodId}
+				onSelect={(id) => (paymentMethodId = id)}
+				onAddCustom={onAddMethod}
+			/>
+		</div>
 
 		<PaidBySection
 			{payers}
@@ -345,6 +399,11 @@
 	.save-btn {
 		padding: 8px 14px;
 		font-size: 13px;
+	}
+
+	.meta-card {
+		padding: 4px;
+		margin-bottom: 10px;
 	}
 
 	.title-input {
