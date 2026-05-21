@@ -8,44 +8,30 @@
 		addCategory,
 		addPaymentMethod,
 		generateId,
-		openRoom,
-		readExpenses,
-		readMembers,
-		readProject,
 		updateExpense
 	} from '$lib/sync/doc';
-	import type { Category, Expense, Member, PaymentMethodItem, Project } from '$lib/types';
+	import { useRoom } from '$lib/sync/useRoom.svelte';
+	import type { Category, Expense, PaymentMethodItem } from '$lib/types';
 
 	const roomId = $derived(page.params.roomId ?? '');
 	const expenseId = $derived(page.params.expenseId ?? '');
-	const handle = $derived(openRoom(roomId));
+	const room = $derived(useRoom(roomId));
+	$effect(() => room.observe());
 
-	let project = $state<Project | null>(null);
-	let members = $state<Member[]>([]);
+	const handle = $derived(room.handle);
+	const project = $derived(room.project);
+	const members = $derived(room.members);
+
 	let initial = $state<Expense | null>(null);
 	let notFound = $state(false);
 
 	$effect(() => {
-		const h = handle;
-		const sync = () => {
-			project = readProject(h);
-			members = readMembers(h);
-			const expense = readExpenses(h).find((e) => e.id === expenseId);
-			if (expense) {
-				if (!initial) initial = expense;
-			} else if (project) {
-				notFound = true;
-			}
-		};
-		sync();
-		h.project.observeDeep(sync);
-		h.members.observeDeep(sync);
-		h.expenses.observeDeep(sync);
-		return () => {
-			h.project.unobserveDeep(sync);
-			h.members.unobserveDeep(sync);
-			h.expenses.unobserveDeep(sync);
-		};
+		const expense = room.expenses.find((e) => e.id === expenseId);
+		if (expense) {
+			if (!initial) initial = expense;
+		} else if (project) {
+			notFound = true;
+		}
 	});
 
 	const currentMemberId = $derived.by(() => getCurrentMember());

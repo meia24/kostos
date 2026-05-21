@@ -13,37 +13,22 @@
 		addCategory,
 		addPaymentMethod,
 		generateId,
-		openRoom,
-		readMembers,
-		readProject,
 		removeCategory,
 		removePaymentMethod,
 		updateCategory,
 		updatePaymentMethod,
 		updateProject
 	} from '$lib/sync/doc';
-	import type { Category, Member, PaymentMethodItem, Project, ProjectColor } from '$lib/types';
+	import { useRoom } from '$lib/sync/useRoom.svelte';
+	import type { Category, PaymentMethodItem, ProjectColor } from '$lib/types';
 
 	const roomId = $derived(page.params.roomId ?? '');
-	const handle = $derived(openRoom(roomId));
+	const room = $derived(useRoom(roomId));
+	$effect(() => room.observe());
 
-	let project = $state<Project | null>(null);
-	let members = $state<Member[]>([]);
-
-	$effect(() => {
-		const h = handle;
-		const sync = () => {
-			project = readProject(h);
-			members = readMembers(h);
-		};
-		sync();
-		h.project.observeDeep(sync);
-		h.members.observeDeep(sync);
-		return () => {
-			h.project.unobserveDeep(sync);
-			h.members.unobserveDeep(sync);
-		};
-	});
+	const handle = $derived(room.handle);
+	const project = $derived(room.project);
+	const members = $derived(room.members);
 
 	let signingOut = $state(false);
 	let switchingMember = $state(false);

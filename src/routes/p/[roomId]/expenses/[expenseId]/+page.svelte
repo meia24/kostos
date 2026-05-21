@@ -5,41 +5,19 @@
 	import ScreenAppBar from '$lib/components/ScreenAppBar.svelte';
 	import { formatAmount, formatSigned } from '$lib/money';
 	import { getCurrentMember } from '$lib/storage';
-	import {
-		openRoom,
-		readExpenses,
-		readMembers,
-		readProject,
-		removeExpense
-	} from '$lib/sync/doc';
-	import type { Expense, Member, Project } from '$lib/types';
+	import { removeExpense } from '$lib/sync/doc';
+	import { useRoom } from '$lib/sync/useRoom.svelte';
 
 	const roomId = $derived(page.params.roomId ?? '');
 	const expenseId = $derived(page.params.expenseId ?? '');
-	const handle = $derived(openRoom(roomId));
+	const room = $derived(useRoom(roomId));
+	$effect(() => room.observe());
 
-	let project = $state<Project | null>(null);
-	let members = $state<Member[]>([]);
-	let expenses = $state<Expense[]>([]);
+	const handle = $derived(room.handle);
+	const project = $derived(room.project);
+	const members = $derived(room.members);
+	const expenses = $derived(room.expenses);
 	let confirmingDelete = $state(false);
-
-	$effect(() => {
-		const h = handle;
-		const sync = () => {
-			project = readProject(h);
-			members = readMembers(h);
-			expenses = readExpenses(h);
-		};
-		sync();
-		h.project.observeDeep(sync);
-		h.members.observeDeep(sync);
-		h.expenses.observeDeep(sync);
-		return () => {
-			h.project.unobserveDeep(sync);
-			h.members.unobserveDeep(sync);
-			h.expenses.unobserveDeep(sync);
-		};
-	});
 
 	const currentMemberId = $derived.by(() => getCurrentMember());
 	const currencySymbol = $derived(project?.currencySymbol ?? '€');

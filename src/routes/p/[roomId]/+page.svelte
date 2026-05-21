@@ -6,38 +6,25 @@
 	import TabBar from '$lib/components/TabBar.svelte';
 	import { formatAmount } from '$lib/money';
 	import { getCurrentMember, getCurrentProject } from '$lib/storage';
-	import { openRoom, readExpenses, readMembers, readProject } from '$lib/sync/doc';
 	import type { ConnectionStatus } from '$lib/sync/provider';
-	import type { Expense, Member, Project } from '$lib/types';
+	import { useRoom } from '$lib/sync/useRoom.svelte';
+	import type { Expense } from '$lib/types';
 
 	const roomId = $derived(page.params.roomId ?? '');
-	const handle = $derived(openRoom(roomId));
+	const room = $derived(useRoom(roomId));
+	$effect(() => room.observe());
 
-	let project = $state<Project | null>(null);
-	let members = $state<Member[]>([]);
-	let expenses = $state<Expense[]>([]);
+	const project = $derived(room.project);
+	const members = $derived(room.members);
+	const expenses = $derived(room.expenses);
+
 	let copied = $state(false);
 	let showShare = $state(false);
 	let syncStatus = $state<ConnectionStatus>('idle');
 
 	$effect(() => {
-		const h = handle;
-		const sync = () => {
-			project = readProject(h);
-			members = readMembers(h);
-			expenses = readExpenses(h);
-		};
-		sync();
-		h.project.observeDeep(sync);
-		h.members.observeDeep(sync);
-		h.expenses.observeDeep(sync);
-		const offStatus = h.syncProvider?.onStatusChange((s) => (syncStatus = s));
-		return () => {
-			h.project.unobserveDeep(sync);
-			h.members.unobserveDeep(sync);
-			h.expenses.unobserveDeep(sync);
-			offStatus?.();
-		};
+		const offStatus = room.handle.syncProvider?.onStatusChange((s) => (syncStatus = s));
+		return () => offStatus?.();
 	});
 
 	const syncLabel = $derived.by(() => {
