@@ -11,13 +11,15 @@
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"test": "vitest run",
-		"test:watch": "vitest"
+		"test:watch": "vitest",
+		"sync": "node scripts/sync-server.js"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-auto": "^7.0.1",
 		"@sveltejs/kit": "^2.57.0",
 		"@sveltejs/vite-plugin-svelte": "^7.0.0",
 		"@types/node": "^25.9.1",
+		"@types/ws": "^8.18.1",
 		"@vite-pwa/sveltekit": "^1.1.0",
 		"svelte": "^5.55.2",
 		"svelte-check": "^4.4.6",
@@ -29,6 +31,7 @@
 		"@fontsource/instrument-serif": "^5.2.8",
 		"@fontsource/inter": "^5.2.8",
 		"@fontsource/jetbrains-mono": "^5.2.8",
+		"ws": "^8.20.1",
 		"y-indexeddb": "^9.0.12",
 		"yjs": "^13.6.30"
 	}
