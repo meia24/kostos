@@ -3,6 +3,7 @@
 	import { page } from '$app/state';
 	import { computeBalances, planSettlements, type Settlement } from '$lib/balance';
 	import { PROJECT_COLOR_VALUES, tileBackground } from '$lib/colors';
+	import SettlementGraph from '$lib/components/SettlementGraph.svelte';
 	import { formatAmount } from '$lib/money';
 	import { getCurrentMember } from '$lib/storage';
 	import {
@@ -124,6 +125,17 @@
 			{/if}
 		</section>
 
+		{#if plan.length > 0 && members.length > 1}
+			<div class="card graph-card">
+				<SettlementGraph {members} {plan} {currentMemberId} symbol={currencySymbol} />
+				<div class="row gap-12 graph-legend">
+					<span class="row gap-6"><span class="legend-dot legend-in"></span>You're owed</span>
+					<span class="row gap-6"><span class="legend-dot legend-out"></span>You owe</span>
+					<span class="row gap-6"><span class="legend-dot legend-other"></span>Between others</span>
+				</div>
+			</div>
+		{/if}
+
 		{#if plan.length > 0}
 			<div class="plan-list">
 				{#each plan as t, i (i)}
@@ -231,6 +243,34 @@
 	.hero-caption {
 		font-size: 11px;
 	}
+
+	.graph-card {
+		padding: 10px 10px 8px;
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		margin-bottom: 12px;
+	}
+
+	.graph-legend {
+		flex-wrap: wrap;
+		gap: 10px;
+		font-size: 10px;
+		color: var(--ink-2);
+		font-family: var(--font-mono);
+		justify-content: center;
+	}
+
+	.legend-dot {
+		width: 10px;
+		height: 2px;
+		border-radius: 1px;
+		flex-shrink: 0;
+	}
+
+	.legend-in { background: var(--accent); }
+	.legend-out { background: var(--owe); }
+	.legend-other { background: var(--ink-3); }
 
 	.plan-list {
 		display: flex;
