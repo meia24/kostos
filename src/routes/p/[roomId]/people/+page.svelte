@@ -35,7 +35,7 @@
 	});
 
 	const currentMemberId = $derived.by(() => getCurrentMember());
-	const currencySymbol = $derived(project?.currencySymbol ?? '€');
+	const currencySymbol = $derived(room.currencySymbol);
 	const balances = $derived(computeBalances(members, expenses));
 	const balanceById = $derived(new Map(balances.map((b) => [b.memberId, b.net])));
 

@@ -25,12 +25,10 @@
 	let period = $state<Period>('all');
 
 	const currentMemberId = $derived.by(() => getCurrentMember());
-	const currencySymbol = $derived(project?.currencySymbol ?? '€');
-	const membersById = $derived(new Map(members.map((m) => [m.id, m])));
-	const categoryById = $derived(new Map((project?.categories ?? []).map((c) => [c.id, c])));
-	const methodById = $derived(
-		new Map((project?.paymentMethods ?? []).map((m) => [m.id, m]))
-	);
+	const currencySymbol = $derived(room.currencySymbol);
+	const membersById = $derived(room.membersById);
+	const categoryById = $derived(room.categoryById);
+	const methodById = $derived(room.methodById);
 
 	const SLICE_COLORS = [
 		'var(--accent)',

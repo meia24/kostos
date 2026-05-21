@@ -8,13 +8,24 @@
  */
 
 import { openRoom, readExpenses, readMembers, readProject, type RoomHandle } from './doc';
-import type { Expense, Member, Project } from '$lib/types';
+import type { Category, Expense, Member, PaymentMethodItem, Project } from '$lib/types';
 
 export class RoomState {
 	handle: RoomHandle;
 	project = $state<Project | null>(null);
 	members = $state<Member[]>([]);
 	expenses = $state<Expense[]>([]);
+
+	// Lookup maps + display helpers that every route ends up rebuilding. Keeping them on
+	// the room itself means each component just consumes them; no per-route boilerplate.
+	membersById = $derived(new Map(this.members.map((m) => [m.id, m])));
+	categoryById = $derived<Map<string, Category>>(
+		new Map((this.project?.categories ?? []).map((c) => [c.id, c]))
+	);
+	methodById = $derived<Map<string, PaymentMethodItem>>(
+		new Map((this.project?.paymentMethods ?? []).map((m) => [m.id, m]))
+	);
+	currencySymbol = $derived(this.project?.currencySymbol ?? '€');
 
 	constructor(handle: RoomHandle) {
 		this.handle = handle;

@@ -20,8 +20,8 @@
 	const expenses = $derived(room.expenses);
 
 	const currentMemberId = $derived.by(() => getCurrentMember());
-	const currencySymbol = $derived(project?.currencySymbol ?? '€');
-	const membersById = $derived(new Map(members.map((m) => [m.id, m])));
+	const currencySymbol = $derived(room.currencySymbol);
+	const membersById = $derived(room.membersById);
 
 	const balances = $derived(computeBalances(members, expenses));
 	const plan = $derived(planSettlements(balances));
