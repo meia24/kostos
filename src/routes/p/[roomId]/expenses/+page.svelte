@@ -1,9 +1,8 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { expenseShares } from '$lib/balance';
 	import { PROJECT_COLOR_VALUES, tileBackground } from '$lib/colors';
-	import { formatAmount, formatSigned } from '$lib/money';
+	import ExpenseRow from '$lib/components/ExpenseRow.svelte';
+	import { formatAmount } from '$lib/money';
 	import { getCurrentMember } from '$lib/storage';
 	import { openRoom, readExpenses, readMembers, readProject } from '$lib/sync/doc';
 	import type { Expense, Member, Project } from '$lib/types';
@@ -38,6 +37,9 @@
 	const membersById = $derived(new Map(members.map((m) => [m.id, m])));
 	const categoryById = $derived(
 		new Map((project?.categories ?? []).map((c) => [c.id, c]))
+	);
+	const methodById = $derived(
+		new Map((project?.paymentMethods ?? []).map((m) => [m.id, m]))
 	);
 
 	type DayGroup = { key: string; label: string; total: number; items: Expense[] };
@@ -86,28 +88,6 @@
 		return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }).toUpperCase();
 	}
 
-	function payersLabel(e: Expense): string {
-		if (e.payments.length === 0) return '—';
-		const firstName = membersById.get(e.payments[0].memberId)?.name ?? '—';
-		const isYou = e.payments[0].memberId === currentMemberId;
-		const base = isYou ? 'You' : firstName;
-		if (e.payments.length === 1) return base;
-		return `${base} +${e.payments.length - 1}`;
-	}
-
-	function yourImpact(e: Expense): number {
-		if (!currentMemberId) return 0;
-		const paid = e.payments
-			.filter((p) => p.memberId === currentMemberId)
-			.reduce((sum, p) => sum + p.amount, 0);
-		const share = expenseShares(e).get(currentMemberId) ?? 0;
-		return paid - share;
-	}
-
-	function categoryEmoji(e: Expense): string {
-		if (e.categoryId) return categoryById.get(e.categoryId)?.emoji ?? '📦';
-		return '📦';
-	}
 </script>
 
 <svelte:head>
@@ -168,39 +148,17 @@
 				<div class="card day-card">
 					{#each g.items as e, i (e.id)}
 						{#if i > 0}<hr class="hairline" style="margin-left: 56px;" />{/if}
-						<a class="expense-row" href="/p/{roomId}/expenses/{e.id}">
-							<span class="cat-tile expense-cat">{categoryEmoji(e)}</span>
-							<span class="col expense-text">
-								<span class="row gap-6 expense-title-row">
-									<span class="expense-title">{e.description || 'Expense'}</span>
-									{#if e.splitMode === 'shares'}
-										<span class="sticker mode-sticker">SHARES</span>
-									{:else if e.splitMode === 'amount'}
-										<span class="sticker mode-sticker">AMOUNTS</span>
-									{/if}
-								</span>
-								<span class="dim mono expense-meta">
-									{payersLabel(e)} · {e.splits.length}/{members.length}
-								</span>
-							</span>
-							<span class="col" style="align-items: flex-end; gap: 2px;">
-								<span class="num expense-amount">{formatAmount(e.amount, currencySymbol)}</span>
-								{#if currentMemberId}
-									{@const impact = yourImpact(e)}
-									{#if impact === 0 && !e.splits.some((s) => s.memberId === currentMemberId)}
-										<span class="dim mono expense-impact">not in</span>
-									{:else}
-										<span
-											class="num mono expense-impact"
-											class:tone-owed={impact > 0}
-											class:tone-owe={impact < 0}
-										>
-											{formatSigned(impact, currencySymbol)}
-										</span>
-									{/if}
-								{/if}
-							</span>
-						</a>
+						<ExpenseRow
+							expense={e}
+							href="/p/{roomId}/expenses/{e.id}"
+							{membersById}
+							{categoryById}
+							{methodById}
+							{currentMemberId}
+							symbol={currencySymbol}
+							totalMembers={members.length}
+							showDate={false}
+						/>
 					{/each}
 				</div>
 			{/each}
@@ -302,52 +260,4 @@
 		padding: 4px;
 	}
 
-	.expense-row {
-		display: flex;
-		align-items: center;
-		gap: 12px;
-		padding: 14px 12px;
-		text-decoration: none;
-		color: inherit;
-	}
-
-	.expense-cat {
-		font-size: 20px;
-	}
-
-	.expense-text {
-		flex: 1;
-		min-width: 0;
-	}
-
-	.expense-title-row {
-		align-items: center;
-	}
-
-	.expense-title {
-		font-size: 14px;
-		font-weight: 600;
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-	}
-
-	.mode-sticker {
-		padding: 2px 6px;
-		font-size: 9px;
-	}
-
-	.expense-meta {
-		font-size: 11px;
-		margin-top: 2px;
-	}
-
-	.expense-amount {
-		font-weight: 600;
-		font-size: 14px;
-	}
-
-	.expense-impact {
-		font-size: 11px;
-	}
 </style>

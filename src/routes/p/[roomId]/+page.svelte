@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { computeBalances, expenseShares, planSettlements } from '$lib/balance';
+	import { computeBalances, planSettlements } from '$lib/balance';
 	import { PROJECT_COLOR_VALUES, tileBackground } from '$lib/colors';
-	import { formatAmount, formatSigned } from '$lib/money';
+	import ExpenseRow from '$lib/components/ExpenseRow.svelte';
+	import { formatAmount } from '$lib/money';
 	import { getCurrentMember, getCurrentProject } from '$lib/storage';
 	import { openRoom, readExpenses, readMembers, readProject } from '$lib/sync/doc';
 	import type { Expense, Member, Project } from '$lib/types';
@@ -38,6 +39,10 @@
 	const youMember = $derived(members.find((m) => m.id === currentMemberId) ?? null);
 	const currencySymbol = $derived(project?.currencySymbol ?? '€');
 	const membersById = $derived(new Map(members.map((m) => [m.id, m])));
+	const categoryById = $derived(new Map((project?.categories ?? []).map((c) => [c.id, c])));
+	const methodById = $derived(
+		new Map((project?.paymentMethods ?? []).map((m) => [m.id, m]))
+	);
 
 	const balances = $derived(computeBalances(members, expenses));
 	const yourBalance = $derived.by(() => {
@@ -75,38 +80,10 @@
 		return 'All settled';
 	}
 
-	function yourShareOf(e: Expense): number {
-		if (!currentMemberId) return 0;
-		const map = expenseShares(e);
-		return map.get(currentMemberId) ?? 0;
-	}
-
 	function payerName(id: string): string {
 		const m = membersById.get(id);
 		if (!m) return '—';
 		return m.id === currentMemberId ? 'You' : m.name;
-	}
-
-	function payersLabel(payments: Expense['payments']): string {
-		if (payments.length === 0) return '—';
-		const first = payerName(payments[0].memberId);
-		if (payments.length === 1) return `${first} paid`;
-		if (payments.length === 2) {
-			return `${first} & ${payerName(payments[1].memberId)} paid`;
-		}
-		return `${first} + ${payments.length - 1} others paid`;
-	}
-
-	function formatDate(ts: number): string {
-		const d = new Date(ts);
-		return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-	}
-
-	function paidByExpense(e: Expense): number {
-		if (!currentMemberId) return 0;
-		return e.payments
-			.filter((p) => p.memberId === currentMemberId)
-			.reduce((sum, p) => sum + p.amount, 0);
 	}
 </script>
 
@@ -249,27 +226,17 @@
 				<div class="card recent-list">
 					{#each recentExpenses as e, i (e.id)}
 						{#if i > 0}<hr class="hairline" style="margin-left: 56px;" />{/if}
-						<a href="/p/{roomId}/expenses/{e.id}" class="recent-row">
-							<span class="av av-sm recent-av">
-								{(
-									membersById.get(e.payments[0]?.memberId ?? '')?.name?.[0] ?? '?'
-								).toUpperCase()}
-							</span>
-							<span class="col recent-text">
-								<span class="recent-title">{e.description ?? 'Expense'}</span>
-								<span class="dim mono recent-meta">
-									{formatDate(e.date)} · {payersLabel(e.payments)}
-								</span>
-							</span>
-							<span class="col" style="align-items: flex-end;">
-								<span class="num recent-amount">{formatAmount(e.amount, currencySymbol)}</span>
-								<span class="num recent-share dim">
-									{currentMemberId
-										? formatSigned(paidByExpense(e) - yourShareOf(e), currencySymbol)
-										: ''}
-								</span>
-							</span>
-						</a>
+						<ExpenseRow
+							expense={e}
+							href="/p/{roomId}/expenses/{e.id}"
+							{membersById}
+							{categoryById}
+							{methodById}
+							{currentMemberId}
+							symbol={currencySymbol}
+							totalMembers={members.length}
+							showInvolvedCount={false}
+						/>
 					{/each}
 				</div>
 			{/if}
@@ -495,43 +462,5 @@
 
 	.recent-list {
 		padding: 4px;
-	}
-
-	.recent-row {
-		display: flex;
-		align-items: center;
-		gap: 12px;
-		padding: 12px;
-		text-decoration: none;
-		color: inherit;
-	}
-
-	.recent-av {
-		background: color-mix(in oklab, var(--ink) 12%, transparent);
-		color: var(--ink);
-	}
-
-	.recent-text {
-		flex: 1;
-	}
-
-	.recent-title {
-		font-size: 14px;
-		font-weight: 600;
-	}
-
-	.recent-meta {
-		font-size: 11px;
-		margin-top: 2px;
-	}
-
-	.recent-amount {
-		font-size: 14px;
-		font-weight: 700;
-	}
-
-	.recent-share {
-		font-size: 11px;
-		margin-top: 2px;
 	}
 </style>
