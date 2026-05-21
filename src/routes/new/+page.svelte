@@ -16,31 +16,35 @@
 
 	type DraftMember = { id: string; name: string };
 
+	// Emoji presets chosen for reliable color rendering across systems. The first
+	// version of this list included characters like 🏖 ⛰ ⛺ ⛵ ☕ ⚽ that default to
+	// text-style glyphs without the U+FE0F variation selector; we replaced them with
+	// equivalents that render as full-color emoji unambiguously.
 	const EMOJI_PRESETS = [
-		'🏖',
 		'🏠',
-		'🏝',
-		'⛰',
-		'⛺',
+		'🏡',
+		'🌴',
+		'🗻',
 		'🏨',
 		'✈️',
 		'🚗',
 		'🚐',
-		'⛵',
+		'🚲',
+		'🚢',
 		'🍕',
+		'🍔',
 		'🍻',
-		'☕',
+		'🍷',
 		'🎉',
 		'🎂',
 		'🎸',
 		'🎮',
-		'⚽',
+		'🎬',
 		'🛒',
 		'💼',
 		'🎓',
 		'🐶',
-		'👨‍👩‍👧',
-		'❤️'
+		'💸'
 	];
 
 	const roomId = generateRoomId();
