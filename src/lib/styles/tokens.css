@@ -1,0 +1,68 @@
+/* Kostos design tokens: dark / neon default. */
+:root {
+  /* type */
+  --font-sans: "Inter", -apple-system, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-display: "Instrument Serif", "Inter", serif;
+
+  /* palette (default: lime on near-black) */
+  --bg: #0a0c0a;
+  --bg-2: #0f1210;
+  --surface: #14181500;
+  --surface-1: #14181500;
+  --canvas-bg: #050605;
+  --ink: #ededed;
+  --ink-2: #a0a59c;
+  --ink-3: #5e635a;
+  --line: #1f231f;
+  --line-2: #2a2f2a;
+  --accent: #c4ff4f;
+  --accent-ink: #0a0c0a;
+  --owe: #ff7a59;
+  --owed: #c4ff4f;
+  --warn: #ffd166;
+  --info: #88c0ff;
+  --shadow-strong: 0 30px 80px -20px rgba(0, 0, 0, 0.7), 0 2px 0 rgba(255, 255, 255, 0.04) inset;
+
+  --radius-sm: 10px;
+  --radius: 14px;
+  --radius-lg: 22px;
+  --radius-xl: 32px;
+}
+
+[data-theme="dark"] {
+  --bg: #0a0c0a;
+  --bg-2: #0f1210;
+  --canvas-bg: #050605;
+  --ink: #ededed;
+  --ink-2: #a0a59c;
+  --ink-3: #5e635a;
+  --line: #1f231f;
+  --line-2: #2a2f2a;
+  --accent-ink: #0a0c0a;
+  --owe: #ff7a59;
+  --owed: var(--accent);
+}
+
+[data-theme="light"] {
+  --bg: #f7f6f1;
+  --bg-2: #fdfcf8;
+  --canvas-bg: #e8e7e1;
+  --ink: #14171a;
+  --ink-2: #5a615e;
+  --ink-3: #9aa099;
+  --line: #e3e2dc;
+  --line-2: #d4d3cd;
+  --accent-ink: #0a0c0a;
+  --owe: #d94a26;
+  --owed: #2f7d3a;
+  --shadow-strong: 0 20px 50px -20px rgba(60, 60, 40, 0.25), 0 1px 0 rgba(0, 0, 0, 0.04) inset;
+}
+
+/* Palette presets */
+[data-palette="lime"]   { --accent: #c4ff4f; --accent-ink: #0a0c0a; }
+[data-palette="cyan"]   { --accent: #5eead4; --accent-ink: #04201c; }
+[data-palette="violet"] { --accent: #b29cff; --accent-ink: #0c0820; }
+[data-palette="amber"]  { --accent: #ffc457; --accent-ink: #1a1100; }
+[data-palette="coral"]  { --accent: #ff8a6b; --accent-ink: #1a0606; }
+[data-palette="blue"]   { --accent: #7eb0ff; --accent-ink: #06122a; }

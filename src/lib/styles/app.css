@@ -1,0 +1,651 @@
+/* Kostos global app + screen frame styles.
+ * Two adaptations vs. the design prototype:
+ *   - .screen fills the device viewport (no fake 380×780 phone frame)
+ *   - safe-area insets respected so the OS status bar + home indicator don't overlap content
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+}
+
+body {
+  min-height: 100dvh;
+  overflow: hidden;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+/* Screen: fills the real viewport, capped to a mobile column on wide windows. */
+.screen {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  min-height: 100dvh;
+  margin: 0 auto;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  letter-spacing: -0.005em;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  padding-top: env(safe-area-inset-top);
+}
+
+/* App bar */
+.app-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 22px 14px;
+  gap: 12px;
+}
+
+.app-bar-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-2);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-family: var(--font-mono);
+}
+
+.app-bar-actions {
+  display: flex;
+  gap: 4px;
+}
+
+/* Bottom tab bar */
+.tabbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-width: 480px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr 64px 1fr 1fr;
+  align-items: center;
+  padding: 14px 18px calc(24px + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, var(--bg) 60%, transparent);
+  z-index: 4;
+}
+
+.tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: var(--ink-3);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  padding: 6px 4px;
+}
+
+.tab.active {
+  color: var(--ink);
+}
+
+.tab.active .tab-dot {
+  background: var(--accent);
+}
+
+.tab-icon {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+}
+
+.tab-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: transparent;
+}
+
+.fab {
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  display: grid;
+  place-items: center;
+  border: 0;
+  box-shadow: 0 10px 24px -8px color-mix(in oklab, var(--accent) 60%, transparent);
+  margin: -22px auto 0;
+  cursor: pointer;
+  position: relative;
+}
+
+.fab::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklab, var(--accent) 30%, transparent);
+}
+
+/* Scrollable area */
+.scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 22px calc(110px + env(safe-area-inset-bottom));
+}
+
+.scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* Type */
+.h1 {
+  font-family: var(--font-display);
+  font-size: 38px;
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  font-weight: 400;
+}
+
+.h2 {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+.h3 {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-2);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.muted {
+  color: var(--ink-2);
+}
+
+.dim {
+  color: var(--ink-3);
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* Layout helpers */
+.row {
+  display: flex;
+  align-items: center;
+}
+
+.col {
+  display: flex;
+  flex-direction: column;
+}
+
+.between {
+  justify-content: space-between;
+}
+
+.gap-4 { gap: 4px; }
+.gap-6 { gap: 6px; }
+.gap-8 { gap: 8px; }
+.gap-10 { gap: 10px; }
+.gap-12 { gap: 12px; }
+.gap-16 { gap: 16px; }
+
+/* Cards / surfaces */
+.card {
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+}
+
+.card-tight {
+  padding: 12px;
+}
+
+.hairline {
+  height: 1px;
+  background: var(--line);
+  border: 0;
+  margin: 0;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--line-2);
+  background: var(--bg-2);
+  color: var(--ink);
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.btn svg,
+.icon-btn svg,
+.chip svg,
+.sticker svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.icon-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.fab svg {
+  width: 22px;
+  height: 22px;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+}
+
+.btn-ghost {
+  background: transparent;
+  border-color: transparent;
+}
+
+.btn-block {
+  width: 100%;
+  padding: 16px;
+  font-size: 15px;
+}
+
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: transparent;
+  display: grid;
+  place-items: center;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+/* Chips */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--ink) 6%, transparent);
+  border: 1px solid var(--line);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+.chip-active {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+}
+
+/* Avatar */
+.av {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font-weight: 600;
+  font-size: 12px;
+  color: #fff;
+  flex-shrink: 0;
+  letter-spacing: 0;
+  font-family: var(--font-sans);
+}
+
+.av-lg { width: 48px; height: 48px; font-size: 16px; }
+.av-sm { width: 24px; height: 24px; font-size: 10px; }
+.av-xs { width: 20px; height: 20px; font-size: 9px; }
+
+.av-stack { display: flex; }
+.av-stack > * {
+  margin-left: -8px;
+  box-shadow: 0 0 0 2px var(--bg);
+}
+.av-stack > *:first-child {
+  margin-left: 0;
+}
+
+/* Input */
+.input {
+  width: 100%;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  border-radius: var(--radius);
+  padding: 14px;
+  font-size: 15px;
+  outline: none;
+}
+
+.input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 22%, transparent);
+}
+
+/* List items */
+.list-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+}
+
+/* Backdrop pattern for "ledger" feel: subtle grid. */
+.grid-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(to right, color-mix(in oklab, var(--ink) 3%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklab, var(--ink) 3%, transparent) 1px, transparent 1px);
+  background-size: 24px 24px;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 30%, #000 60%, transparent 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Money tone */
+.tone-owed { color: var(--owed); }
+.tone-owe { color: var(--owe); }
+.tone-flat { color: var(--ink-2); }
+
+.bg-owed {
+  background: color-mix(in oklab, var(--owed) 14%, transparent);
+  color: var(--owed);
+}
+
+.bg-owe {
+  background: color-mix(in oklab, var(--owe) 14%, transparent);
+  color: var(--owe);
+}
+
+/* Currency badge */
+.cur {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+/* Sticker labels */
+.sticker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-2);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.sticker-on {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+}
+
+/* Section header */
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  margin: 18px 0 10px;
+}
+
+/* Sparkline-ish bars */
+.bar-track {
+  height: 8px;
+  background: var(--line);
+  border-radius: 999px;
+  overflow: hidden;
+  position: relative;
+}
+
+.bar-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+}
+
+/* Network nodes */
+.net-svg .net-edge { stroke: var(--ink-3); stroke-width: 1.2; fill: none; }
+.net-svg .net-edge-strong { stroke: var(--accent); stroke-width: 1.6; }
+.net-svg .net-edge-owe { stroke: var(--owe); stroke-width: 1.6; stroke-dasharray: 3 3; }
+.net-svg .net-node-bg { fill: var(--bg-2); stroke: var(--line-2); }
+.net-svg .net-label { fill: var(--ink); font-size: 10px; font-family: var(--font-mono); font-weight: 600; }
+.net-svg .net-arrow { fill: var(--ink-3); }
+
+/* Modal sheet */
+.sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--bg-2);
+  border-top-left-radius: 28px;
+  border-top-right-radius: 28px;
+  padding: 20px 20px 30px;
+  border-top: 1px solid var(--line);
+  z-index: 3;
+}
+
+.sheet-grab {
+  width: 38px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--line-2);
+  margin: 0 auto 14px;
+}
+
+/* Token display */
+.token-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: var(--bg-2);
+  border: 1px dashed var(--line-2);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--ink);
+  letter-spacing: 0.04em;
+}
+
+/* Category icon tiles */
+.cat-tile {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: color-mix(in oklab, var(--ink) 6%, transparent);
+  flex-shrink: 0;
+}
+
+.cat-tile svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Toggle */
+.toggle {
+  width: 38px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--line-2);
+  position: relative;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+.toggle-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--ink);
+  transition: transform 0.12s ease;
+}
+
+.toggle[aria-checked="true"] {
+  background: var(--accent);
+}
+
+.toggle[aria-checked="true"] .toggle-knob {
+  transform: translateX(16px);
+  background: var(--accent-ink);
+}
+
+/* Big balance hero */
+.balance-hero {
+  padding: 22px 0 6px;
+}
+
+.balance-amount {
+  font-family: var(--font-display);
+  font-size: 64px;
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+  font-weight: 400;
+}
+
+.balance-amount .symbol {
+  font-size: 32px;
+  vertical-align: top;
+  margin-right: 4px;
+  opacity: 0.7;
+}
+
+/* Tab pills */
+.tabs-pill {
+  display: flex;
+  gap: 6px;
+  padding: 4px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+
+.tabs-pill button {
+  border: 0;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-2);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.tabs-pill button.on {
+  background: var(--ink);
+  color: var(--bg);
+}
+
+/* Stat tile */
+.stat {
+  padding: 14px;
+  border-radius: 18px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+}
+
+.stat-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--ink-2);
+  text-transform: uppercase;
+}
+
+.stat-value {
+  font-family: var(--font-display);
+  font-size: 28px;
+  line-height: 1;
+  margin-top: 8px;
+}
+
+.stat-sub {
+  font-size: 11px;
+  color: var(--ink-2);
+  margin-top: 4px;
+  font-family: var(--font-mono);
+}
