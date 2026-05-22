@@ -15,8 +15,8 @@ export default defineConfig({
 	plugins: [
 		sveltekit(),
 		SvelteKitPWA({
-			registerType: 'autoUpdate',
-			injectRegister: 'auto',
+			registerType: 'prompt',
+			injectRegister: false,
 			manifest: {
 				name: 'Kostos',
 				short_name: 'Kostos',

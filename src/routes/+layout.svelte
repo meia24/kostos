@@ -12,9 +12,11 @@
 	import '$lib/styles/app.css';
 
 	import MathToolbar from '$lib/components/MathToolbar.svelte';
+	import UpdateBanner from '$lib/components/UpdateBanner.svelte';
 
 	let { children } = $props();
 </script>
 
 {@render children()}
 <MathToolbar />
+<UpdateBanner />
