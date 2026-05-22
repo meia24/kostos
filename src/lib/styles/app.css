@@ -95,8 +95,11 @@ select {
   display: grid;
   grid-template-columns: 1fr 1fr 64px 1fr 1fr;
   align-items: center;
-  padding: 14px 18px calc(24px + env(safe-area-inset-bottom));
-  background: linear-gradient(to top, var(--bg) 60%, transparent);
+  padding: 8px 18px calc(16px + env(safe-area-inset-bottom));
+  background: color-mix(in oklab, var(--bg) 76%, transparent);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-top: 1px solid color-mix(in oklab, var(--line) 70%, transparent);
   z-index: 4;
 }
 
@@ -104,7 +107,7 @@ select {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   color: var(--ink-3);
   font-size: 10px;
   font-weight: 600;
@@ -112,29 +115,37 @@ select {
   background: none;
   border: 0;
   cursor: pointer;
-  padding: 6px 4px;
+  padding: 4px 4px;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 0.18s ease;
 }
 
 .tab.active {
   color: var(--ink);
 }
 
-.tab.active .tab-dot {
-  background: var(--accent);
-}
-
 .tab-icon {
-  width: 22px;
-  height: 22px;
+  width: 44px;
+  height: 28px;
   display: grid;
   place-items: center;
+  border-radius: 999px;
+  transition: background 0.22s ease;
 }
 
-.tab-dot {
-  width: 4px;
-  height: 4px;
-  border-radius: 999px;
-  background: transparent;
+.tab.active .tab-icon {
+  background: color-mix(in oklab, var(--accent) 20%, transparent);
+}
+
+.tab-icon svg {
+  width: 20px;
+  height: 20px;
+  transition: transform 0.2s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+.tab.active .tab-icon svg {
+  transform: scale(1.08);
 }
 
 .fab {
@@ -146,18 +157,19 @@ select {
   display: grid;
   place-items: center;
   border: 0;
-  box-shadow: 0 10px 24px -8px color-mix(in oklab, var(--accent) 60%, transparent);
+  box-shadow:
+    0 10px 26px -8px color-mix(in oklab, var(--accent) 55%, transparent),
+    0 2px 6px color-mix(in oklab, black 22%, transparent);
   margin: -22px auto 0;
   cursor: pointer;
   position: relative;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.14s ease, box-shadow 0.14s ease;
 }
 
-.fab::after {
-  content: "";
-  position: absolute;
-  inset: -6px;
-  border-radius: 999px;
-  border: 1px solid color-mix(in oklab, var(--accent) 30%, transparent);
+.fab:active {
+  transform: scale(0.94);
+  box-shadow: 0 4px 12px -4px color-mix(in oklab, var(--accent) 50%, transparent);
 }
 
 /* Scrollable area */
