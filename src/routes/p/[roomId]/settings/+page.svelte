@@ -20,6 +20,7 @@
 		updateProject
 	} from '$lib/sync/doc';
 	import { useRoom } from '$lib/sync/useRoom.svelte';
+	import { serializeProject, toCSV } from '$lib/io/projectArchive';
 	import type { Category, PaymentMethodItem, ProjectColor } from '$lib/types';
 
 	const roomId = $derived(page.params.roomId ?? '');
@@ -102,6 +103,49 @@
 		// Force a reload so every $derived(getCurrentMember(roomId)) re-evaluates;
 		// localStorage reads aren't tracked by Svelte's runtime.
 		window.location.href = `/p/${roomId}`;
+	}
+
+	const expenses = $derived(room.expenses);
+
+	function downloadFile(name: string, mime: string, contents: string) {
+		const blob = new Blob([contents], { type: mime });
+		const url = URL.createObjectURL(blob);
+		const link = document.createElement('a');
+		link.href = url;
+		link.download = name;
+		document.body.appendChild(link);
+		link.click();
+		link.remove();
+		// Revoke after the click finishes so Safari has time to start the download.
+		setTimeout(() => URL.revokeObjectURL(url), 1000);
+	}
+
+	function slug(value: string): string {
+		const cleaned = value
+			.toLowerCase()
+			.normalize('NFKD')
+			.replace(/[^\w\s-]/g, '')
+			.trim()
+			.replace(/\s+/g, '-');
+		return cleaned || 'project';
+	}
+
+	function exportJson() {
+		if (!project) return;
+		const archive = serializeProject(project, members, expenses);
+		const date = new Date().toISOString().slice(0, 10);
+		downloadFile(
+			`kostos-${slug(project.name)}-${date}.json`,
+			'application/json',
+			JSON.stringify(archive, null, 2)
+		);
+	}
+
+	function exportCsv() {
+		if (!project) return;
+		const csv = toCSV(project, members, expenses);
+		const date = new Date().toISOString().slice(0, 10);
+		downloadFile(`kostos-${slug(project.name)}-${date}.csv`, 'text/csv', csv);
 	}
 </script>
 
@@ -219,6 +263,38 @@
 				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
 			</a>
 
+			<div class="section-head">
+				<div class="eyebrow">Data</div>
+				<span class="dim mono section-count">{expenses.length} expenses</span>
+			</div>
+			<div class="card data-card">
+				<button type="button" class="data-row" onclick={exportJson}>
+					<span class="data-icon">
+						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+							<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+							<path d="M14 3v5h5M12 12v6M9 15l3 3 3-3" />
+						</svg>
+					</span>
+					<span class="col data-text">
+						<span class="data-title">Export backup (JSON)</span>
+						<span class="data-sub">Full lossless copy. Restore from "New project".</span>
+					</span>
+				</button>
+				<hr class="hairline" />
+				<button type="button" class="data-row" onclick={exportCsv}>
+					<span class="data-icon">
+						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+							<rect x="4" y="4" width="16" height="16" rx="2" />
+							<path d="M4 10h16M10 4v16M16 4v16" />
+						</svg>
+					</span>
+					<span class="col data-text">
+						<span class="data-title">Export spreadsheet (CSV)</span>
+						<span class="data-sub">One row per expense. For Numbers, Excel, Sheets.</span>
+					</span>
+				</button>
+			</div>
+
 			<button class="btn btn-block sign-out-btn" type="button" onclick={signOut} disabled={signingOut}>
 				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 7V5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-7a2 2 0 0 1-2-2v-2M4 12h11M11 8l-3 4 3 4" /></svg>
 				<span>Forget this project on this device</span>
@@ -313,6 +389,59 @@
 	.members-link svg {
 		width: 18px;
 		height: 18px;
+	}
+
+	.data-card {
+		padding: 0;
+	}
+
+	.data-row {
+		width: 100%;
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		padding: 14px 14px;
+		background: transparent;
+		border: 0;
+		color: inherit;
+		cursor: pointer;
+		text-align: left;
+		font: inherit;
+	}
+
+	.data-row:active {
+		background: color-mix(in oklab, var(--accent) 12%, transparent);
+	}
+
+	.data-icon {
+		display: inline-flex;
+		width: 28px;
+		height: 28px;
+		align-items: center;
+		justify-content: center;
+		color: var(--ink-2);
+		flex-shrink: 0;
+	}
+
+	.data-icon svg {
+		width: 20px;
+		height: 20px;
+	}
+
+	.data-text {
+		flex: 1;
+		align-items: flex-start;
+		gap: 2px;
+	}
+
+	.data-title {
+		font-size: 14px;
+		font-weight: 500;
+	}
+
+	.data-sub {
+		font-size: 11px;
+		color: var(--ink-3);
 	}
 
 	.sign-out-btn {

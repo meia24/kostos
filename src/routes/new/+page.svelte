@@ -127,6 +127,14 @@
 	</header>
 
 	<form class="scroll" onsubmit={onSubmit} style="padding-top: 8px;">
+		<a class="restore-link" href="/restore">
+			<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+				<path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
+				<path d="M3 3v5h5" />
+			</svg>
+			<span>Got a backup file? Restore instead</span>
+		</a>
+
 		<div class="col emoji-block">
 			<EmojiTilePicker {emoji} {color} onPick={(value) => (emoji = value)} />
 
@@ -232,6 +240,32 @@
 </div>
 
 <style>
+	.restore-link {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		padding: 10px 12px;
+		margin: 0 0 6px;
+		border-radius: 10px;
+		border: 1px dashed var(--line-2);
+		background: transparent;
+		color: var(--ink-2);
+		font-size: 12px;
+		font-weight: 500;
+		text-decoration: none;
+	}
+
+	.restore-link svg {
+		width: 14px;
+		height: 14px;
+	}
+
+	.restore-link:hover {
+		color: var(--accent);
+		border-color: color-mix(in oklab, var(--accent) 40%, var(--line));
+	}
+
 	.emoji-block {
 		align-items: center;
 		padding: 10px 0 22px;
