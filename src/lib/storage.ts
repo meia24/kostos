@@ -1,8 +1,14 @@
 import { browser } from '$app/environment';
 import type { ProjectColor } from './types';
 
-type Theme = 'light' | 'dark';
+type Theme = 'light' | 'dark' | 'system';
 type Palette = 'lime' | 'cyan' | 'violet' | 'amber' | 'coral' | 'blue';
+
+declare global {
+	interface Window {
+		__kostosApplyTheme?: (next: Theme) => void;
+	}
+}
 
 const KEY = {
 	theme: 'kostos:theme',
@@ -48,12 +54,13 @@ function write(key: string, value: string | null): void {
 }
 
 export function getTheme(): Theme {
-	return read(KEY.theme) === 'light' ? 'light' : 'dark';
+	const v = read(KEY.theme);
+	return v === 'light' || v === 'dark' ? v : 'system';
 }
 
 export function setTheme(t: Theme): void {
-	write(KEY.theme, t);
-	if (browser) document.documentElement.setAttribute('data-theme', t);
+	write(KEY.theme, t === 'system' ? null : t);
+	if (browser) window.__kostosApplyTheme?.(t);
 }
 
 export function getPalette(): Palette {

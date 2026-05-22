@@ -33,13 +33,32 @@
 		<link rel="manifest" href="%sveltekit.assets%/manifest.webmanifest" />
 		<script>
 			// Apply persisted theme/palette before first paint to avoid flash.
-			try {
-				var t = localStorage.getItem('kostos:theme');
-				var p = localStorage.getItem('kostos:palette');
+			// Stored value may be 'light' | 'dark' | 'system' (or absent = system).
+			(function () {
 				var r = document.documentElement;
-				if (t === 'light' || t === 'dark') r.setAttribute('data-theme', t);
-				if (p) r.setAttribute('data-palette', p);
-			} catch (_) {}
+				var stored = null;
+				var palette = null;
+				try {
+					stored = localStorage.getItem('kostos:theme');
+					palette = localStorage.getItem('kostos:palette');
+				} catch (_) {}
+				var mql = window.matchMedia('(prefers-color-scheme: light)');
+				function resolve() {
+					if (stored === 'light' || stored === 'dark') return stored;
+					return mql.matches ? 'light' : 'dark';
+				}
+				function apply() {
+					r.setAttribute('data-theme', resolve());
+				}
+				apply();
+				if (palette) r.setAttribute('data-palette', palette);
+				if (mql.addEventListener) mql.addEventListener('change', apply);
+				else if (mql.addListener) mql.addListener(apply);
+				window.__kostosApplyTheme = function (next) {
+					stored = next === 'light' || next === 'dark' ? next : null;
+					apply();
+				};
+			})();
 		</script>
 		%sveltekit.head%
 	</head>
