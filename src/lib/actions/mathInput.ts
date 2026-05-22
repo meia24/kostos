@@ -1,12 +1,23 @@
 import type { Action } from 'svelte/action';
 import { isAllowedMathChar, stripDisallowedMathChars } from '$lib/math';
+import { mathInputTarget } from '$lib/mathInputTarget';
 
 /* `use:mathInput` confines an input field to the math-input alphabet.
  * Single-character keystrokes outside the alphabet are blocked at beforeinput.
  * Paste / drop / autofill payloads are stripped to allowed characters before insertion;
  * a pasted "$84.20" lands as "84.20" without breaking cursor position or `bind:value`.
+ * On focus, the input registers as the active math target so the floating mobile
+ * toolbar can inject operators the `decimal` virtual keyboard doesn't expose.
  */
 export const mathInput: Action<HTMLInputElement> = (node) => {
+	function onFocus() {
+		mathInputTarget.set(node);
+	}
+
+	function onBlur() {
+		mathInputTarget.update((current) => (current === node ? null : current));
+	}
+
 	function onBeforeInput(event: InputEvent) {
 		const incoming = event.data;
 		if (incoming == null) return;
@@ -32,9 +43,14 @@ export const mathInput: Action<HTMLInputElement> = (node) => {
 	}
 
 	node.addEventListener('beforeinput', onBeforeInput);
+	node.addEventListener('focus', onFocus);
+	node.addEventListener('blur', onBlur);
 	return {
 		destroy() {
 			node.removeEventListener('beforeinput', onBeforeInput);
+			node.removeEventListener('focus', onFocus);
+			node.removeEventListener('blur', onBlur);
+			mathInputTarget.update((current) => (current === node ? null : current));
 		}
 	};
 };

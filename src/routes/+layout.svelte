@@ -11,7 +11,10 @@
 	import '$lib/styles/tokens.css';
 	import '$lib/styles/app.css';
 
+	import MathToolbar from '$lib/components/MathToolbar.svelte';
+
 	let { children } = $props();
 </script>
 
 {@render children()}
+<MathToolbar />
