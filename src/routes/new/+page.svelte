@@ -78,6 +78,7 @@
 			defaultSplit: 'even',
 			categories: DEFAULT_CATEGORIES,
 			paymentMethods: DEFAULT_PAYMENT_METHODS,
+			trips: [],
 			createdAt: Date.now()
 		};
 

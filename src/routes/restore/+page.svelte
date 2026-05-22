@@ -63,6 +63,7 @@
 			defaultSplit: a.project.defaultSplit,
 			categories: a.project.categories,
 			paymentMethods: a.project.paymentMethods,
+			trips: a.project.trips ?? [],
 			createdAt: a.project.createdAt
 		};
 

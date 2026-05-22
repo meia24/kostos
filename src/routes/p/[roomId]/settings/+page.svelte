@@ -258,9 +258,35 @@
 				<div class="eyebrow">Members</div>
 				<span class="dim mono section-count">{members.length}</span>
 			</div>
-			<a class="btn btn-block members-link" href="/p/{roomId}/people">
-				<span>Manage members</span>
-				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+			<a class="card nav-row" href="/p/{roomId}/people">
+				<span class="nav-icon">
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+						<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+						<circle cx="9" cy="7" r="4" />
+						<path d="M22 21v-2a4 4 0 0 0-3-3.87M17 3.13a4 4 0 0 1 0 7.75" />
+					</svg>
+				</span>
+				<span class="nav-title">Manage members</span>
+				<span class="nav-chevron" aria-hidden="true">
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 6l6 6-6 6" /></svg>
+				</span>
+			</a>
+
+			<div class="section-head">
+				<div class="eyebrow">Trips</div>
+				<span class="dim mono section-count">{project.trips.length}</span>
+			</div>
+			<a class="card nav-row" href="/p/{roomId}/settings/trips">
+				<span class="nav-icon">
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+						<path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z" />
+						<path d="M9 3v15M15 6v15" />
+					</svg>
+				</span>
+				<span class="nav-title">Manage trips</span>
+				<span class="nav-chevron" aria-hidden="true">
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 6l6 6-6 6" /></svg>
+				</span>
 			</a>
 
 			<div class="section-head">
@@ -380,13 +406,45 @@
 		padding: 10px 14px;
 	}
 
-	.members-link {
-		justify-content: space-between;
+	.nav-row {
+		display: flex;
+		align-items: center;
+		gap: 12px;
 		padding: 14px;
-		margin-top: 6px;
+		text-decoration: none;
+		color: inherit;
 	}
 
-	.members-link svg {
+	.nav-row:active {
+		background: color-mix(in oklab, var(--accent) 12%, transparent);
+	}
+
+	.nav-icon {
+		display: inline-flex;
+		width: 28px;
+		height: 28px;
+		align-items: center;
+		justify-content: center;
+		color: var(--ink-2);
+		flex-shrink: 0;
+	}
+
+	.nav-icon svg {
+		width: 20px;
+		height: 20px;
+	}
+
+	.nav-title {
+		flex: 1;
+		font-size: 14px;
+		font-weight: 500;
+	}
+
+	.nav-chevron {
+		color: var(--ink-3);
+	}
+
+	.nav-chevron svg {
 		width: 18px;
 		height: 18px;
 	}

@@ -8,6 +8,7 @@
 	import { getCurrentMember } from '$lib/storage';
 	import { addExpense, generateId } from '$lib/sync/doc';
 	import { useRoom } from '$lib/sync/useRoom.svelte';
+	import { readTripSelection, scopeExpenses } from '$lib/trips';
 	import type { Expense } from '$lib/types';
 
 	const roomId = $derived(page.params.roomId ?? '');
@@ -23,8 +24,20 @@
 	const currencySymbol = $derived(room.currencySymbol);
 	const currency = $derived(room.currency);
 	const membersById = $derived(room.membersById);
+	const trips = $derived(room.trips);
 
-	const balances = $derived(computeBalances(members, expenses));
+	let selectedTripId = $state<string | null>(null);
+	$effect(() => {
+		const saved = readTripSelection(roomId);
+		selectedTripId =
+			saved && trips.some((t) => t.id === saved && t.closedAt === undefined) ? saved : null;
+	});
+	const selectedTrip = $derived(
+		selectedTripId ? (trips.find((t) => t.id === selectedTripId) ?? null) : null
+	);
+	const scopedExpenses = $derived(scopeExpenses(expenses, selectedTripId));
+
+	const balances = $derived(computeBalances(members, scopedExpenses));
 	const plan = $derived(planSettlements(balances));
 	const totalToSettle = $derived(plan.reduce((s, t) => s + t.amount, 0));
 	const openCount = $derived(balances.filter((b) => b.net !== 0).length);
@@ -50,12 +63,16 @@
 		if (!project) return;
 		const fromName = membersById.get(t.from)?.name ?? '—';
 		const toName = membersById.get(t.to)?.name ?? '—';
+		const description = selectedTrip
+			? `${selectedTrip.name}: ${fromName} → ${toName}`
+			: `${fromName} → ${toName}`;
 		const expense: Expense = {
 			id: generateId(),
 			payments: [{ memberId: t.from, amount: t.amount }],
 			amount: t.amount,
 			currency: project.currency,
-			description: `${fromName} → ${toName}`,
+			description,
+			tripId: selectedTrip?.id,
 			date: Date.now(),
 			splitMode: 'even',
 			splits: [{ memberId: t.to }],
@@ -75,6 +92,12 @@
 	<ScreenAppBar title="Settle up" backHref="/p/{roomId}" {project} />
 
 	<div class="scroll">
+		{#if selectedTrip}
+			<div class="scope-banner">
+				<span class="scope-emoji">{selectedTrip.emoji}</span>
+				<span class="scope-text">Scoped to <strong>{selectedTrip.name}</strong></span>
+			</div>
+		{/if}
 		<section class="hero">
 			{#if plan.length === 0}
 				<div class="eyebrow">Everyone is settled</div>
@@ -179,6 +202,24 @@
 </div>
 
 <style>
+	.scope-banner {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		padding: 8px 12px;
+		margin: 8px 0 0;
+		background: color-mix(in oklab, var(--accent) 12%, var(--bg-2));
+		border: 1px solid color-mix(in oklab, var(--accent) 30%, var(--line));
+		border-radius: 999px;
+		font-size: 12px;
+		color: var(--ink);
+	}
+
+	.scope-emoji {
+		font-size: 14px;
+	}
+
 	.hero {
 		display: flex;
 		flex-direction: column;

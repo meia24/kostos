@@ -11,7 +11,8 @@ import {
 	type Member,
 	type Payment,
 	type PaymentMethodItem,
-	type Project
+	type Project,
+	type Trip
 } from '$lib/types';
 import { createSyncProvider, type EncryptedSyncProvider } from './provider';
 
@@ -129,6 +130,8 @@ export function readProject(handle: RoomHandle): Project | null {
 				emoji: m.get('emoji') as string
 			}))
 		: DEFAULT_PAYMENT_METHODS;
+	const rawTrips = p.get('trips') as Y.Array<Y.Map<unknown>> | undefined;
+	const trips: Trip[] = rawTrips ? rawTrips.toArray().map(tripFromMap) : [];
 	return {
 		id: p.get('id') as string,
 		name: p.get('name') as string,
@@ -140,6 +143,7 @@ export function readProject(handle: RoomHandle): Project | null {
 		defaultSplit: p.get('defaultSplit') as Project['defaultSplit'],
 		categories,
 		paymentMethods,
+		trips,
 		createdAt: p.get('createdAt') as number
 	};
 }
@@ -166,6 +170,9 @@ export function initProject(handle: RoomHandle, project: Project, members: Membe
 		handle.project.set('createdAt', project.createdAt);
 		handle.project.set('categories', yArrayOf(project.categories, categoryMap));
 		handle.project.set('paymentMethods', yArrayOf(project.paymentMethods, paymentMethodMap));
+		if (project.trips && project.trips.length > 0) {
+			handle.project.set('trips', yArrayOf(project.trips, tripMap));
+		}
 
 		for (const m of members) handle.members.push([memberMap(m)]);
 	});
@@ -209,6 +216,30 @@ function paymentMethodMap(p: PaymentMethodItem): Y.Map<unknown> {
 	ym.set('name', p.name);
 	ym.set('emoji', p.emoji);
 	return ym;
+}
+
+function tripMap(t: Trip): Y.Map<unknown> {
+	const ym = new Y.Map<unknown>();
+	ym.set('id', t.id);
+	ym.set('name', t.name);
+	ym.set('emoji', t.emoji);
+	ym.set('startDate', t.startDate);
+	if (t.endDate !== undefined) ym.set('endDate', t.endDate);
+	if (t.closedAt !== undefined) ym.set('closedAt', t.closedAt);
+	ym.set('createdAt', t.createdAt);
+	return ym;
+}
+
+function tripFromMap(m: Y.Map<unknown>): Trip {
+	return {
+		id: m.get('id') as string,
+		name: m.get('name') as string,
+		emoji: m.get('emoji') as string,
+		startDate: m.get('startDate') as number,
+		endDate: m.get('endDate') as number | undefined,
+		closedAt: m.get('closedAt') as number | undefined,
+		createdAt: m.get('createdAt') as number
+	};
 }
 
 function yArrayOf<T>(items: T[], toMap: (item: T) => Y.Map<unknown>): Y.Array<Y.Map<unknown>> {
@@ -313,6 +344,53 @@ export function removePaymentMethod(handle: RoomHandle, id: string): void {
 	}
 }
 
+export function addTrip(handle: RoomHandle, trip: Trip): void {
+	handle.doc.transact(() => {
+		let arr = handle.project.get('trips') as Y.Array<Y.Map<unknown>> | undefined;
+		if (!arr) {
+			arr = new Y.Array<Y.Map<unknown>>();
+			handle.project.set('trips', arr);
+		}
+		arr.push([tripMap(trip)]);
+	});
+}
+
+export function updateTrip(
+	handle: RoomHandle,
+	id: string,
+	updates: Partial<Omit<Trip, 'id' | 'createdAt'>>
+): void {
+	const arr = handle.project.get('trips') as Y.Array<Y.Map<unknown>> | undefined;
+	if (!arr) return;
+	for (let i = 0; i < arr.length; i++) {
+		const entry = arr.get(i);
+		if (entry.get('id') !== id) continue;
+		handle.doc.transact(() => {
+			if (updates.name !== undefined) entry.set('name', updates.name);
+			if (updates.emoji !== undefined) entry.set('emoji', updates.emoji);
+			if (updates.startDate !== undefined) entry.set('startDate', updates.startDate);
+			if (updates.endDate === undefined && 'endDate' in updates) entry.delete('endDate');
+			else if (updates.endDate !== undefined) entry.set('endDate', updates.endDate);
+			if (updates.closedAt === undefined && 'closedAt' in updates) entry.delete('closedAt');
+			else if (updates.closedAt !== undefined) entry.set('closedAt', updates.closedAt);
+		});
+		return;
+	}
+}
+
+/** Removing a trip leaves any expenses tagged with it as orphans. Their tripId still
+ *  serializes but readers should treat unknown trip IDs as untagged. */
+export function removeTrip(handle: RoomHandle, id: string): void {
+	const arr = handle.project.get('trips') as Y.Array<Y.Map<unknown>> | undefined;
+	if (!arr) return;
+	for (let i = 0; i < arr.length; i++) {
+		if (arr.get(i).get('id') === id) {
+			handle.doc.transact(() => arr.delete(i, 1));
+			return;
+		}
+	}
+}
+
 /** How many expenses reference this member (as payer, as split target, or as createdBy). */
 export function memberHistoryCount(handle: RoomHandle, memberId: string): number {
 	const expenses = readExpenses(handle);
@@ -382,6 +460,7 @@ function readExpenseEntry(entry: Y.Map<unknown>): Expense {
 		description: entry.get('description') as string | undefined,
 		categoryId: entry.get('categoryId') as string | undefined,
 		paymentMethodId: entry.get('paymentMethodId') as string | undefined,
+		tripId: entry.get('tripId') as string | undefined,
 		date: entry.get('date') as number,
 		splitMode: entry.get('splitMode') as Expense['splitMode'],
 		splits,
@@ -408,6 +487,7 @@ function expenseMap(e: Expense): Y.Map<unknown> {
 	if (e.description) ym.set('description', e.description);
 	if (e.categoryId) ym.set('categoryId', e.categoryId);
 	if (e.paymentMethodId) ym.set('paymentMethodId', e.paymentMethodId);
+	if (e.tripId) ym.set('tripId', e.tripId);
 	ym.set('date', e.date);
 	ym.set('splitMode', e.splitMode);
 	const ysplits = new Y.Array<Y.Map<unknown>>();

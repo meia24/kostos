@@ -8,7 +8,14 @@
  */
 
 import { openRoom, readExpenses, readMembers, readProject, type RoomHandle } from './doc';
-import type { Category, Expense, Member, PaymentMethodItem, Project } from '$lib/types';
+import type {
+	Category,
+	Expense,
+	Member,
+	PaymentMethodItem,
+	Project,
+	Trip
+} from '$lib/types';
 
 export class RoomState {
 	handle: RoomHandle;
@@ -25,6 +32,8 @@ export class RoomState {
 	methodById = $derived<Map<string, PaymentMethodItem>>(
 		new Map((this.project?.paymentMethods ?? []).map((m) => [m.id, m]))
 	);
+	trips = $derived<Trip[]>(this.project?.trips ?? []);
+	tripsById = $derived<Map<string, Trip>>(new Map(this.trips.map((t) => [t.id, t])));
 	currencySymbol = $derived(this.project?.currencySymbol ?? '€');
 	currency = $derived(this.project?.currency ?? 'EUR');
 

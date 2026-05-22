@@ -7,6 +7,7 @@
 	import { formatAmount } from '$lib/money';
 	import { getCurrentMember } from '$lib/storage';
 	import { useRoom } from '$lib/sync/useRoom.svelte';
+	import { readTripSelection, scopeExpenses } from '$lib/trips';
 	import type { Expense } from '$lib/types';
 
 	const roomId = $derived(page.params.roomId ?? '');
@@ -50,10 +51,22 @@
 		return false;
 	}
 
+	const trips = $derived(room.trips);
+	let selectedTripId = $state<string | null>(null);
+	$effect(() => {
+		const saved = readTripSelection(roomId);
+		selectedTripId =
+			saved && trips.some((t) => t.id === saved && t.closedAt === undefined) ? saved : null;
+	});
+	const selectedTrip = $derived(
+		selectedTripId ? (trips.find((t) => t.id === selectedTripId) ?? null) : null
+	);
+	const scopedExpenses = $derived(scopeExpenses(expenses, selectedTripId));
+
 	const filtered = $derived.by(() => {
 		const trimmed = query.trim().toLowerCase();
-		if (!trimmed) return expenses;
-		return expenses.filter((e) => matchesQuery(e, trimmed));
+		if (!trimmed) return scopedExpenses;
+		return scopedExpenses.filter((e) => matchesQuery(e, trimmed));
 	});
 
 	type DayGroup = { key: string; label: string; total: number; items: Expense[] };
@@ -185,7 +198,11 @@
 			</div>
 		</section>
 
-		{#if expenses.length === 0}
+		{#if scopedExpenses.length === 0 && selectedTrip}
+			<EmptyCard>
+				<p>No expenses tagged to <strong>{selectedTrip.name}</strong> yet.</p>
+			</EmptyCard>
+		{:else if expenses.length === 0}
 			<EmptyCard>
 				<p>No expenses yet. Tap the + button to add the first one.</p>
 			</EmptyCard>

@@ -254,6 +254,7 @@ export function mapV1ToV2(v1: V1Export): ImportResult {
 		defaultSplit: 'even',
 		categories,
 		paymentMethods,
+		trips: [],
 		createdAt: dateMin ?? Date.now()
 	};
 

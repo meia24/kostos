@@ -23,6 +23,16 @@ const project: Project = {
 	defaultSplit: 'even',
 	categories,
 	paymentMethods,
+	trips: [
+		{
+			id: 'trip-lx',
+			name: 'Lisbon weekend',
+			emoji: '🏖',
+			startDate: 1700000000000,
+			endDate: 1700300000000,
+			createdAt: 1700000000000
+		}
+	],
 	createdAt: 1700000000000
 };
 
@@ -121,6 +131,33 @@ describe('serializeProject + parseProjectArchive', () => {
 		expect(result.ok).toBe(false);
 	});
 
+	it('upgrades v1 archives by initialising an empty trips list', () => {
+		const v1 = {
+			schemaVersion: 1,
+			app: 'kostos',
+			exportedAt: 1,
+			project: {
+				name: 'Old project',
+				emoji: '🏠',
+				color: 'lime',
+				currency: 'EUR',
+				currencySymbol: '€',
+				defaultSplit: 'even',
+				categories,
+				paymentMethods,
+				createdAt: 1
+			},
+			members,
+			expenses: [expenses[0]]
+		};
+		const result = parseProjectArchive(JSON.stringify(v1));
+		expect(result.ok).toBe(true);
+		if (!result.ok) return;
+		expect(result.archive.schemaVersion).toBe(2);
+		expect(result.archive.project.trips).toEqual([]);
+		expect(result.archive.members).toEqual(members);
+	});
+
 	it('rejects malformed expenses', () => {
 		const archive = serializeProject(project, members, expenses);
 		const tampered = JSON.parse(JSON.stringify(archive));
@@ -135,7 +172,7 @@ describe('toCSV', () => {
 
 	it('starts with the canonical header row', () => {
 		expect(csv.split('\n')[0]).toBe(
-			'date,description,amount,currency,category,payment_method,is_settlement,notes,split_mode,payers,splits,created_at'
+			'date,description,amount,currency,category,payment_method,trip,is_settlement,notes,split_mode,payers,splits,created_at'
 		);
 	});
 

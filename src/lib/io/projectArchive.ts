@@ -6,17 +6,21 @@ import type {
 	PaymentMethodItem,
 	Project,
 	ProjectColor,
-	SplitMode
+	SplitMode,
+	Trip
 } from '$lib/types';
 
 /* Serialized project state for backup and restore.
  *
- * Members, categories, and payment methods keep their original IDs because expenses
+ * Members, categories, payment methods, and trips keep their original IDs because expenses
  * reference them. The project's id is omitted: import always allocates a fresh roomId,
  * since the old one no longer maps to a live room.
+ *
+ * v1 had no trips; v1 archives are accepted and silently upgraded by initialising an
+ * empty trips array.
  */
 export type ProjectArchive = {
-	schemaVersion: 1;
+	schemaVersion: 2;
 	app: 'kostos';
 	exportedAt: number;
 	project: {
@@ -29,13 +33,15 @@ export type ProjectArchive = {
 		defaultSplit: DefaultSplit;
 		categories: Category[];
 		paymentMethods: PaymentMethodItem[];
+		trips: Trip[];
 		createdAt: number;
 	};
 	members: Member[];
 	expenses: Expense[];
 };
 
-export const ARCHIVE_SCHEMA_VERSION = 1;
+export const ARCHIVE_SCHEMA_VERSION = 2;
+export const SUPPORTED_SCHEMA_VERSIONS = [1, 2] as const;
 
 export function serializeProject(
 	project: Project,
@@ -56,6 +62,7 @@ export function serializeProject(
 			defaultSplit: project.defaultSplit,
 			categories: project.categories,
 			paymentMethods: project.paymentMethods,
+			trips: project.trips ?? [],
 			createdAt: project.createdAt
 		},
 		members,
@@ -78,10 +85,10 @@ export function parseProjectArchive(input: unknown): ArchiveParseResult {
 	}
 	if (!isObject(raw)) return { ok: false, error: 'File is not a Kostos backup.' };
 	if (raw.app !== 'kostos') return { ok: false, error: 'File is not a Kostos backup.' };
-	if (raw.schemaVersion !== ARCHIVE_SCHEMA_VERSION) {
+	if (typeof raw.schemaVersion !== 'number' || !(SUPPORTED_SCHEMA_VERSIONS as readonly number[]).includes(raw.schemaVersion)) {
 		return {
 			ok: false,
-			error: `Unsupported backup version (got ${raw.schemaVersion}, expected ${ARCHIVE_SCHEMA_VERSION}).`
+			error: `Unsupported backup version (got ${raw.schemaVersion}, supports ${SUPPORTED_SCHEMA_VERSIONS.join(', ')}).`
 		};
 	}
 
@@ -100,7 +107,27 @@ export function parseProjectArchive(input: unknown): ArchiveParseResult {
 		return { ok: false, error: 'Backup has malformed expenses.' };
 	}
 
-	return { ok: true, archive: raw as ProjectArchive };
+	const upgraded = upgradeToCurrent(raw as RawArchive);
+	return { ok: true, archive: upgraded };
+}
+
+type RawArchive = ProjectArchive | (Omit<ProjectArchive, 'schemaVersion' | 'project'> & {
+	schemaVersion: 1;
+	project: Omit<ProjectArchive['project'], 'trips'>;
+});
+
+function upgradeToCurrent(raw: RawArchive): ProjectArchive {
+	if (raw.schemaVersion === ARCHIVE_SCHEMA_VERSION) return raw;
+	// v1 → v2: trips didn't exist, expenses had no tripId. Seed with empties; the rest
+	// of the payload is structurally identical.
+	return {
+		...raw,
+		schemaVersion: ARCHIVE_SCHEMA_VERSION,
+		project: {
+			...raw.project,
+			trips: []
+		}
+	};
 }
 
 /* ---------------- CSV ---------------- */
@@ -112,6 +139,7 @@ const CSV_HEADERS = [
 	'currency',
 	'category',
 	'payment_method',
+	'trip',
 	'is_settlement',
 	'notes',
 	'split_mode',
@@ -124,6 +152,7 @@ export function toCSV(project: Project, members: Member[], expenses: Expense[]):
 	const memberName = nameLookup(members);
 	const categoryName = nameLookup(project.categories);
 	const methodName = nameLookup(project.paymentMethods);
+	const tripName = nameLookup(project.trips ?? []);
 
 	const rows = [CSV_HEADERS.join(',')];
 	const sorted = [...expenses].sort((a, b) => a.date - b.date);
@@ -136,6 +165,7 @@ export function toCSV(project: Project, members: Member[], expenses: Expense[]):
 				csvEscape(e.currency),
 				csvEscape(e.categoryId ? categoryName(e.categoryId) : ''),
 				csvEscape(e.paymentMethodId ? methodName(e.paymentMethodId) : ''),
+				csvEscape(e.tripId ? tripName(e.tripId) : ''),
 				e.isSettlement ? 'true' : 'false',
 				csvEscape(e.notes ?? ''),
 				e.splitMode,

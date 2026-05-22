@@ -6,10 +6,19 @@
 	import ExpenseRow from '$lib/components/ExpenseRow.svelte';
 	import QrCode from '$lib/components/QrCode.svelte';
 	import TabBar from '$lib/components/TabBar.svelte';
+	import TripStrip from '$lib/components/TripStrip.svelte';
+	import TripsIntroCard from '$lib/components/TripsIntroCard.svelte';
 	import { formatAmount } from '$lib/money';
 	import { getCurrentMember, getCurrentProject } from '$lib/storage';
 	import type { ConnectionStatus } from '$lib/sync/provider';
 	import { useRoom } from '$lib/sync/useRoom.svelte';
+	import {
+		dismissTripsIntro,
+		readTripsIntroDismissed,
+		readTripSelection,
+		scopeExpenses,
+		writeTripSelection
+	} from '$lib/trips';
 	import type { Expense } from '$lib/types';
 
 	const roomId = $derived(page.params.roomId ?? '');
@@ -19,6 +28,29 @@
 	const project = $derived(room.project);
 	const members = $derived(room.members);
 	const expenses = $derived(room.expenses);
+	const trips = $derived(room.trips);
+
+	let selectedTripId = $state<string | null>(null);
+	$effect(() => {
+		// Re-hydrate the per-device selection whenever the room changes, and clear
+		// stale references to deleted trips.
+		const saved = readTripSelection(roomId);
+		if (saved && trips.some((t) => t.id === saved && t.closedAt === undefined)) {
+			selectedTripId = saved;
+		} else {
+			selectedTripId = null;
+		}
+	});
+
+	function selectTrip(tripId: string | null) {
+		selectedTripId = tripId;
+		writeTripSelection(roomId, tripId);
+	}
+
+	const scopedExpenses = $derived(scopeExpenses(expenses, selectedTripId));
+	const selectedTrip = $derived(
+		selectedTripId ? (trips.find((t) => t.id === selectedTripId) ?? null) : null
+	);
 
 	let copied = $state(false);
 	let showShare = $state(false);
@@ -52,7 +84,7 @@
 	const categoryById = $derived(room.categoryById);
 	const methodById = $derived(room.methodById);
 
-	const balances = $derived(computeBalances(members, expenses));
+	const balances = $derived(computeBalances(members, scopedExpenses));
 	const yourBalance = $derived.by(() => {
 		if (!currentMemberId) return 0;
 		return balances.find((b) => b.memberId === currentMemberId)?.net ?? 0;
@@ -65,9 +97,25 @@
 		plan.filter((t) => t.from !== currentMemberId && t.to !== currentMemberId)
 	);
 	const recentExpenses = $derived(
-		[...expenses].sort((a, b) => b.date - a.date || b.createdAt - a.createdAt).slice(0, 10)
+		[...scopedExpenses].sort((a, b) => b.date - a.date || b.createdAt - a.createdAt).slice(0, 10)
 	);
-	const hasMoreExpenses = $derived(expenses.length > recentExpenses.length);
+	const hasMoreExpenses = $derived(scopedExpenses.length > recentExpenses.length);
+
+	const expenseCountForTrip = $derived((tripId: string) =>
+		expenses.reduce((n, e) => (e.tripId === tripId ? n + 1 : n), 0)
+	);
+
+	let introDismissed = $state(false);
+	$effect(() => {
+		introDismissed = readTripsIntroDismissed(roomId);
+	});
+
+	const showTripsIntro = $derived(trips.length === 0 && !introDismissed);
+
+	function dismissIntro() {
+		dismissTripsIntro(roomId);
+		introDismissed = true;
+	}
 	const shareUrl = $derived.by(() => {
 		const stored = getCurrentProject();
 		if (!stored || stored.roomId !== roomId) return null;
@@ -148,9 +196,21 @@
 	</header>
 
 	<div class="scroll">
+		<TripStrip
+			{trips}
+			{selectedTripId}
+			expenseCountAll={expenses.length}
+			{expenseCountForTrip}
+			onSelect={selectTrip}
+			manageHref="/p/{roomId}/settings/trips"
+		/>
+
 		<section class="balance-block">
 			<div class="eyebrow balance-eyebrow">
 				{balanceEyebrow(yourBalance)}
+				{#if selectedTrip}
+					<span class="scope-tag">· {selectedTrip.emoji} {selectedTrip.name}</span>
+				{/if}
 			</div>
 			<div class="balance-amount" class:tone-owed={yourBalance > 0} class:tone-owe={yourBalance < 0}>
 				<span class="symbol">{currencySymbol}</span>{formatAmount(Math.abs(yourBalance), '', currency)}
@@ -161,6 +221,10 @@
 				<p class="dim balance-sub">No member claimed on this device.</p>
 			{/if}
 		</section>
+
+		{#if showTripsIntro}
+			<TripsIntroCard manageHref="/p/{roomId}/settings/trips" onDismiss={dismissIntro} />
+		{/if}
 
 		{#if showShare}
 			<section class="card share-card">
@@ -365,6 +429,16 @@
 
 	.balance-eyebrow {
 		margin-bottom: 8px;
+	}
+
+	.scope-tag {
+		font-family: var(--font-sans);
+		font-size: 11px;
+		font-weight: 500;
+		text-transform: none;
+		letter-spacing: 0;
+		color: var(--accent);
+		margin-left: 4px;
 	}
 
 	.balance-amount {

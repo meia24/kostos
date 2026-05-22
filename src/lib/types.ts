@@ -25,6 +25,20 @@ export type Project = {
 	defaultSplit: DefaultSplit;
 	categories: Category[];
 	paymentMethods: PaymentMethodItem[];
+	trips: Trip[];
+	createdAt: number;
+};
+
+export type Trip = {
+	id: string;
+	name: string;
+	emoji: string;
+	/** Unix ms; inclusive. */
+	startDate: number;
+	/** Unix ms; inclusive. Undefined = still going / open-ended. */
+	endDate?: number;
+	/** Slice 3 closes trips by setting this. Closed trips disappear from the active picker. */
+	closedAt?: number;
 	createdAt: number;
 };
 
@@ -77,6 +91,7 @@ export type Expense = {
 	description?: string;
 	categoryId?: string;
 	paymentMethodId?: string;
+	tripId?: string;
 	date: number;
 	splitMode: SplitMode;
 	splits: ExpenseSplit[];

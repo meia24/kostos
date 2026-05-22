@@ -14,10 +14,14 @@
 	let open = $state(false);
 	let custom = $state('');
 
+	function close() {
+		open = false;
+		custom = '';
+	}
+
 	function pick(value: string) {
 		onPick(value);
-		custom = '';
-		open = false;
+		close();
 	}
 
 	function commitCustom() {
@@ -26,6 +30,10 @@
 		const first = Array.from(cleaned)[0];
 		if (!first) return;
 		pick(first);
+	}
+
+	function onBackdropKeydown(event: KeyboardEvent) {
+		if (event.key === 'Escape') close();
 	}
 </script>
 
@@ -46,44 +54,61 @@
 		</span>
 	</button>
 
-	{#if open}
-		<div class="picker-panel">
-			<div class="emoji-grid">
-				{#each PROJECT_EMOJI_PRESETS as e (e)}
-					<button
-						type="button"
-						class="emoji-cell"
-						class:on={e === emoji}
-						onclick={() => pick(e)}
-					>
-						{e}
-					</button>
-				{/each}
-			</div>
-			<div class="picker-custom">
-				<label class="picker-custom-label" for="emoji-tile-custom-input">Or type your own</label>
-				<div class="row gap-6">
-					<input
-						id="emoji-tile-custom-input"
-						class="input picker-input"
-						bind:value={custom}
-						maxlength="6"
-						placeholder="Paste emoji"
-						autocomplete="off"
-					/>
-					<button
-						type="button"
-						class="btn btn-primary picker-apply"
-						onclick={commitCustom}
-						disabled={!custom.trim()}
-					>
-						Use
-					</button>
-				</div>
+</div>
+
+{#if open}
+	<div
+		class="picker-backdrop"
+		role="button"
+		tabindex="-1"
+		aria-label="Close emoji picker"
+		onclick={close}
+		onkeydown={onBackdropKeydown}
+	></div>
+	<div class="picker-modal" role="dialog" aria-modal="true" aria-label="Choose an emoji">
+		<div class="picker-head">
+			<span class="picker-title">Choose an emoji</span>
+			<button type="button" class="icon-btn picker-close" onclick={close} aria-label="Close">
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+					<path d="M6 6l12 12M18 6L6 18" />
+				</svg>
+			</button>
+		</div>
+		<div class="emoji-grid">
+			{#each PROJECT_EMOJI_PRESETS as e (e)}
+				<button
+					type="button"
+					class="emoji-cell"
+					class:on={e === emoji}
+					onclick={() => pick(e)}
+				>
+					{e}
+				</button>
+			{/each}
+		</div>
+		<div class="picker-custom">
+			<label class="picker-custom-label" for="emoji-tile-custom-input">Or type your own</label>
+			<div class="row gap-6">
+				<input
+					id="emoji-tile-custom-input"
+					class="input picker-input"
+					bind:value={custom}
+					maxlength="6"
+					placeholder="Paste emoji"
+					autocomplete="off"
+				/>
+				<button
+					type="button"
+					class="btn btn-primary picker-apply"
+					onclick={commitCustom}
+					disabled={!custom.trim()}
+				>
+					Use
+				</button>
 			</div>
 		</div>
-	{/if}
-</div>
+	</div>
+{/if}
 
 <style>
 	.tile-block {
@@ -134,12 +159,66 @@
 		height: 14px;
 	}
 
-	.picker-panel {
-		width: 100%;
+	.picker-backdrop {
+		position: fixed;
+		inset: 0;
+		background: color-mix(in oklab, black 50%, transparent);
+		z-index: 1100;
+		border: 0;
+		cursor: pointer;
+		animation: fade-in 0.12s ease-out;
+	}
+
+	.picker-modal {
+		position: fixed;
+		left: 50%;
+		top: 50%;
+		transform: translate(-50%, -50%);
+		width: min(420px, calc(100vw - 32px));
+		max-height: calc(100vh - 64px);
+		overflow-y: auto;
 		background: var(--bg-2);
 		border: 1px solid var(--line);
 		border-radius: var(--radius-lg);
 		padding: 14px;
+		z-index: 1101;
+		box-shadow: 0 16px 40px color-mix(in oklab, black 40%, transparent);
+		animation: modal-in 0.14s ease-out;
+	}
+
+	.picker-head {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		margin-bottom: 10px;
+	}
+
+	.picker-title {
+		font-family: var(--font-mono);
+		font-size: 10px;
+		color: var(--ink-2);
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
+	}
+
+	.picker-close {
+		width: 28px;
+		height: 28px;
+	}
+
+	.picker-close svg {
+		width: 14px;
+		height: 14px;
+	}
+
+	@keyframes fade-in {
+		from { opacity: 0; }
+		to { opacity: 1; }
+	}
+
+	@keyframes modal-in {
+		from { opacity: 0; transform: translate(-50%, -46%) scale(0.96); }
+		to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 	}
 
 	.emoji-grid {

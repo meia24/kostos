@@ -7,8 +7,11 @@
 	import ScreenAppBar from './ScreenAppBar.svelte';
 	import type { PaymentRow } from './PaidBySection.svelte';
 	import SplitSection from './SplitSection.svelte';
+	import NotesField from './NotesField.svelte';
+	import TripPickerField from './TripPickerField.svelte';
 	import { expenseShares, splitEvenly } from '$lib/balance';
 	import { evalToCents } from '$lib/math';
+	import { suggestTripIdForDate } from '$lib/trips';
 	import type {
 		Category,
 		Expense,
@@ -116,6 +119,11 @@
 	let notes = $state(seed?.notes ?? '');
 	let categoryId = $state<string | undefined>(seed?.categoryId);
 	let paymentMethodId = $state<string | undefined>(seed?.paymentMethodId);
+	let tripId = $state<string | undefined>(
+		untrack(() => seed?.tripId ?? suggestTripIdForDate(project.trips, Date.now()) ?? undefined)
+	);
+	// Track whether the user has manually chosen a trip; once they do, stop auto-overriding.
+	let tripIdTouched = $state(false);
 	let submitting = $state(false);
 
 	$effect(() => {
@@ -126,6 +134,17 @@
 		}
 		const evaluated = evalToCents(raw);
 		if (evaluated !== null && evaluated >= 0) amountCents = evaluated;
+	});
+
+	$effect(() => {
+		// Auto-suggest a trip as the user picks dates, unless they've already chosen one.
+		// Edits keep their original tripId by way of the seed; new expenses follow the date.
+		if (tripIdTouched) return;
+		if (mode === 'edit' && seed?.tripId !== undefined) return;
+		const ms = new Date(dateStr).getTime();
+		if (Number.isNaN(ms)) return;
+		const suggested = suggestTripIdForDate(project.trips, ms);
+		tripId = suggested ?? undefined;
 	});
 
 	const isExpression = $derived(/[+\-*/()]/.test(amountInput.trim()));
@@ -299,6 +318,7 @@
 			description: title.trim(),
 			categoryId,
 			paymentMethodId,
+			tripId: tripId || undefined,
 			date: new Date(dateStr).getTime() || Date.now(),
 			splitMode,
 			splits: buildSplits(),
@@ -362,6 +382,18 @@
 				onSelect={(id) => (paymentMethodId = id)}
 				onAddCustom={handleAddMethod}
 			/>
+			{#if project.trips.length > 0}
+				<hr class="hairline" />
+				<TripPickerField
+					trips={project.trips}
+					selectedId={tripId}
+					onSelect={(id) => {
+						tripId = id;
+						tripIdTouched = true;
+					}}
+					manageHref="/p/{project.id}/settings/trips"
+				/>
+			{/if}
 		</div>
 
 		<PaidBySection
@@ -403,19 +435,7 @@
 			onFillSplitRow={fillSplitRow}
 		/>
 
-		<div class="card notes-card">
-			<div class="row between notes-head">
-				<div class="eyebrow">Note</div>
-				<span class="dim mono note-count">{notes.length} / 280</span>
-			</div>
-			<textarea
-				class="input notes-input"
-				bind:value={notes}
-				maxlength="280"
-				placeholder="Optional context"
-				rows="2"
-			></textarea>
-		</div>
+		<NotesField bind:value={notes} />
 
 		<button
 			type="submit"
@@ -444,27 +464,6 @@
 		font-size: 17px;
 		font-weight: 600;
 		padding: 16px;
-	}
-
-	.notes-card {
-		margin-top: 10px;
-	}
-
-	.notes-head {
-		margin-bottom: 8px;
-	}
-
-	.notes-input {
-		padding: 12px;
-		font-size: 13px;
-		line-height: 1.45;
-		resize: vertical;
-		min-height: 60px;
-		font-family: var(--font-sans);
-	}
-
-	.note-count {
-		font-size: 11px;
 	}
 
 	.submit-btn {
