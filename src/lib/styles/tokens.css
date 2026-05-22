@@ -32,37 +32,46 @@
 
 [data-theme="dark"] {
   --bg: #0a0c0a;
-  --bg-2: #0f1210;
+  --bg-2: #151915;
   --canvas-bg: #050605;
   --ink: #ededed;
-  --ink-2: #a0a59c;
-  --ink-3: #5e635a;
-  --line: #1f231f;
-  --line-2: #2a2f2a;
+  --ink-2: #a8ada4;
+  --ink-3: #6a6f66;
+  --line: #2c322c;
+  --line-2: #3a403a;
   --accent-ink: #0a0c0a;
   --owe: #ff7a59;
   --owed: var(--accent);
 }
 
 [data-theme="light"] {
-  --bg: #f7f6f1;
-  --bg-2: #fdfcf8;
-  --canvas-bg: #e8e7e1;
+  --bg: #eeede6;
+  --bg-2: #ffffff;
+  --canvas-bg: #dedcd3;
   --ink: #14171a;
-  --ink-2: #5a615e;
-  --ink-3: #9aa099;
-  --line: #e3e2dc;
-  --line-2: #d4d3cd;
+  --ink-2: #4a514d;
+  --ink-3: #767c73;
+  --line: #c6c4ba;
+  --line-2: #aeac9f;
   --accent-ink: #0a0c0a;
-  --owe: #d94a26;
-  --owed: #2f7d3a;
-  --shadow-strong: 0 20px 50px -20px rgba(60, 60, 40, 0.25), 0 1px 0 rgba(0, 0, 0, 0.04) inset;
+  --owe: #c23a18;
+  --owed: #226a2f;
+  --shadow-strong: 0 20px 50px -20px rgba(40, 40, 25, 0.32), 0 1px 0 rgba(0, 0, 0, 0.05) inset;
 }
 
-/* Palette presets */
+/* Palette presets (dark default) */
 [data-palette="lime"]   { --accent: #c4ff4f; --accent-ink: #0a0c0a; }
 [data-palette="cyan"]   { --accent: #5eead4; --accent-ink: #04201c; }
 [data-palette="violet"] { --accent: #b29cff; --accent-ink: #0c0820; }
 [data-palette="amber"]  { --accent: #ffc457; --accent-ink: #1a1100; }
 [data-palette="coral"]  { --accent: #ff8a6b; --accent-ink: #1a0606; }
 [data-palette="blue"]   { --accent: #7eb0ff; --accent-ink: #06122a; }
+
+/* Light-theme palette overrides: darker tones so the accent stays readable
+   both as text/border on white and as a filled chip with light ink on top. */
+[data-theme="light"][data-palette="lime"]   { --accent: #5e8a1a; --accent-ink: #ffffff; }
+[data-theme="light"][data-palette="cyan"]   { --accent: #0e8a78; --accent-ink: #ffffff; }
+[data-theme="light"][data-palette="violet"] { --accent: #5a3fd1; --accent-ink: #ffffff; }
+[data-theme="light"][data-palette="amber"]  { --accent: #a06a08; --accent-ink: #ffffff; }
+[data-theme="light"][data-palette="coral"]  { --accent: #c34a26; --accent-ink: #ffffff; }
+[data-theme="light"][data-palette="blue"]   { --accent: #245fc4; --accent-ink: #ffffff; }
