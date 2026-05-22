@@ -303,12 +303,12 @@
 
 	.stat-row {
 		align-items: center;
-		gap: 12px;
+		gap: 16px;
 		font-size: 11px;
 	}
 
 	.stat-cell {
-		gap: 4px;
+		gap: 6px;
 	}
 
 	.stat-label {
@@ -317,8 +317,12 @@
 	}
 
 	.stat-value {
-		font-size: 13px;
-		font-weight: 500;
+		font-family: var(--font-sans);
+		font-variant-numeric: tabular-nums;
+		font-size: 16px;
+		font-weight: 600;
+		letter-spacing: 0;
+		color: var(--ink);
 	}
 
 	.member-actions {
