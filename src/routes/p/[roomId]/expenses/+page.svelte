@@ -58,7 +58,7 @@
 
 	type DayGroup = { key: string; label: string; total: number; items: Expense[] };
 
-	const groups = $derived.by<DayGroup[]>(() => {
+	const allGroups = $derived.by<DayGroup[]>(() => {
 		const buckets = new Map<string, DayGroup>();
 		const sorted = [...filtered].sort((a, b) => b.date - a.date || b.createdAt - a.createdAt);
 		for (const e of sorted) {
@@ -73,6 +73,28 @@
 		}
 		return [...buckets.values()];
 	});
+
+	const INITIAL_DAYS = 12;
+	const DAY_STEP = 10;
+	let visibleDays = $state(INITIAL_DAYS);
+
+	// Reset window whenever the filter changes so search results start at the top.
+	$effect(() => {
+		query;
+		visibleDays = INITIAL_DAYS;
+	});
+
+	const visibleGroups = $derived(allGroups.slice(0, visibleDays));
+	const hasMore = $derived(visibleDays < allGroups.length);
+
+	function onScroll(e: Event) {
+		if (!hasMore) return;
+		const el = e.currentTarget as HTMLElement;
+		const remaining = el.scrollHeight - el.scrollTop - el.clientHeight;
+		if (remaining < 800) {
+			visibleDays = Math.min(allGroups.length, visibleDays + DAY_STEP);
+		}
+	}
 
 	const overallTotal = $derived(filtered.reduce((s, e) => s + e.amount, 0));
 	const isFiltering = $derived(query.trim().length > 0);
@@ -94,9 +116,9 @@
 			a.getFullYear() === b.getFullYear() &&
 			a.getMonth() === b.getMonth() &&
 			a.getDate() === b.getDate();
-		if (isSameDay(d, today)) return `TODAY · ${formatShort(d)}`;
-		if (isSameDay(d, yesterday)) return `YESTERDAY · ${formatShort(d)}`;
-		return `${d.toLocaleDateString(undefined, { weekday: 'short' }).toUpperCase()} · ${formatShort(d)}`;
+		if (isSameDay(d, today)) return `${formatShort(d)} · TODAY`;
+		if (isSameDay(d, yesterday)) return `${formatShort(d)} · YESTERDAY`;
+		return `${formatShort(d)} · ${d.toLocaleDateString(undefined, { weekday: 'short' }).toUpperCase()}`;
 	}
 
 	function formatShort(d: Date): string {
@@ -143,7 +165,7 @@
 		{/if}
 	</div>
 
-	<div class="scroll">
+	<div class="scroll" onscroll={onScroll}>
 		<section class="card summary-card">
 			<div class="col">
 				<div class="eyebrow summary-eyebrow">
@@ -158,7 +180,7 @@
 					{filtered.length} {filtered.length === 1 ? 'EXPENSE' : 'EXPENSES'}
 				</div>
 				<div class="dim mono summary-count">
-					{groups.length} {groups.length === 1 ? 'DAY' : 'DAYS'}
+					{allGroups.length} {allGroups.length === 1 ? 'DAY' : 'DAYS'}
 				</div>
 			</div>
 		</section>
@@ -172,7 +194,7 @@
 				<p>No expenses match <strong>“{query.trim()}”</strong>.</p>
 			</EmptyCard>
 		{:else}
-			{#each groups as g (g.key)}
+			{#each visibleGroups as g (g.key)}
 				<div class="section-head day-head">
 					<div class="eyebrow">{g.label}</div>
 					<div class="dim mono day-total">{formatAmount(g.total, currencySymbol, currency)}</div>
@@ -195,6 +217,9 @@
 					{/each}
 				</div>
 			{/each}
+			{#if hasMore}
+				<div class="more-sentinel dim mono">Loading more…</div>
+			{/if}
 		{/if}
 	</div>
 
@@ -240,6 +265,15 @@
 
 	.day-card {
 		padding: 4px;
+		content-visibility: auto;
+		contain-intrinsic-size: auto 200px;
+	}
+
+	.more-sentinel {
+		text-align: center;
+		padding: 18px 0 8px;
+		font-size: 11px;
+		letter-spacing: 0.06em;
 	}
 
 	.search-bar {
