@@ -92,7 +92,7 @@
 	const methodById = $derived(room.methodById);
 	const tripsById = $derived(room.tripsById);
 
-	const balances = $derived(computeBalances(members, scopedExpenses));
+	const balances = $derived(computeBalances(members, expenses));
 	const yourBalance = $derived.by(() => {
 		if (!currentMemberId) return 0;
 		return balances.find((b) => b.memberId === currentMemberId)?.net ?? 0;
@@ -225,9 +225,6 @@
 		<section class="balance-block">
 			<div class="eyebrow balance-eyebrow">
 				{balanceEyebrow(yourBalance)}
-				{#if selectedTrip}
-					<span class="scope-tag">· {selectedTrip.emoji} {selectedTrip.name}</span>
-				{/if}
 			</div>
 			<div class="balance-amount" class:tone-owed={yourBalance > 0} class:tone-owe={yourBalance < 0}>
 				<span class="symbol">{currencySymbol}</span>{formatAmount(Math.abs(yourBalance), '', currency)}
@@ -324,7 +321,12 @@
 
 		<section class="recent-section">
 			<div class="section-head">
-				<div class="eyebrow">Recent expenses</div>
+				<div class="eyebrow">
+					Recent expenses
+					{#if selectedTrip}
+						<span class="recent-filter">· {selectedTrip.emoji} {selectedTrip.name}</span>
+					{/if}
+				</div>
 				<a href="/p/{roomId}/expenses" class="dim mono recent-all">VIEW ALL</a>
 			</div>
 			{#if recentExpenses.length === 0}
@@ -447,16 +449,6 @@
 
 	.balance-eyebrow {
 		margin-bottom: 8px;
-	}
-
-	.scope-tag {
-		font-family: var(--font-sans);
-		font-size: 11px;
-		font-weight: 500;
-		text-transform: none;
-		letter-spacing: 0;
-		color: var(--accent);
-		margin-left: 4px;
 	}
 
 	.balance-amount {
@@ -624,6 +616,16 @@
 
 	.recent-section {
 		margin-top: 4px;
+	}
+
+	.recent-filter {
+		font-family: var(--font-sans);
+		font-size: 11px;
+		font-weight: 500;
+		text-transform: none;
+		letter-spacing: 0;
+		color: var(--accent);
+		margin-left: 4px;
 	}
 
 	.recent-all {

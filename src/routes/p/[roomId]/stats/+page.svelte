@@ -9,10 +9,12 @@
 	import MemberBars from '$lib/components/MemberBars.svelte';
 	import type { MemberContribution } from '$lib/components/MemberBars.svelte';
 	import TopExpensesCard from '$lib/components/TopExpensesCard.svelte';
+	import TripSheet from '$lib/components/TripSheet.svelte';
+	import TripStrip from '$lib/components/TripStrip.svelte';
 	import { formatAmount } from '$lib/money';
 	import { getCurrentMember } from '$lib/storage';
 	import { useRoom } from '$lib/sync/useRoom.svelte';
-	import { readTripSelection, scopeExpenses } from '$lib/trips';
+	import { readTripSelection, scopeExpenses, writeTripSelection } from '$lib/trips';
 	import type { Expense } from '$lib/types';
 
 	type Period = 'all' | 'week' | 'month';
@@ -71,10 +73,22 @@
 		selectedTripId =
 			saved && trips.some((t) => t.id === saved && t.closedAt === undefined) ? saved : null;
 	});
-	const selectedTrip = $derived(
-		selectedTripId ? (trips.find((t) => t.id === selectedTripId) ?? null) : null
-	);
 	const scopedExpenses = $derived(scopeExpenses(expenses, selectedTripId));
+
+	function selectTrip(tripId: string | null) {
+		selectedTripId = tripId;
+		writeTripSelection(roomId, tripId);
+	}
+
+	let tripSheetOpen = $state(false);
+	function selectFromSheet(tripId: string | null) {
+		selectTrip(tripId);
+		tripSheetOpen = false;
+	}
+
+	const expenseCountForTrip = $derived((tripId: string) =>
+		expenses.reduce((n, e) => (e.tripId === tripId ? n + 1 : n), 0)
+	);
 
 	// Settlements are internal transfers; they never count as "spend".
 	const realExpenses = $derived(scopedExpenses.filter((e) => !e.isSettlement));
@@ -248,12 +262,24 @@
 	<ScreenAppBar title="Stats" backHref="/p/{roomId}" {project} />
 
 	<div class="scroll">
-		{#if selectedTrip}
-			<div class="scope-banner">
-				<span class="scope-emoji">{selectedTrip.emoji}</span>
-				<span class="scope-text">Scoped to <strong>{selectedTrip.name}</strong></span>
-			</div>
-		{/if}
+		<TripStrip
+			{trips}
+			{selectedTripId}
+			expenseCountAll={expenses.length}
+			{expenseCountForTrip}
+			onSelect={selectTrip}
+			onOverflowOpen={() => (tripSheetOpen = true)}
+		/>
+
+		<TripSheet
+			open={tripSheetOpen}
+			{trips}
+			{selectedTripId}
+			manageHref="/p/{roomId}/settings/trips"
+			onSelect={selectFromSheet}
+			onClose={() => (tripSheetOpen = false)}
+		/>
+
 		<div class="tabs-pill period-picker">
 			<button class:on={period === 'week'} type="button" onclick={() => (period = 'week')}>Week</button>
 			<button class:on={period === 'month'} type="button" onclick={() => (period = 'month')}>Month</button>
@@ -373,24 +399,6 @@
 </div>
 
 <style>
-	.scope-banner {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		gap: 8px;
-		padding: 8px 12px;
-		margin: 8px 0 6px;
-		background: color-mix(in oklab, var(--accent) 12%, var(--bg-2));
-		border: 1px solid color-mix(in oklab, var(--accent) 30%, var(--line));
-		border-radius: 999px;
-		font-size: 12px;
-		color: var(--ink);
-	}
-
-	.scope-emoji {
-		font-size: 14px;
-	}
-
 	.period-picker {
 		width: 100%;
 		margin-top: 4px;
