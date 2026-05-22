@@ -565,6 +565,32 @@
 	.primary-cta,
 	.secondary-cta {
 		margin: 0;
+		padding: 12px 18px;
+		font-size: 14px;
+	}
+
+	.primary-cta {
+		box-shadow: 0 4px 10px -4px color-mix(in oklab, var(--accent) 30%, transparent);
+		transition: transform 0.14s ease, box-shadow 0.14s ease;
+	}
+
+	.primary-cta:hover {
+		box-shadow: 0 6px 14px -4px color-mix(in oklab, var(--accent) 38%, transparent);
+	}
+
+	.primary-cta:active {
+		transform: scale(0.98);
+		box-shadow: 0 2px 6px -2px color-mix(in oklab, var(--accent) 28%, transparent);
+		transition-duration: 0.08s;
+	}
+
+	.secondary-cta {
+		transition: background 0.14s ease, border-color 0.14s ease;
+	}
+
+	.secondary-cta:hover {
+		background: color-mix(in oklab, var(--ink) 6%, var(--bg-2));
+		border-color: var(--line);
 	}
 
 	.how-section {
