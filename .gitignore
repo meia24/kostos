@@ -8,6 +8,7 @@ node_modules
 worker-configuration.d.ts
 /.svelte-kit
 /build
+/dev-dist
 
 # OS
 .DS_Store
