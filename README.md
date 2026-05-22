@@ -16,10 +16,12 @@ Kostos is a small web app for splitting bills with friends, housemates, or trip 
 - **End-to-end encrypted sync.** Every update is AES-GCM encrypted in the browser before reaching the sync relay. The relay stores opaque ciphertext.
 - **Offline-first PWA.** Built on Y.js + IndexedDB. Add expenses on a plane; they sync the moment you come back online.
 - **Conflict-free merging.** Two people editing the same expense from different devices? CRDTs reconcile without losing either edit.
-- **Three split modes.** Evenly, by weighted shares, or by precise per-person amounts. Math expressions like `(120+5)/4` work inside any amount input.
+- **Three split modes.** Evenly, by weighted shares, or by precise per-person amounts. Math expressions like `(120+5)/4` work inside any amount input, and a floating row of `+ − × ÷ ( )` keys docks above the on-screen keyboard so the operators aren't trapped behind a digit-only layout.
 - **Multi-payer expenses.** When two people split the bill at dinner, both can be recorded as payers with the actual amounts each fronted.
+- **Trips.** Tag expenses to a holiday, party, or any event with its own emoji and date range. Filter the home recents and stats page to a single trip. Past trips fold into a bottom sheet 30 days after they end, keeping the chip strip short. Balances and settlements stay global across the whole group.
 - **Settle up.** A minimum-transfer plan suggests the fewest payments needed to bring everyone to zero. Mark them paid and they become regular settlement expenses.
 - **Stats.** Per-period spend, daily/weekly/monthly bars, by-category donut, who-paid bars, biggest expenses, and a settlement graph for small groups.
+- **Backup and restore.** Export any project as JSON (lossless backup) or CSV (one row per expense for spreadsheets) from Settings > Data. Drop a JSON file back into a new project to restore members, categories, payment methods, trips, and every expense.
 - **QR invites.** Show the QR on one phone, scan on the other, you're in.
 - **Multi-group.** A single device can hold many groups; switch between them from the landing.
 
