@@ -65,8 +65,9 @@
 		plan.filter((t) => t.from !== currentMemberId && t.to !== currentMemberId)
 	);
 	const recentExpenses = $derived(
-		[...expenses].sort((a, b) => b.date - a.date || b.createdAt - a.createdAt).slice(0, 6)
+		[...expenses].sort((a, b) => b.date - a.date || b.createdAt - a.createdAt).slice(0, 10)
 	);
+	const hasMoreExpenses = $derived(expenses.length > recentExpenses.length);
 	const shareUrl = $derived.by(() => {
 		const stored = getCurrentProject();
 		if (!stored || stored.roomId !== roomId) return null;
@@ -266,6 +267,13 @@
 							showInvolvedCount={false}
 						/>
 					{/each}
+					{#if hasMoreExpenses}
+						<hr class="hairline" style="margin-left: 56px;" />
+						<a class="see-all-row" href="/p/{roomId}/expenses">
+							<span>See all expenses</span>
+							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+						</a>
+					{/if}
 				</div>
 			{/if}
 		</section>
@@ -534,5 +542,23 @@
 
 	.recent-list {
 		padding: 4px;
+	}
+
+	.see-all-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 8px;
+		padding: 14px 18px;
+		text-decoration: none;
+		color: var(--accent);
+		font-weight: 600;
+		font-size: 13px;
+	}
+
+	.see-all-row svg {
+		width: 16px;
+		height: 16px;
+		opacity: 0.8;
 	}
 </style>
