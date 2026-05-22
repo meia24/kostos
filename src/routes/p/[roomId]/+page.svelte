@@ -6,6 +6,7 @@
 	import ExpenseRow from '$lib/components/ExpenseRow.svelte';
 	import QrCode from '$lib/components/QrCode.svelte';
 	import TabBar from '$lib/components/TabBar.svelte';
+	import TripSheet from '$lib/components/TripSheet.svelte';
 	import TripStrip from '$lib/components/TripStrip.svelte';
 	import TripsIntroCard from '$lib/components/TripsIntroCard.svelte';
 	import { formatAmount } from '$lib/money';
@@ -47,6 +48,12 @@
 		writeTripSelection(roomId, tripId);
 	}
 
+	let tripSheetOpen = $state(false);
+	function selectFromSheet(tripId: string | null) {
+		selectTrip(tripId);
+		tripSheetOpen = false;
+	}
+
 	const scopedExpenses = $derived(scopeExpenses(expenses, selectedTripId));
 	const selectedTrip = $derived(
 		selectedTripId ? (trips.find((t) => t.id === selectedTripId) ?? null) : null
@@ -83,6 +90,7 @@
 	const membersById = $derived(room.membersById);
 	const categoryById = $derived(room.categoryById);
 	const methodById = $derived(room.methodById);
+	const tripsById = $derived(room.tripsById);
 
 	const balances = $derived(computeBalances(members, scopedExpenses));
 	const yourBalance = $derived.by(() => {
@@ -202,7 +210,16 @@
 			expenseCountAll={expenses.length}
 			{expenseCountForTrip}
 			onSelect={selectTrip}
+			onOverflowOpen={() => (tripSheetOpen = true)}
+		/>
+
+		<TripSheet
+			open={tripSheetOpen}
+			{trips}
+			{selectedTripId}
 			manageHref="/p/{roomId}/settings/trips"
+			onSelect={selectFromSheet}
+			onClose={() => (tripSheetOpen = false)}
 		/>
 
 		<section class="balance-block">
@@ -324,6 +341,7 @@
 							{membersById}
 							{categoryById}
 							{methodById}
+							{tripsById}
 							{currentMemberId}
 							symbol={currencySymbol}
 							{currency}

@@ -5,6 +5,7 @@
 	import ScreenAppBar from '$lib/components/ScreenAppBar.svelte';
 	import { addTrip, generateId, removeTrip, updateTrip } from '$lib/sync/doc';
 	import { useRoom } from '$lib/sync/useRoom.svelte';
+	import { partitionTrips } from '$lib/trips';
 	import type { Trip } from '$lib/types';
 
 	const roomId = $derived(page.params.roomId ?? '');
@@ -15,9 +16,11 @@
 	const project = $derived(room.project);
 	const trips = $derived(room.trips);
 	const expenses = $derived(room.expenses);
+	const partition = $derived(partitionTrips(trips));
 
 	let editingId = $state<string | null>(null);
 	let draft = $state<TripDraft>(emptyDraft());
+	let pastOpen = $state(false);
 
 	type TripDraft = {
 		name: string;
@@ -125,31 +128,64 @@
 				<p>No trips yet. Create one to start tagging expenses.</p>
 			</EmptyCard>
 		{:else}
-			<div class="card trip-list">
-				{#each trips as t, i (t.id)}
-					{#if i > 0}<hr class="hairline" />{/if}
-					<div class="trip-row">
-						<span class="trip-emoji">{t.emoji}</span>
-						<div class="col trip-text">
-							<span class="trip-name">{t.name}</span>
-							<span class="dim mono trip-meta">
-								{rangeLabel(t)} · {expenseCount(t.id)} expense{expenseCount(t.id) === 1 ? '' : 's'}
-							</span>
-						</div>
-						<button type="button" class="icon-btn" onclick={() => startEdit(t)} aria-label="Edit trip">
-							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-								<path d="M12 20h9M16.5 3.5a2.1 2.1 0 1 1 3 3L7 19l-4 1 1-4z" />
-							</svg>
-						</button>
-						<button type="button" class="icon-btn danger-btn" onclick={() => confirmDelete(t)} aria-label="Delete trip">
-							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
-								<path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M6 6l1 14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-14" />
-							</svg>
-						</button>
+			{#if partition.active.length > 0}
+				<div class="section-head">
+					<div class="eyebrow">Active</div>
+					<span class="dim mono section-count">{partition.active.length}</span>
+				</div>
+				<div class="card trip-list">
+					{#each partition.active as t, i (t.id)}
+						{#if i > 0}<hr class="hairline" />{/if}
+						{@render tripRow(t)}
+					{/each}
+				</div>
+			{/if}
+
+			{#if partition.past.length > 0}
+				<button
+					type="button"
+					class="past-toggle"
+					aria-expanded={pastOpen}
+					onclick={() => (pastOpen = !pastOpen)}
+				>
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="past-chevron" class:open={pastOpen}>
+						<path d="M9 6l6 6-6 6" />
+					</svg>
+					<span class="eyebrow">Past</span>
+					<span class="dim mono section-count">{partition.past.length}</span>
+				</button>
+				{#if pastOpen}
+					<div class="card trip-list">
+						{#each partition.past as t, i (t.id)}
+							{#if i > 0}<hr class="hairline" />{/if}
+							{@render tripRow(t)}
+						{/each}
 					</div>
-				{/each}
-			</div>
+				{/if}
+			{/if}
 		{/if}
+
+		{#snippet tripRow(t: Trip)}
+			<div class="trip-row">
+				<span class="trip-emoji">{t.emoji}</span>
+				<div class="col trip-text">
+					<span class="trip-name">{t.name}</span>
+					<span class="dim mono trip-meta">
+						{rangeLabel(t)} · {expenseCount(t.id)} expense{expenseCount(t.id) === 1 ? '' : 's'}
+					</span>
+				</div>
+				<button type="button" class="icon-btn" onclick={() => startEdit(t)} aria-label="Edit trip">
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+						<path d="M12 20h9M16.5 3.5a2.1 2.1 0 1 1 3 3L7 19l-4 1 1-4z" />
+					</svg>
+				</button>
+				<button type="button" class="icon-btn danger-btn" onclick={() => confirmDelete(t)} aria-label="Delete trip">
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+						<path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M6 6l1 14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-14" />
+					</svg>
+				</button>
+			</div>
+		{/snippet}
 
 		{#if editingId}
 			<div class="card edit-card">
@@ -245,6 +281,44 @@
 
 	.danger-btn {
 		color: var(--owe);
+	}
+
+	.past-toggle {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		background: var(--bg-2);
+		border: 1px solid var(--line);
+		border-radius: var(--radius);
+		color: inherit;
+		cursor: pointer;
+		padding: 14px 16px;
+		margin-top: 14px;
+		width: 100%;
+		min-height: 48px;
+		text-align: left;
+		font: inherit;
+	}
+
+	.past-toggle .eyebrow {
+		flex: 1;
+		font-size: 12px;
+	}
+
+	.past-toggle .section-count {
+		font-size: 12px;
+	}
+
+	.past-chevron {
+		width: 16px;
+		height: 16px;
+		color: var(--ink-3);
+		transition: transform 0.15s ease;
+		flex-shrink: 0;
+	}
+
+	.past-chevron.open {
+		transform: rotate(90deg);
 	}
 
 	.edit-card {

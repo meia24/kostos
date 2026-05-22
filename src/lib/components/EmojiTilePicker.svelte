@@ -58,53 +58,56 @@
 
 {#if open}
 	<div
-		class="picker-backdrop"
+		class="sheet-backdrop"
 		role="button"
 		tabindex="-1"
 		aria-label="Close emoji picker"
 		onclick={close}
 		onkeydown={onBackdropKeydown}
 	></div>
-	<div class="picker-modal" role="dialog" aria-modal="true" aria-label="Choose an emoji">
-		<div class="picker-head">
-			<span class="picker-title">Choose an emoji</span>
-			<button type="button" class="icon-btn picker-close" onclick={close} aria-label="Close">
+	<div class="sheet" role="dialog" aria-modal="true" aria-label="Choose an emoji">
+		<div class="grabber" aria-hidden="true"></div>
+		<div class="sheet-head">
+			<span class="sheet-title">Choose an emoji</span>
+			<button type="button" class="icon-btn sheet-close" onclick={close} aria-label="Close">
 				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
 					<path d="M6 6l12 12M18 6L6 18" />
 				</svg>
 			</button>
 		</div>
-		<div class="emoji-grid">
-			{#each PROJECT_EMOJI_PRESETS as e (e)}
-				<button
-					type="button"
-					class="emoji-cell"
-					class:on={e === emoji}
-					onclick={() => pick(e)}
-				>
-					{e}
-				</button>
-			{/each}
-		</div>
-		<div class="picker-custom">
-			<label class="picker-custom-label" for="emoji-tile-custom-input">Or type your own</label>
-			<div class="row gap-6">
-				<input
-					id="emoji-tile-custom-input"
-					class="input picker-input"
-					bind:value={custom}
-					maxlength="6"
-					placeholder="Paste emoji"
-					autocomplete="off"
-				/>
-				<button
-					type="button"
-					class="btn btn-primary picker-apply"
-					onclick={commitCustom}
-					disabled={!custom.trim()}
-				>
-					Use
-				</button>
+		<div class="sheet-scroll">
+			<div class="emoji-grid">
+				{#each PROJECT_EMOJI_PRESETS as e (e)}
+					<button
+						type="button"
+						class="emoji-cell"
+						class:on={e === emoji}
+						onclick={() => pick(e)}
+					>
+						{e}
+					</button>
+				{/each}
+			</div>
+			<div class="picker-custom">
+				<label class="picker-custom-label" for="emoji-tile-custom-input">Or type your own</label>
+				<div class="row gap-6">
+					<input
+						id="emoji-tile-custom-input"
+						class="input picker-input"
+						bind:value={custom}
+						maxlength="6"
+						placeholder="Paste emoji"
+						autocomplete="off"
+					/>
+					<button
+						type="button"
+						class="btn btn-primary picker-apply"
+						onclick={commitCustom}
+						disabled={!custom.trim()}
+					>
+						Use
+					</button>
+				</div>
 			</div>
 		</div>
 	</div>
@@ -159,41 +162,54 @@
 		height: 14px;
 	}
 
-	.picker-backdrop {
+	.sheet-backdrop {
 		position: fixed;
 		inset: 0;
-		background: color-mix(in oklab, black 50%, transparent);
+		background: color-mix(in oklab, black 55%, transparent);
 		z-index: 1100;
 		border: 0;
 		cursor: pointer;
 		animation: fade-in 0.12s ease-out;
 	}
 
-	.picker-modal {
+	.sheet {
 		position: fixed;
-		left: 50%;
-		top: 50%;
-		transform: translate(-50%, -50%);
-		width: min(420px, calc(100vw - 32px));
-		max-height: calc(100vh - 64px);
-		overflow-y: auto;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		margin-inline: auto;
+		width: 100%;
+		max-width: 480px;
+		max-height: 78vh;
 		background: var(--bg-2);
+		border-top-left-radius: 20px;
+		border-top-right-radius: 20px;
 		border: 1px solid var(--line);
-		border-radius: var(--radius-lg);
-		padding: 14px;
+		border-bottom: 0;
+		padding: 6px 14px calc(16px + env(safe-area-inset-bottom, 0px));
 		z-index: 1101;
-		box-shadow: 0 16px 40px color-mix(in oklab, black 40%, transparent);
-		animation: modal-in 0.14s ease-out;
+		display: flex;
+		flex-direction: column;
+		box-shadow: 0 -10px 30px color-mix(in oklab, black 35%, transparent);
+		animation: slide-up 0.18s ease-out;
 	}
 
-	.picker-head {
+	.grabber {
+		width: 36px;
+		height: 4px;
+		border-radius: 999px;
+		background: var(--line-2);
+		margin: 6px auto 8px;
+	}
+
+	.sheet-head {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		margin-bottom: 10px;
+		padding: 0 2px 8px;
 	}
 
-	.picker-title {
+	.sheet-title {
 		font-family: var(--font-mono);
 		font-size: 10px;
 		color: var(--ink-2);
@@ -201,14 +217,21 @@
 		letter-spacing: 0.06em;
 	}
 
-	.picker-close {
+	.sheet-close {
 		width: 28px;
 		height: 28px;
 	}
 
-	.picker-close svg {
+	.sheet-close svg {
 		width: 14px;
 		height: 14px;
+	}
+
+	.sheet-scroll {
+		flex: 1;
+		min-height: 0;
+		overflow-y: auto;
+		padding: 4px 0 8px;
 	}
 
 	@keyframes fade-in {
@@ -216,9 +239,9 @@
 		to { opacity: 1; }
 	}
 
-	@keyframes modal-in {
-		from { opacity: 0; transform: translate(-50%, -46%) scale(0.96); }
-		to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+	@keyframes slide-up {
+		from { transform: translateY(100%); }
+		to { transform: translateY(0); }
 	}
 
 	.emoji-grid {

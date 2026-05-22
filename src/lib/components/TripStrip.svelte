@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { partitionTrips } from '$lib/trips';
 	import type { Trip } from '$lib/types';
 
 	type Props = {
@@ -7,7 +8,7 @@
 		expenseCountAll: number;
 		expenseCountForTrip: (tripId: string) => number;
 		onSelect: (tripId: string | null) => void;
-		manageHref: string;
+		onOverflowOpen: () => void;
 	};
 
 	let {
@@ -16,13 +17,18 @@
 		expenseCountAll,
 		expenseCountForTrip,
 		onSelect,
-		manageHref
+		onOverflowOpen
 	}: Props = $props();
 
-	const activeTrips = $derived(trips.filter((t) => t.closedAt === undefined));
+	const partition = $derived(partitionTrips(trips));
+	const activeTrips = $derived(partition.active);
+	const pastCount = $derived(partition.past.length);
+	const selectedIsPast = $derived(
+		selectedTripId !== null && partition.past.some((t) => t.id === selectedTripId)
+	);
 </script>
 
-{#if activeTrips.length > 0}
+{#if trips.length > 0}
 	<div class="trip-strip" role="tablist" aria-label="Trips">
 		<button
 			type="button"
@@ -49,11 +55,18 @@
 				<span class="chip-count mono">{expenseCountForTrip(t.id)}</span>
 			</button>
 		{/each}
-		<a class="trip-chip add-chip" href={manageHref} aria-label="Manage trips">
-			<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-				<path d="M12 5v14M5 12h14" />
-			</svg>
-		</a>
+		{#if pastCount > 0 || selectedIsPast}
+			<button
+				type="button"
+				class="trip-chip overflow-chip"
+				class:on={selectedIsPast}
+				onclick={onOverflowOpen}
+				aria-label="Show all trips"
+			>
+				<span class="chip-label">Past</span>
+				<span class="chip-count mono">{pastCount}</span>
+			</button>
+		{/if}
 	</div>
 {/if}
 
@@ -119,18 +132,12 @@
 		opacity: 0.85;
 	}
 
-	.add-chip {
-		padding: 6px 10px;
+	.overflow-chip {
+		border-style: dashed;
 		color: var(--ink-3);
 	}
 
-	.add-chip svg {
-		width: 14px;
-		height: 14px;
-	}
-
-	.add-chip:hover {
-		color: var(--accent);
-		border-color: color-mix(in oklab, var(--accent) 40%, var(--line));
+	.overflow-chip.on {
+		color: var(--ink);
 	}
 </style>

@@ -1,4 +1,6 @@
 <script lang="ts">
+	import TripSheet from './TripSheet.svelte';
+	import { partitionTrips } from '$lib/trips';
 	import type { Trip } from '$lib/types';
 
 	type Props = {
@@ -11,14 +13,24 @@
 	let { trips, selectedId, onSelect, manageHref }: Props = $props();
 
 	let open = $state(false);
+	let sheetOpen = $state(false);
 
-	const activeTrips = $derived(trips.filter((t) => t.closedAt === undefined));
-	const selected = $derived(activeTrips.find((t) => t.id === selectedId));
+	const partition = $derived(partitionTrips(trips));
+	// The selected trip may be a past one (e.g. backdated expense or edit of a stale tag),
+	// so look it up across the whole list, not just active.
+	const selected = $derived(trips.find((t) => t.id === selectedId));
 	const displayEmoji = $derived(selected?.emoji ?? '🗺️');
 	const displayName = $derived(selected?.name ?? 'None');
+	const showSheetEntry = $derived(partition.past.length > 0);
 
 	function pick(id: string | undefined) {
 		onSelect(id);
+		open = false;
+	}
+
+	function pickFromSheet(id: string | null) {
+		onSelect(id ?? undefined);
+		sheetOpen = false;
 		open = false;
 	}
 </script>
@@ -54,7 +66,7 @@
 					<span class="picker-option-name">None</span>
 				</button>
 			</li>
-			{#each activeTrips as t (t.id)}
+			{#each partition.active as t (t.id)}
 				<li>
 					<button
 						type="button"
@@ -67,19 +79,50 @@
 					</button>
 				</li>
 			{/each}
-			<li>
-				<a class="picker-option manage-link" href={manageHref}>
-					<span class="picker-option-emoji dim-tile">
-						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
-							<path d="M12 5v14M5 12h14" />
-						</svg>
-					</span>
-					<span class="picker-option-name">Manage trips</span>
-				</a>
-			</li>
+			{#if selected && !partition.active.some((t) => t.id === selected.id)}
+				<li>
+					<button
+						type="button"
+						class="picker-option on"
+						onclick={() => pick(selected.id)}
+					>
+						<span class="picker-option-emoji">{selected.emoji}</span>
+						<span class="picker-option-name">{selected.name} <span class="dim">· past</span></span>
+					</button>
+				</li>
+			{/if}
+			{#if showSheetEntry}
+				<li>
+					<button
+						type="button"
+						class="picker-option manage-link"
+						onclick={() => {
+							open = false;
+							sheetOpen = true;
+						}}
+					>
+						<span class="picker-option-emoji dim-tile">
+							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+								<path d="M5 12h14M13 6l6 6-6 6" />
+							</svg>
+						</span>
+						<span class="picker-option-name">View all trips</span>
+					</button>
+				</li>
+			{/if}
 		</ul>
 	{/if}
 </div>
+
+<TripSheet
+	open={sheetOpen}
+	{trips}
+	showAllRow={false}
+	selectedTripId={selectedId ?? null}
+	{manageHref}
+	onSelect={pickFromSheet}
+	onClose={() => (sheetOpen = false)}
+/>
 
 <style>
 	.picker-field {

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { scopeExpenses, suggestTripIdForDate } from './trips';
+import {
+	ACTIVE_TRIP_GRACE_DAYS,
+	isTripActive,
+	partitionTrips,
+	scopeExpenses,
+	suggestTripIdForDate
+} from './trips';
 import type { Expense, Trip } from './types';
 
 const expenseAt = (id: string, date: number, tripId?: string): Expense => ({
@@ -90,5 +96,67 @@ describe('suggestTripIdForDate', () => {
 			}
 		];
 		expect(suggestTripIdForDate(closed, day(2026, 6, 15))).toBeNull();
+	});
+});
+
+describe('isTripActive', () => {
+	const day = (y: number, m: number, d: number) => new Date(y, m - 1, d, 12).getTime();
+	const trip = (overrides: Partial<Trip>): Trip => ({
+		id: 't',
+		name: 'T',
+		emoji: '🏖',
+		startDate: day(2026, 6, 1),
+		endDate: day(2026, 6, 10),
+		createdAt: 0,
+		...overrides
+	});
+
+	const now = day(2026, 7, 1);
+
+	it('treats open-ended trips as active', () => {
+		expect(isTripActive(trip({ endDate: undefined }), now)).toBe(true);
+	});
+
+	it('treats trips inside the grace window as active', () => {
+		const insideGrace = day(2026, 6, 25);
+		expect(isTripActive(trip({ endDate: insideGrace }), now)).toBe(true);
+	});
+
+	it('treats trips beyond the grace window as past', () => {
+		const beyondGrace = day(2026, 5, 25);
+		expect(isTripActive(trip({ endDate: beyondGrace }), now)).toBe(false);
+	});
+
+	it('treats closed trips as past regardless of date', () => {
+		expect(isTripActive(trip({ closedAt: now }), now)).toBe(false);
+	});
+
+	it('exposes the grace window as a constant', () => {
+		expect(ACTIVE_TRIP_GRACE_DAYS).toBe(30);
+	});
+});
+
+describe('partitionTrips', () => {
+	const day = (y: number, m: number, d: number) => new Date(y, m - 1, d, 12).getTime();
+	const now = day(2026, 7, 1);
+
+	it('sorts active trips with open-ended first, then by startDate ascending', () => {
+		const trips: Trip[] = [
+			{ id: 'b', name: '', emoji: '', startDate: day(2026, 7, 5), endDate: day(2026, 7, 10), createdAt: 0 },
+			{ id: 'open', name: '', emoji: '', startDate: day(2026, 6, 10), createdAt: 0 },
+			{ id: 'a', name: '', emoji: '', startDate: day(2026, 7, 1), endDate: day(2026, 7, 3), createdAt: 0 }
+		];
+		const { active } = partitionTrips(trips, now);
+		expect(active.map((t) => t.id)).toEqual(['open', 'a', 'b']);
+	});
+
+	it('sorts past trips by most-recently-finished first', () => {
+		const trips: Trip[] = [
+			{ id: 'older', name: '', emoji: '', startDate: day(2026, 1, 1), endDate: day(2026, 1, 10), createdAt: 0 },
+			{ id: 'newer', name: '', emoji: '', startDate: day(2026, 3, 1), endDate: day(2026, 3, 10), createdAt: 0 }
+		];
+		const { past, active } = partitionTrips(trips, now);
+		expect(active).toHaveLength(0);
+		expect(past.map((t) => t.id)).toEqual(['newer', 'older']);
 	});
 });

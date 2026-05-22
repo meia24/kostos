@@ -43,6 +43,46 @@ export function scopeExpenses(expenses: Expense[], tripId: string | null): Expen
 	return expenses.filter((e) => e.tripId === tripId);
 }
 
+/** How many days a trip stays in the "active" bucket after its endDate. Trips drop
+ *  off the chip strip after this window but remain reachable via the overflow sheet. */
+export const ACTIVE_TRIP_GRACE_DAYS = 30;
+
+/** A trip is active when (1) it hasn't been manually closed and (2) it's either
+ *  open-ended OR its endDate is within ACTIVE_TRIP_GRACE_DAYS of `now`. */
+export function isTripActive(trip: Trip, now: number = Date.now()): boolean {
+	if (trip.closedAt !== undefined) return false;
+	if (trip.endDate === undefined) return true;
+	const grace = ACTIVE_TRIP_GRACE_DAYS * 86_400_000;
+	return trip.endDate >= now - grace;
+}
+
+/** Split the trip list into active and past buckets in display order.
+ *  Active: open-ended first, then ascending by startDate (next upcoming on the left).
+ *  Past: descending by endDate (most-recently-finished first). */
+export function partitionTrips(
+	trips: Trip[],
+	now: number = Date.now()
+): { active: Trip[]; past: Trip[] } {
+	const active: Trip[] = [];
+	const past: Trip[] = [];
+	for (const t of trips) {
+		if (isTripActive(t, now)) active.push(t);
+		else past.push(t);
+	}
+	active.sort((a, b) => {
+		const aOpen = a.endDate === undefined;
+		const bOpen = b.endDate === undefined;
+		if (aOpen !== bOpen) return aOpen ? -1 : 1;
+		return a.startDate - b.startDate;
+	});
+	past.sort((a, b) => {
+		const aRef = a.endDate ?? a.startDate;
+		const bRef = b.endDate ?? b.startDate;
+		return bRef - aRef;
+	});
+	return { active, past };
+}
+
 /** Find the trip whose date range contains the given timestamp. Open-ended trips
  *  (no endDate) match any date >= startDate. Returns null when none qualify. If
  *  multiple match (overlapping trips), the most recently started wins. */

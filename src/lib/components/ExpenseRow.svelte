@@ -5,7 +5,8 @@
 		Category,
 		Expense,
 		Member,
-		PaymentMethodItem
+		PaymentMethodItem,
+		Trip
 	} from '$lib/types';
 	import Highlight from './Highlight.svelte';
 
@@ -15,6 +16,7 @@
 		membersById: Map<string, Member>;
 		categoryById: Map<string, Category>;
 		methodById: Map<string, PaymentMethodItem>;
+		tripsById?: Map<string, Trip>;
 		currentMemberId: string | null;
 		symbol: string;
 		currency: string;
@@ -30,6 +32,7 @@
 		membersById,
 		categoryById,
 		methodById,
+		tripsById,
 		currentMemberId,
 		symbol,
 		currency,
@@ -44,6 +47,9 @@
 	);
 	const method = $derived(
 		expense.paymentMethodId ? methodById.get(expense.paymentMethodId) : undefined
+	);
+	const trip = $derived(
+		expense.tripId && tripsById ? tripsById.get(expense.tripId) : undefined
 	);
 
 	function payerName(id: string): string {
@@ -117,6 +123,10 @@
 			{#if method}
 				<span class="dot">·</span>
 				<span class="row-method" title={method.name}>{method.emoji}</span>
+			{/if}
+			{#if trip}
+				<span class="dot">·</span>
+				<span class="row-trip" title={trip.name}>{trip.emoji}</span>
 			{/if}
 			{#if showInvolvedCount}
 				<span class="dot">·</span>
@@ -207,7 +217,8 @@
 		opacity: 0.6;
 	}
 
-	.row-method {
+	.row-method,
+	.row-trip {
 		font-size: 13px;
 		line-height: 1;
 	}

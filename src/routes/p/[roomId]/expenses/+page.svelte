@@ -24,6 +24,7 @@
 	const membersById = $derived(room.membersById);
 	const categoryById = $derived(room.categoryById);
 	const methodById = $derived(room.methodById);
+	const tripsById = $derived(room.tripsById);
 
 	let query = $state('');
 	let searchEl = $state<HTMLInputElement | null>(null);
@@ -225,6 +226,7 @@
 							{membersById}
 							{categoryById}
 							{methodById}
+							{tripsById}
 							{currentMemberId}
 							symbol={currencySymbol} {currency}
 							totalMembers={members.length}
