@@ -14,6 +14,7 @@
 		"test:watch": "vitest",
 		"sync": "node scripts/sync-server.js",
 		"icons": "pwa-assets-generator && node scripts/build-maskable.js",
+		"screenshots": "node scripts/screenshots.js",
 		"cf:dev": "wrangler dev",
 		"cf:deploy": "vite build && wrangler deploy"
 	},
@@ -27,6 +28,7 @@
 		"@types/ws": "^8.18.1",
 		"@vite-pwa/assets-generator": "^1.0.2",
 		"@vite-pwa/sveltekit": "^1.1.0",
+		"playwright": "^1.60.0",
 		"svelte": "^5.55.2",
 		"svelte-check": "^4.4.6",
 		"typescript": "^6.0.2",

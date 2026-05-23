@@ -4,6 +4,7 @@
 
 <p align="center">
   <a href="https://kostos.shynewt.com">Live demo</a> ·
+  <a href="#screenshots">Screenshots</a> ·
   <a href="#deploy">Deploy</a> ·
   <a href="#why-v2">Why v2</a>
 </p>
@@ -24,6 +25,41 @@ Kostos is a small web app for splitting bills with friends, housemates, or trip 
 - **Backup and restore.** Export any project as JSON (lossless backup) or CSV (one row per expense for spreadsheets) from Settings > Data. Drop a JSON file back into a new project to restore members, categories, payment methods, trips, and every expense.
 - **QR invites.** Show the QR on one phone, scan on the other, you're in.
 - **Multi-group.** A single device can hold many groups; switch between them from the landing.
+
+## Screenshots
+
+<table>
+<tr>
+<td align="center" width="33%">
+<img src="docs/screenshots/02-home.png" width="240" alt="Project home with trip chip strip, balance, and recents" /><br/>
+<sub>Project home</sub>
+</td>
+<td align="center" width="33%">
+<img src="docs/screenshots/03-home-lisbon.png" width="240" alt="Recents filtered to the Lisbon trip" /><br/>
+<sub>Filtered by trip</sub>
+</td>
+<td align="center" width="33%">
+<img src="docs/screenshots/06-settle.png" width="240" alt="Settle up page with minimum-transfer graph" /><br/>
+<sub>Settle up</sub>
+</td>
+</tr>
+<tr>
+<td align="center" width="33%">
+<img src="docs/screenshots/05-math-toolbar.png" width="240" alt="Math operator toolbar above the mobile keyboard" /><br/>
+<sub>Math toolbar</sub>
+</td>
+<td align="center" width="33%">
+<img src="docs/screenshots/07-stats.png" width="240" alt="Stats page scoped to Lisbon trip" /><br/>
+<sub>Stats per trip</sub>
+</td>
+<td align="center" width="33%">
+<img src="docs/screenshots/08-trips.png" width="240" alt="Manage trips screen with Active and Past sections" /><br/>
+<sub>Manage trips</sub>
+</td>
+</tr>
+</table>
+
+Screenshots are captured by `npm run screenshots` (see [Development](#development)).
 
 ## Deploy
 
@@ -91,6 +127,7 @@ Scripts:
 | `npm run sync` | Local Node `ws` relay on port 1234 for dev sync. |
 | `npm run cf:dev` | `wrangler dev` with local Durable Object emulation. |
 | `npm run cf:deploy` | Build + deploy to Cloudflare Workers. |
+| `npm run screenshots` | Capture the README screenshots via Playwright (dev server must be running on `:5173`). |
 
 ## Architecture
 
