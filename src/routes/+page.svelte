@@ -293,6 +293,22 @@
 							Inspect the SvelteKit + Y.js codebase, run the sync server yourself, or fork it. No
 							vendor lock-in and nothing hidden behind a paid tier.
 						</p>
+						<a
+							class="source-link"
+							href="https://github.com/shynewt/kostos"
+							target="_blank"
+							rel="noopener"
+						>
+							<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+								<path
+									d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.4-3.88-1.4-.52-1.33-1.27-1.69-1.27-1.69-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.76 2.68 1.25 3.34.96.1-.74.4-1.25.72-1.54-2.55-.29-5.24-1.28-5.24-5.7 0-1.26.45-2.29 1.18-3.1-.12-.29-.51-1.45.11-3.03 0 0 .97-.31 3.18 1.18a11 11 0 0 1 5.79 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.58.24 2.74.12 3.03.74.81 1.18 1.84 1.18 3.1 0 4.44-2.7 5.41-5.27 5.69.41.36.77 1.05.77 2.13v3.16c0 .31.21.67.79.56A11.5 11.5 0 0 0 12 .5z"
+								/>
+							</svg>
+							<span>View source on GitHub</span>
+							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+								<path d="M7 17L17 7M9 7h8v8" />
+							</svg>
+						</a>
 					</div>
 				</div>
 			</section>
@@ -560,6 +576,32 @@
 		flex-direction: column;
 		gap: 14px;
 		margin-top: 8px;
+	}
+
+	.source-link {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		margin-top: 8px;
+		padding: 6px 10px;
+		border-radius: 999px;
+		border: 1px solid var(--line);
+		background: transparent;
+		color: var(--ink);
+		font-size: 12px;
+		font-weight: 600;
+		text-decoration: none;
+		transition: background 0.14s ease, border-color 0.14s ease;
+	}
+
+	.source-link:hover {
+		background: color-mix(in oklab, var(--ink) 6%, var(--bg-2));
+		border-color: var(--line-2);
+	}
+
+	.source-link svg {
+		width: 14px;
+		height: 14px;
 	}
 
 	.primary-cta,
