@@ -20,6 +20,9 @@
 
 	onMount(async () => {
 		if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
+		// Skip in dev: there's no built SW to detect updates against, and `virtual:pwa-register`
+		// would try to fetch /dev-sw.js (404). The banner only matters for production.
+		if (!import.meta.env.PROD) return;
 
 		const { registerSW } = await import('virtual:pwa-register');
 		const updateSW = registerSW({

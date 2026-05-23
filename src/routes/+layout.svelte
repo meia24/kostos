@@ -14,8 +14,16 @@
 	import MathToolbar from '$lib/components/MathToolbar.svelte';
 	import UpdateBanner from '$lib/components/UpdateBanner.svelte';
 
+	const isProd = !import.meta.env.DEV;
+
 	let { children } = $props();
 </script>
+
+<svelte:head>
+	{#if isProd}
+		<link rel="manifest" href="/manifest.webmanifest" />
+	{/if}
+</svelte:head>
 
 {@render children()}
 <MathToolbar />
