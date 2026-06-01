@@ -1,7 +1,14 @@
 <script lang="ts">
+	import Avatar from './Avatar.svelte';
 	import { formatAmount } from '$lib/money';
 
-	export type MemberContribution = { id: string; name: string; paid: number };
+	export type MemberContribution = {
+		id: string;
+		name: string;
+		color?: string;
+		emoji?: string;
+		paid: number;
+	};
 
 	type Props = {
 		rows: MemberContribution[];
@@ -21,7 +28,7 @@
 		{@const isYou = m.id === currentMemberId}
 		{#if i > 0}<hr class="hairline" style="margin-left: 56px;" />{/if}
 		<div class="row gap-10 member-row">
-			<span class="av av-sm member-av">{(m.name[0] ?? '?').toUpperCase()}</span>
+			<Avatar member={m} size="sm" />
 			<div class="col member-text">
 				<div class="member-name">{isYou ? 'You' : m.name}</div>
 				<div class="bar-track member-bar">
@@ -44,11 +51,6 @@
 	.member-row {
 		padding: 12px;
 		align-items: center;
-	}
-
-	.member-av {
-		background: color-mix(in oklab, var(--ink) 14%, transparent);
-		color: var(--ink);
 	}
 
 	.member-text {

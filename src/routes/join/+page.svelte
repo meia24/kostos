@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
+	import { pickMemberColor, pickMemberEmoji } from '$lib/avatar';
 	import { PROJECT_COLOR_VALUES, tileBackground } from '$lib/colors';
+	import Avatar from '$lib/components/Avatar.svelte';
 	import EmptyCard from '$lib/components/EmptyCard.svelte';
 	import { addProject, setCurrentMember } from '$lib/storage';
 	import {
@@ -87,7 +89,13 @@
 		if (!name) return;
 		joining = true;
 		const handle = openRoom(roomId, secret);
-		const member: Member = { id: generateId(), name, createdAt: Date.now() };
+		const member: Member = {
+			id: generateId(),
+			name,
+			color: pickMemberColor(members),
+			emoji: pickMemberEmoji(members),
+			createdAt: Date.now()
+		};
 		addMember(handle, member);
 		addProject({
 			roomId,
@@ -174,7 +182,7 @@
 							class:on={m.id === pickedId}
 							onclick={() => (pickedId = m.id)}
 						>
-							<span class="av av-md member-av">{(m.name[0] ?? '?').toUpperCase()}</span>
+							<Avatar member={m} size="md" />
 							<span class="col member-text">
 								<span class="member-name">{m.name}</span>
 							</span>
@@ -313,17 +321,6 @@
 
 	.member-row.on {
 		background: color-mix(in oklab, var(--accent) 8%, transparent);
-	}
-
-	.member-av {
-		background: color-mix(in oklab, var(--ink) 14%, transparent);
-		color: var(--ink);
-	}
-
-	.av-md {
-		width: 40px;
-		height: 40px;
-		font-size: 14px;
 	}
 
 	.member-text {

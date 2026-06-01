@@ -23,6 +23,9 @@ export type Project = {
 	currency: string;
 	currencySymbol: string;
 	defaultSplit: DefaultSplit;
+	/** When set (default true), the expense form fetches a live FX rate for foreign-currency
+	 *  expenses. Turn off to keep every rate manual and avoid the outbound network call. */
+	autoFetchRates?: boolean;
 	categories: Category[];
 	paymentMethods: PaymentMethodItem[];
 	trips: Trip[];
@@ -61,6 +64,11 @@ export const DEFAULT_PAYMENT_METHODS: PaymentMethodItem[] = [
 export type Member = {
 	id: string;
 	name: string;
+	/** Avatar tint key into MEMBER_COLOR_VALUES. Assigned at creation; falls back to a
+	 *  deterministic colour derived from the id for members made before this existed. */
+	color?: string;
+	/** Optional emoji avatar. When set it replaces the name-initial glyph. */
+	emoji?: string;
 	createdAt: number;
 };
 
@@ -88,6 +96,11 @@ export type Expense = {
 	payments: Payment[];
 	amount: number;
 	currency: string;
+	/** Base-currency units per 1 unit of `currency`, frozen at creation. Absent when the
+	 *  expense is already in the project's base currency. */
+	exchangeRate?: number;
+	/** Unix ms the rate was captured, for display ("rate from 2026-06-01"). */
+	rateFetchedAt?: number;
 	description?: string;
 	categoryId?: string;
 	paymentMethodId?: string;

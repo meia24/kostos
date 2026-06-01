@@ -41,16 +41,17 @@ export function evalExpression(input: string): number | null {
 	}
 }
 
-/** Convert a decimal amount to integer minor units (cents). Rounds away from zero
- *  at 0.5 to mirror what users typing currency see. */
-export function toMinorUnits(value: number): number {
-	const scaled = value * 100;
+/** Convert a decimal amount to integer minor units. Rounds away from zero at 0.5 to
+ *  mirror what users typing currency see. `decimals` defaults to 2; pass 0 for
+ *  zero-decimal currencies like JPY so 2000 means ¥2000, not ¥20.00. */
+export function toMinorUnits(value: number, decimals = 2): number {
+	const scaled = value * 10 ** decimals;
 	return scaled >= 0 ? Math.floor(scaled + 0.5) : -Math.floor(-scaled + 0.5);
 }
 
 /** Evaluate then convert to minor units in one call. Returns null on invalid input. */
-export function evalToCents(input: string): number | null {
+export function evalToCents(input: string, decimals = 2): number | null {
 	const result = evalExpression(input);
 	if (result === null) return null;
-	return toMinorUnits(result);
+	return toMinorUnits(result, decimals);
 }

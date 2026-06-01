@@ -141,6 +141,8 @@ export function readProject(handle: RoomHandle): Project | null {
 		currency: p.get('currency') as string,
 		currencySymbol: p.get('currencySymbol') as string,
 		defaultSplit: p.get('defaultSplit') as Project['defaultSplit'],
+		// default on for projects created before the flag existed
+		autoFetchRates: (p.get('autoFetchRates') as boolean | undefined) ?? true,
 		categories,
 		paymentMethods,
 		trips,
@@ -152,6 +154,8 @@ export function readMembers(handle: RoomHandle): Member[] {
 	return handle.members.toArray().map((m) => ({
 		id: m.get('id') as string,
 		name: m.get('name') as string,
+		color: (m.get('color') as string | undefined) || undefined,
+		emoji: (m.get('emoji') as string | undefined) || undefined,
 		createdAt: m.get('createdAt') as number
 	}));
 }
@@ -167,6 +171,9 @@ export function initProject(handle: RoomHandle, project: Project, members: Membe
 		handle.project.set('currency', project.currency);
 		handle.project.set('currencySymbol', project.currencySymbol);
 		handle.project.set('defaultSplit', project.defaultSplit);
+		if (project.autoFetchRates !== undefined) {
+			handle.project.set('autoFetchRates', project.autoFetchRates);
+		}
 		handle.project.set('createdAt', project.createdAt);
 		handle.project.set('categories', yArrayOf(project.categories, categoryMap));
 		handle.project.set('paymentMethods', yArrayOf(project.paymentMethods, paymentMethodMap));
@@ -260,6 +267,9 @@ export function updateMember(handle: RoomHandle, id: string, updates: Partial<Om
 		if (entry.get('id') !== id) continue;
 		handle.doc.transact(() => {
 			if (updates.name !== undefined) entry.set('name', updates.name);
+			if (updates.color !== undefined) entry.set('color', updates.color);
+			// empty string clears the emoji back to the name-initial glyph
+			if (updates.emoji !== undefined) entry.set('emoji', updates.emoji);
 		});
 		return;
 	}
@@ -276,7 +286,19 @@ export function removeMember(handle: RoomHandle, id: string): void {
 
 export function updateProject(
 	handle: RoomHandle,
-	updates: Partial<Pick<Project, 'name' | 'description' | 'emoji' | 'color' | 'currency' | 'currencySymbol' | 'defaultSplit'>>
+	updates: Partial<
+		Pick<
+			Project,
+			| 'name'
+			| 'description'
+			| 'emoji'
+			| 'color'
+			| 'currency'
+			| 'currencySymbol'
+			| 'defaultSplit'
+			| 'autoFetchRates'
+		>
+	>
 ): void {
 	handle.doc.transact(() => {
 		for (const [key, value] of Object.entries(updates)) {
@@ -457,6 +479,8 @@ function readExpenseEntry(entry: Y.Map<unknown>): Expense {
 		payments,
 		amount: entry.get('amount') as number,
 		currency: entry.get('currency') as string,
+		exchangeRate: entry.get('exchangeRate') as number | undefined,
+		rateFetchedAt: entry.get('rateFetchedAt') as number | undefined,
 		description: entry.get('description') as string | undefined,
 		categoryId: entry.get('categoryId') as string | undefined,
 		paymentMethodId: entry.get('paymentMethodId') as string | undefined,
@@ -484,6 +508,8 @@ function expenseMap(e: Expense): Y.Map<unknown> {
 	ym.set('payments', ypayments);
 	ym.set('amount', e.amount);
 	ym.set('currency', e.currency);
+	if (e.exchangeRate !== undefined) ym.set('exchangeRate', e.exchangeRate);
+	if (e.rateFetchedAt !== undefined) ym.set('rateFetchedAt', e.rateFetchedAt);
 	if (e.description) ym.set('description', e.description);
 	if (e.categoryId) ym.set('categoryId', e.categoryId);
 	if (e.paymentMethodId) ym.set('paymentMethodId', e.paymentMethodId);
@@ -510,6 +536,8 @@ function memberMap(m: Member): Y.Map<unknown> {
 	const ym = new Y.Map<unknown>();
 	ym.set('id', m.id);
 	ym.set('name', m.name);
+	if (m.color) ym.set('color', m.color);
+	if (m.emoji) ym.set('emoji', m.emoji);
 	ym.set('createdAt', m.createdAt);
 	return ym;
 }

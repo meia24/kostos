@@ -31,6 +31,7 @@ export type ProjectArchive = {
 		currency: string;
 		currencySymbol: string;
 		defaultSplit: DefaultSplit;
+		autoFetchRates?: boolean;
 		categories: Category[];
 		paymentMethods: PaymentMethodItem[];
 		trips: Trip[];
@@ -60,6 +61,7 @@ export function serializeProject(
 			currency: project.currency,
 			currencySymbol: project.currencySymbol,
 			defaultSplit: project.defaultSplit,
+			autoFetchRates: project.autoFetchRates,
 			categories: project.categories,
 			paymentMethods: project.paymentMethods,
 			trips: project.trips ?? [],

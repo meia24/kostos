@@ -65,6 +65,11 @@
 		updateProject(handle, { currency: '—', currencySymbol: sym });
 	}
 
+	function toggleAutoFetch() {
+		if (!project) return;
+		updateProject(handle, { autoFetchRates: !(project.autoFetchRates ?? true) });
+	}
+
 	function onAddCategory(input: Omit<EditorItem, 'id'>) {
 		const cat: Category = { id: generateId(), name: input.name, emoji: input.emoji };
 		addCategory(handle, cat);
@@ -225,6 +230,23 @@
 					onCustom={customCurrency}
 				/>
 			</div>
+			<button
+				type="button"
+				class="card field-card rate-toggle"
+				onclick={toggleAutoFetch}
+				aria-pressed={project.autoFetchRates ?? true}
+			>
+				<span class="col rate-toggle-text">
+					<span class="rate-toggle-title">Auto-fetch exchange rates</span>
+					<span class="dim rate-toggle-sub">
+						Look up a live rate for foreign-currency expenses. Off keeps every rate manual and
+						avoids the outbound request.
+					</span>
+				</span>
+				<span class="rate-switch" data-on={project.autoFetchRates ?? true}>
+					<span class="rate-knob"></span>
+				</span>
+			</button>
 
 			<div class="section-head">
 				<div class="eyebrow">Categories</div>
@@ -393,6 +415,65 @@
 
 	.field-card {
 		padding: 4px;
+	}
+
+	.rate-toggle {
+		display: flex;
+		align-items: center;
+		gap: 14px;
+		width: 100%;
+		padding: 14px;
+		margin-top: 8px;
+		background: var(--bg-2);
+		border: 1px solid var(--line);
+		text-align: left;
+		cursor: pointer;
+		color: inherit;
+		font: inherit;
+	}
+
+	.rate-toggle-text {
+		flex: 1;
+		gap: 4px;
+	}
+
+	.rate-toggle-title {
+		font-size: 14px;
+		font-weight: 600;
+	}
+
+	.rate-toggle-sub {
+		font-size: 11px;
+		line-height: 1.5;
+	}
+
+	.rate-switch {
+		flex-shrink: 0;
+		width: 42px;
+		height: 24px;
+		border-radius: 999px;
+		background: var(--line-2);
+		position: relative;
+		transition: background 0.15s ease;
+	}
+
+	.rate-switch[data-on='true'] {
+		background: var(--accent);
+	}
+
+	.rate-knob {
+		position: absolute;
+		top: 3px;
+		left: 3px;
+		width: 18px;
+		height: 18px;
+		border-radius: 999px;
+		background: var(--bg);
+		transition: transform 0.15s ease;
+	}
+
+	.rate-switch[data-on='true'] .rate-knob {
+		transform: translateX(18px);
 	}
 
 	.switch-btn {

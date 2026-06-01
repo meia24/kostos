@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { pickMemberColor, pickMemberEmoji } from '$lib/avatar';
 	import { PROJECT_COLORS, PROJECT_COLOR_VALUES, tileBackground } from '$lib/colors';
 	import CurrencyPicker from '$lib/components/CurrencyPicker.svelte';
 	import EmojiTilePicker from '$lib/components/EmojiTilePicker.svelte';
@@ -57,15 +58,27 @@
 		if (submitting || !canCreate) return;
 		submitting = true;
 
+		const made: Member[] = [];
 		const creator: Member = {
 			id: generateId(),
 			name: yourName.trim(),
+			color: pickMemberColor(made),
+			emoji: pickMemberEmoji(made),
 			createdAt: Date.now()
 		};
-		const otherMembers: Member[] = others
-			.map((m) => m.name.trim())
-			.filter((n) => n.length > 0)
-			.map((n) => ({ id: generateId(), name: n, createdAt: Date.now() }));
+		made.push(creator);
+		const otherMembers: Member[] = [];
+		for (const n of others.map((m) => m.name.trim()).filter((n) => n.length > 0)) {
+			const m: Member = {
+				id: generateId(),
+				name: n,
+				color: pickMemberColor(made),
+				emoji: pickMemberEmoji(made),
+				createdAt: Date.now()
+			};
+			made.push(m);
+			otherMembers.push(m);
+		}
 
 		const project: Project = {
 			id: roomId,

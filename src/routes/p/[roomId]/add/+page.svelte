@@ -20,11 +20,12 @@
 
 	async function onSave(expense: Expense) {
 		addExpense(handle, expense);
-		await goto(`/p/${roomId}`);
+		// replace so back doesn't return to the now-submitted add form
+		await goto(`/p/${roomId}`, { replaceState: true });
 	}
 
 	function onCancel() {
-		goto(`/p/${roomId}`);
+		goto(`/p/${roomId}`, { replaceState: true });
 	}
 </script>
 

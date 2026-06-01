@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Avatar from './Avatar.svelte';
 	import type { Member } from '$lib/types';
 
 	type Props = {
@@ -13,9 +14,7 @@
 
 <div class="card identity-card">
 	<div class="row gap-12 identity-row">
-		<span class="av av-lg identity-av">
-			{(current?.name?.[0] ?? '?').toUpperCase()}
-		</span>
+		<Avatar member={current} size="lg" />
 		<div class="col identity-text">
 			<span class="identity-name">{current?.name ?? 'No member claimed'}</span>
 			<span class="dim mono identity-hint">
@@ -35,7 +34,7 @@
 						class:on={m.id === current?.id}
 						onclick={() => onPick(m.id)}
 					>
-						<span class="av av-sm identity-option-av">{(m.name[0] ?? '?').toUpperCase()}</span>
+						<Avatar member={m} size="sm" />
 						<span class="identity-option-name">{m.name}</span>
 						{#if m.id === current?.id}
 							<svg
@@ -67,11 +66,6 @@
 
 	.identity-row {
 		align-items: center;
-	}
-
-	.identity-av {
-		background: color-mix(in oklab, var(--accent) 22%, transparent);
-		color: var(--accent);
 	}
 
 	.identity-text {
@@ -113,11 +107,6 @@
 		cursor: pointer;
 		font: inherit;
 		text-align: left;
-	}
-
-	.identity-option-av {
-		background: color-mix(in oklab, var(--ink) 12%, transparent);
-		color: var(--ink);
 	}
 
 	.identity-option-name {

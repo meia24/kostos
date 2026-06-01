@@ -7,6 +7,7 @@
  * running in O(n log n).
  */
 
+import { expenseInBase } from './currency-convert';
 import type { Expense, Member } from './types';
 
 export type MemberBalance = {
@@ -87,11 +88,20 @@ export function expenseShares(expense: Expense): Map<string, number> {
 	return result;
 }
 
-export function computeBalances(members: Member[], expenses: Expense[]): MemberBalance[] {
+/** Compute net balances. When `baseCurrency` is given, foreign-currency expenses are
+ *  converted to it via their stored rate; the per-expense total is converted once and its
+ *  payments and shares are rescaled to that total, so each expense still nets to zero in
+ *  base. Without `baseCurrency` (or when all expenses share the base) it is a no-op pass. */
+export function computeBalances(
+	members: Member[],
+	expenses: Expense[],
+	baseCurrency?: string
+): MemberBalance[] {
 	const net = new Map<string, number>();
 	for (const m of members) net.set(m.id, 0);
 
-	for (const expense of expenses) {
+	for (const raw of expenses) {
+		const expense = baseCurrency ? expenseInBase(raw, baseCurrency) : raw;
 		for (const payment of expense.payments) {
 			net.set(payment.memberId, (net.get(payment.memberId) ?? 0) + payment.amount);
 		}

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Avatar from './Avatar.svelte';
 	import FillRowButton from './FillRowButton.svelte';
 	import { mathInput } from '$lib/actions/mathInput';
 	import type { Member } from '$lib/types';
@@ -84,7 +85,7 @@
 							class:on={m.id === single.memberId}
 							onclick={() => pickMember(single.id, m.id)}
 						>
-							<span class="av av-sm payer-av">{(m.name[0] ?? '?').toUpperCase()}</span>
+							<Avatar member={m} size="sm" />
 							<span class="col payer-text">
 								<span class="payer-name">{memberName(m.id)}</span>
 							</span>
@@ -119,9 +120,7 @@
 							aria-expanded={openRow === p.id}
 							onclick={() => (openRow = openRow === p.id ? null : p.id)}
 						>
-							<span class="av av-sm payer-av">
-								{(members.find((m) => m.id === p.memberId)?.name?.[0] ?? '?').toUpperCase()}
-							</span>
+							<Avatar member={members.find((m) => m.id === p.memberId)} size="sm" />
 							<span class="payer-select-name">{memberName(p.memberId)}</span>
 							<svg
 								viewBox="0 0 24 24"
@@ -165,7 +164,7 @@
 										class:on={m.id === p.memberId}
 										onclick={() => pickMember(p.id, m.id)}
 									>
-										<span class="av av-sm payer-av">{(m.name[0] ?? '?').toUpperCase()}</span>
+										<Avatar member={m} size="sm" />
 										<span class="col payer-text">
 											<span class="payer-name">{memberName(m.id)}</span>
 										</span>
@@ -278,11 +277,6 @@
 		border: 0;
 		color: inherit;
 		cursor: pointer;
-	}
-
-	.payer-av {
-		background: color-mix(in oklab, var(--ink) 12%, transparent);
-		color: var(--ink);
 	}
 
 	.payer-text {

@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { expenseShares } from '$lib/balance';
+	import { CURRENCY_PRESETS } from '$lib/currencies';
+	import { expenseInBase } from '$lib/currency-convert';
 	import { formatAmount, formatSigned } from '$lib/money';
 	import type {
 		Category,
@@ -69,12 +71,20 @@
 		return `${first} + ${expense.payments.length - 1} others ${verb}`;
 	});
 
+	// the row amount stays in the expense's own currency; balance impact is in base so it
+	// lines up with the balances/settlement figures.
+	const isForeign = $derived(expense.currency !== currency);
+	const nativeSymbol = $derived(
+		isForeign ? (CURRENCY_PRESETS.find((p) => p.code === expense.currency)?.sym ?? expense.currency) : symbol
+	);
+	const baseExpense = $derived(expenseInBase(expense, currency));
+
 	const yourImpact = $derived.by(() => {
 		if (!currentMemberId) return 0;
-		const paid = expense.payments
+		const paid = baseExpense.payments
 			.filter((p) => p.memberId === currentMemberId)
 			.reduce((sum, p) => sum + p.amount, 0);
-		const share = expenseShares(expense).get(currentMemberId) ?? 0;
+		const share = expenseShares(baseExpense).get(currentMemberId) ?? 0;
 		return paid - share;
 	});
 
@@ -141,7 +151,10 @@
 		{/if}
 	</span>
 	<span class="col row-amount-col">
-		<span class="num row-amount">{formatAmount(expense.amount, symbol, currency)}</span>
+		<span class="num row-amount">{formatAmount(expense.amount, nativeSymbol, expense.currency)}</span>
+		{#if isForeign}
+			<span class="dim mono row-base">≈ {formatAmount(baseExpense.amount, symbol, currency)}</span>
+		{/if}
 		{#if currentMemberId}
 			{#if !inExpense && yourImpact === 0}
 				<span class="dim mono row-impact">not in</span>
@@ -236,6 +249,10 @@
 
 	.row-impact {
 		font-size: 11px;
+	}
+
+	.row-base {
+		font-size: 10px;
 	}
 
 	.row-note-match {

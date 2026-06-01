@@ -1,0 +1,458 @@
+{
+  "schemaVersion": 2,
+  "app": "kostos",
+  "exportedAt": 1779611875305,
+  "project": {
+    "name": "Sample group",
+    "description": "Seeded data for local UI/UX testing",
+    "emoji": "🧪",
+    "color": "lime",
+    "currency": "EUR",
+    "currencySymbol": "€",
+    "defaultSplit": "even",
+    "categories": [
+      {
+        "id": "cat-groceries",
+        "name": "Groceries",
+        "emoji": "🛒"
+      },
+      {
+        "id": "cat-restaurants",
+        "name": "Restaurants",
+        "emoji": "🍽️"
+      },
+      {
+        "id": "cat-transport",
+        "name": "Transport",
+        "emoji": "🚗"
+      },
+      {
+        "id": "cat-lodging",
+        "name": "Lodging",
+        "emoji": "🛏️"
+      },
+      {
+        "id": "cat-activities",
+        "name": "Activities",
+        "emoji": "🎉"
+      },
+      {
+        "id": "cat-other",
+        "name": "Other",
+        "emoji": "📝"
+      }
+    ],
+    "paymentMethods": [
+      {
+        "id": "pm-cash",
+        "name": "Cash",
+        "emoji": "💵"
+      },
+      {
+        "id": "pm-card",
+        "name": "Card",
+        "emoji": "💳"
+      },
+      {
+        "id": "pm-bank",
+        "name": "Bank transfer",
+        "emoji": "🏦"
+      },
+      {
+        "id": "pm-other",
+        "name": "Other",
+        "emoji": "📝"
+      }
+    ],
+    "trips": [
+      {
+        "id": "trip-lisbon",
+        "name": "Lisbon weekend",
+        "emoji": "🏖️",
+        "startDate": 1777019875305,
+        "endDate": 1777279075305,
+        "closedAt": 1777451875305,
+        "createdAt": 1776933475305
+      },
+      {
+        "id": "trip-berlin",
+        "name": "Berlin trip",
+        "emoji": "🍻",
+        "startDate": 1779007075305,
+        "createdAt": 1778920675305
+      }
+    ],
+    "createdAt": 1775723875305
+  },
+  "members": [
+    {
+      "id": "m-alice",
+      "name": "Alice",
+      "createdAt": 1775723875305
+    },
+    {
+      "id": "m-bob",
+      "name": "Bob",
+      "createdAt": 1775723875305
+    },
+    {
+      "id": "m-carol",
+      "name": "Carol",
+      "createdAt": 1775723875305
+    },
+    {
+      "id": "m-dan",
+      "name": "Dan",
+      "createdAt": 1776155875305
+    }
+  ],
+  "expenses": [
+    {
+      "id": "e-groceries-1",
+      "payments": [
+        {
+          "memberId": "m-alice",
+          "amount": 7640
+        }
+      ],
+      "amount": 7640,
+      "currency": "EUR",
+      "description": "Weekly groceries",
+      "categoryId": "cat-groceries",
+      "paymentMethodId": "pm-card",
+      "date": 1776328675305,
+      "splitMode": "even",
+      "splits": [
+        {
+          "memberId": "m-alice"
+        },
+        {
+          "memberId": "m-bob"
+        },
+        {
+          "memberId": "m-carol"
+        },
+        {
+          "memberId": "m-dan"
+        }
+      ],
+      "createdAt": 1776328675305,
+      "createdBy": "m-alice"
+    },
+    {
+      "id": "e-coffee",
+      "payments": [
+        {
+          "memberId": "m-bob",
+          "amount": 1000
+        }
+      ],
+      "amount": 1000,
+      "currency": "EUR",
+      "description": "Coffee run",
+      "categoryId": "cat-restaurants",
+      "paymentMethodId": "pm-cash",
+      "date": 1776587875305,
+      "splitMode": "even",
+      "splits": [
+        {
+          "memberId": "m-alice"
+        },
+        {
+          "memberId": "m-bob"
+        },
+        {
+          "memberId": "m-carol"
+        }
+      ],
+      "createdAt": 1776587875305,
+      "createdBy": "m-bob"
+    },
+    {
+      "id": "e-lisbon-dinner",
+      "payments": [
+        {
+          "memberId": "m-carol",
+          "amount": 12480
+        }
+      ],
+      "amount": 12480,
+      "currency": "EUR",
+      "description": "Dinner, \"Casa do Bacalhau\"",
+      "categoryId": "cat-restaurants",
+      "paymentMethodId": "pm-card",
+      "tripId": "trip-lisbon",
+      "date": 1777106275305,
+      "splitMode": "even",
+      "splits": [
+        {
+          "memberId": "m-alice"
+        },
+        {
+          "memberId": "m-bob"
+        },
+        {
+          "memberId": "m-carol"
+        },
+        {
+          "memberId": "m-dan"
+        }
+      ],
+      "notes": "amazing fish\ntwo bottles of wine",
+      "createdAt": 1777106275305,
+      "createdBy": "m-carol"
+    },
+    {
+      "id": "e-lisbon-hotel",
+      "payments": [
+        {
+          "memberId": "m-alice",
+          "amount": 34000
+        }
+      ],
+      "amount": 34000,
+      "currency": "EUR",
+      "description": "Hotel, 2 nights",
+      "categoryId": "cat-lodging",
+      "paymentMethodId": "pm-card",
+      "tripId": "trip-lisbon",
+      "date": 1777192675305,
+      "splitMode": "shares",
+      "splits": [
+        {
+          "memberId": "m-alice",
+          "shares": 2
+        },
+        {
+          "memberId": "m-bob",
+          "shares": 1
+        },
+        {
+          "memberId": "m-carol",
+          "shares": 1
+        },
+        {
+          "memberId": "m-dan",
+          "shares": 2
+        }
+      ],
+      "createdAt": 1777192675305,
+      "createdBy": "m-alice"
+    },
+    {
+      "id": "e-lisbon-tram",
+      "payments": [
+        {
+          "memberId": "m-bob",
+          "amount": 4850
+        }
+      ],
+      "amount": 4850,
+      "currency": "EUR",
+      "description": "Tram + tickets",
+      "categoryId": "cat-activities",
+      "paymentMethodId": "pm-cash",
+      "tripId": "trip-lisbon",
+      "date": 1777279075305,
+      "splitMode": "amount",
+      "splits": [
+        {
+          "memberId": "m-alice",
+          "amount": 1200
+        },
+        {
+          "memberId": "m-bob",
+          "amount": 1200
+        },
+        {
+          "memberId": "m-carol",
+          "amount": 1200
+        },
+        {
+          "memberId": "m-dan",
+          "amount": 1250
+        }
+      ],
+      "createdAt": 1777279075305,
+      "createdBy": "m-bob"
+    },
+    {
+      "id": "e-berlin-flight",
+      "payments": [
+        {
+          "memberId": "m-alice",
+          "amount": 30000
+        },
+        {
+          "memberId": "m-carol",
+          "amount": 18000
+        }
+      ],
+      "amount": 48000,
+      "currency": "EUR",
+      "description": "Group flight tickets",
+      "categoryId": "cat-transport",
+      "paymentMethodId": "pm-card",
+      "tripId": "trip-berlin",
+      "date": 1779007075305,
+      "splitMode": "even",
+      "splits": [
+        {
+          "memberId": "m-alice"
+        },
+        {
+          "memberId": "m-bob"
+        },
+        {
+          "memberId": "m-carol"
+        },
+        {
+          "memberId": "m-dan"
+        }
+      ],
+      "createdAt": 1779007075305,
+      "createdBy": "m-alice"
+    },
+    {
+      "id": "e-berlin-snacks",
+      "payments": [
+        {
+          "memberId": "m-dan",
+          "amount": 1875
+        }
+      ],
+      "amount": 1875,
+      "currency": "EUR",
+      "description": "Snacks at the station",
+      "categoryId": "cat-groceries",
+      "paymentMethodId": "pm-cash",
+      "tripId": "trip-berlin",
+      "date": 1779179875305,
+      "splitMode": "even",
+      "splits": [
+        {
+          "memberId": "m-bob"
+        },
+        {
+          "memberId": "m-carol"
+        },
+        {
+          "memberId": "m-dan"
+        }
+      ],
+      "createdAt": 1779179875305,
+      "createdBy": "m-dan"
+    },
+    {
+      "id": "e-berlin-souvenirs",
+      "payments": [
+        {
+          "memberId": "m-carol",
+          "amount": 3300
+        }
+      ],
+      "amount": 3300,
+      "currency": "EUR",
+      "description": "Souvenirs",
+      "tripId": "trip-berlin",
+      "date": 1779266275305,
+      "splitMode": "even",
+      "splits": [
+        {
+          "memberId": "m-alice"
+        },
+        {
+          "memberId": "m-carol"
+        }
+      ],
+      "createdAt": 1779266275305,
+      "createdBy": "m-carol"
+    },
+    {
+      "id": "e-berlin-airbnb",
+      "payments": [
+        {
+          "memberId": "m-dan",
+          "amount": 55600
+        }
+      ],
+      "amount": 55600,
+      "currency": "EUR",
+      "description": "Airbnb 3 nights",
+      "categoryId": "cat-lodging",
+      "paymentMethodId": "pm-card",
+      "tripId": "trip-berlin",
+      "date": 1779352675305,
+      "splitMode": "shares",
+      "splits": [
+        {
+          "memberId": "m-alice",
+          "shares": 1
+        },
+        {
+          "memberId": "m-bob",
+          "shares": 1
+        },
+        {
+          "memberId": "m-carol",
+          "shares": 1
+        },
+        {
+          "memberId": "m-dan",
+          "shares": 1
+        }
+      ],
+      "createdAt": 1779352675305,
+      "createdBy": "m-dan"
+    },
+    {
+      "id": "e-settle-bob-alice",
+      "payments": [
+        {
+          "memberId": "m-bob",
+          "amount": 6000
+        }
+      ],
+      "amount": 6000,
+      "currency": "EUR",
+      "description": "Settle up",
+      "paymentMethodId": "pm-bank",
+      "date": 1779439075305,
+      "splitMode": "even",
+      "splits": [
+        {
+          "memberId": "m-alice"
+        }
+      ],
+      "isSettlement": true,
+      "createdAt": 1779439075305,
+      "createdBy": "m-bob"
+    },
+    {
+      "id": "e-today-lunch",
+      "payments": [
+        {
+          "memberId": "m-alice",
+          "amount": 4200
+        }
+      ],
+      "amount": 4200,
+      "currency": "EUR",
+      "description": "Lunch",
+      "categoryId": "cat-restaurants",
+      "paymentMethodId": "pm-card",
+      "date": 1779611875305,
+      "splitMode": "even",
+      "splits": [
+        {
+          "memberId": "m-alice"
+        },
+        {
+          "memberId": "m-bob"
+        }
+      ],
+      "createdAt": 1779611875305,
+      "createdBy": "m-alice"
+    }
+  ]
+}
