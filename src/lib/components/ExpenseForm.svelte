@@ -13,7 +13,7 @@
 	import { expenseShares, splitEvenly } from '$lib/balance';
 	import { CURRENCY_PRESETS, currencyDecimals, type CurrencyPreset } from '$lib/currencies';
 	import { expenseBaseAmount } from '$lib/currency-convert';
-	import { fetchRate } from '$lib/fx';
+	import { resolveRate } from '$lib/fx-cache';
 	import { formatAmount, toInputValue } from '$lib/money';
 	import { evalToCents } from '$lib/math';
 	import { suggestTripIdForDate } from '$lib/trips';
@@ -160,6 +160,12 @@
 	let rateTouched = $state(false);
 	let rateFetching = $state(false);
 	let rateError = $state(false);
+	let rateAsOf = $state<number | null>(seed?.rateFetchedAt ?? null);
+	let rateStale = $state(false);
+
+	const rateAsOfLabel = $derived(
+		rateAsOf ? new Date(rateAsOf).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : ''
+	);
 
 	function symbolForCode(code: string): string {
 		if (code === project.currency) return project.currencySymbol;
@@ -203,6 +209,8 @@
 		rateInput = '';
 		rateTouched = false;
 		rateError = false;
+		rateAsOf = null;
+		rateStale = false;
 	}
 
 	function pickCurrency(p: CurrencyPreset) {
@@ -215,20 +223,25 @@
 		resetRate();
 	}
 
-	async function fetchCurrentRate() {
+	// cache-first; `force` skips the freshness window for the explicit "Fetch rate" button
+	async function loadRate(force = false) {
 		if (!isForeign) return;
 		rateError = false;
 		rateFetching = true;
-		const rate = await fetchRate(currencyCode, project.currency);
+		const resolved = await resolveRate(currencyCode, project.currency, force);
 		rateFetching = false;
-		if (rate == null) {
+		if (!resolved) {
 			rateError = true;
+			rateAsOf = null;
+			rateStale = false;
 			return;
 		}
-		rateInput = String(Number(rate.toFixed(6)));
+		rateInput = String(Number(resolved.rate.toFixed(6)));
+		rateAsOf = resolved.at;
+		rateStale = resolved.source === 'stale';
 	}
 
-	// plain (non-reactive) guard: only auto-fetch once per currency so a failed request
+	// plain (non-reactive) guard: only auto-resolve once per currency so a failed request
 	// never retries in a loop and hammers the API.
 	let lastAutoRateKey = '';
 	$effect(() => {
@@ -237,7 +250,7 @@
 		if (untrack(() => rateTouched)) return;
 		if (key === lastAutoRateKey) return;
 		lastAutoRateKey = key;
-		void fetchCurrentRate();
+		void loadRate(false);
 	});
 
 	const involvedList = $derived(members.filter((m) => involved.has(m.id)));
@@ -493,7 +506,7 @@
 					<button
 						type="button"
 						class="btn btn-ghost rate-fetch"
-						onclick={fetchCurrentRate}
+						onclick={() => loadRate(true)}
 						disabled={rateFetching}
 					>
 						{rateFetching ? 'Fetching…' : 'Fetch rate'}
@@ -504,7 +517,11 @@
 					<input
 						class="input rate-input mono"
 						bind:value={rateInput}
-						oninput={() => (rateTouched = true)}
+						oninput={() => {
+							rateTouched = true;
+							rateAsOf = null;
+							rateStale = false;
+						}}
 						inputmode="decimal"
 						placeholder="0.000000"
 						aria-label="Exchange rate to {project.currency}"
@@ -517,7 +534,7 @@
 							baseAmountPreview,
 							project.currencySymbol,
 							project.currency
-						)}
+						)}{#if rateStale && rateAsOfLabel} · offline, rate from {rateAsOfLabel}{/if}
 					</p>
 				{:else if rateError}
 					<p class="dim rate-note">Couldn't fetch a rate. Enter it manually.</p>
