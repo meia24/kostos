@@ -15,7 +15,7 @@ export default defineConfig({
 	plugins: [
 		sveltekit(),
 		SvelteKitPWA({
-			registerType: 'autoUpdate',
+			registerType: 'prompt',
 			injectRegister: false,
 			manifest: {
 				name: 'Kostos',
@@ -42,10 +42,12 @@ export default defineConfig({
 			},
 			workbox: {
 				globPatterns: ['client/**/*.{js,css,ico,png,svg,webp,woff,woff2}'],
-				// purge precaches from older builds so a stale SW can't keep serving
-				// dead CSS/JS chunk names (the pre-refactor "unstyled on mobile" bug)
-				cleanupOutdatedCaches: true,
-				clientsClaim: true
+				// drop precaches from older builds so a stale SW can't keep serving dead
+				// CSS/JS chunk names (the pre-refactor "unstyled on mobile" bug). No
+				// clientsClaim: with precaching it would hand the live old page to the new
+				// SW and then purge the CSS it still references. The prompt -> updateSW(true)
+				// flow skips waiting and reloads together instead.
+				cleanupOutdatedCaches: true
 			}
 		})
 	]
