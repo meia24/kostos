@@ -19,9 +19,10 @@ Kostos is a small web app for splitting bills with friends, housemates, or trip 
 - **Conflict-free merging.** Two people editing the same expense from different devices? CRDTs reconcile without losing either edit.
 - **Three split modes.** Evenly, by weighted shares, or by precise per-person amounts. Math expressions like `(120+5)/4` work inside any amount input, and a floating row of `+ − × ÷ ( )` keys docks above the on-screen keyboard so the operators aren't trapped behind a digit-only layout.
 - **Multi-payer expenses.** When two people split the bill at dinner, both can be recorded as payers with the actual amounts each fronted.
+- **Multi-currency.** Log an expense in any currency. Kostos freezes the exchange rate onto it at creation, so the figure never drifts later, and converts everything back to the group's base currency for balances and stats. The day's rate is fetched by default (turn it off in Settings to type rates by hand) and cached per device, so adding a foreign expense works offline. Zero-decimal currencies like JPY are handled correctly.
 - **Trips.** Tag expenses to a holiday, party, or any event with its own emoji and date range. Filter the home recents and stats page to a single trip. Past trips fold into a bottom sheet 30 days after they end, keeping the chip strip short. Balances and settlements stay global across the whole group.
-- **Settle up.** A minimum-transfer plan suggests the fewest payments needed to bring everyone to zero. Mark them paid and they become regular settlement expenses.
-- **Stats.** Per-period spend, daily/weekly/monthly bars, by-category donut, who-paid bars, biggest expenses, and a settlement graph for small groups.
+- **Settle up.** A minimum-transfer plan suggests the fewest payments needed to bring everyone to zero. The home screen draws it as a payers-to-receivers graph; tap any transfer to record it as a settlement expense.
+- **Stats.** Per-period spend, daily/weekly/monthly bars, by-category donut, who-paid bars, and biggest expenses.
 - **Backup and restore.** Export any project as JSON (lossless backup) or CSV (one row per expense for spreadsheets) from Settings > Data. Drop a JSON file back into a new project to restore members, categories, payment methods, trips, and every expense.
 - **QR invites.** Show the QR on one phone, scan on the other, you're in.
 - **Multi-group.** A single device can hold many groups; switch between them from the landing.
@@ -31,16 +32,16 @@ Kostos is a small web app for splitting bills with friends, housemates, or trip 
 <table>
 <tr>
 <td align="center" width="33%">
-<img src="docs/screenshots/02-home.png" width="240" alt="Project home with trip chip strip, balance, and recents" /><br/>
-<sub>Project home</sub>
+<img src="docs/screenshots/02-home.png" width="240" alt="Project home with the settlement graph, your balance, and the who-owes-who list" /><br/>
+<sub>Balances home</sub>
 </td>
 <td align="center" width="33%">
-<img src="docs/screenshots/03-home-lisbon.png" width="240" alt="Recents filtered to the Lisbon trip" /><br/>
-<sub>Filtered by trip</sub>
-</td>
-<td align="center" width="33%">
-<img src="docs/screenshots/06-settle.png" width="240" alt="Settle up page with minimum-transfer graph" /><br/>
+<img src="docs/screenshots/03-settle.png" width="240" alt="Settlement confirmation sheet for a single transfer" /><br/>
 <sub>Settle up</sub>
+</td>
+<td align="center" width="33%">
+<img src="docs/screenshots/04-currency.png" width="240" alt="Adding an expense in USD with a stored exchange rate" /><br/>
+<sub>Multi-currency</sub>
 </td>
 </tr>
 <tr>
@@ -49,11 +50,11 @@ Kostos is a small web app for splitting bills with friends, housemates, or trip 
 <sub>Math toolbar</sub>
 </td>
 <td align="center" width="33%">
-<img src="docs/screenshots/07-stats.png" width="240" alt="Stats page scoped to Lisbon trip" /><br/>
-<sub>Stats per trip</sub>
+<img src="docs/screenshots/06-stats.png" width="240" alt="Stats page with spend and who-paid breakdowns" /><br/>
+<sub>Stats</sub>
 </td>
 <td align="center" width="33%">
-<img src="docs/screenshots/08-trips.png" width="240" alt="Manage trips screen with Active and Past sections" /><br/>
+<img src="docs/screenshots/07-trips.png" width="240" alt="Manage trips screen with active and past trips" /><br/>
 <sub>Manage trips</sub>
 </td>
 </tr>

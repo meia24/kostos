@@ -1,10 +1,11 @@
 /* Capture README screenshots via Playwright.
  *
- * Drives a fresh iPhone-emulated browser context against the running dev server
- * (default :5173), restores a deterministic sample project via the import flow,
- * then walks through the key screens. Outputs to docs/screenshots/.
+ * Drives a fresh iPhone-emulated browser context against a running server (dev on :5173, or
+ * point SCREENSHOT_BASE_URL at `npm run preview`), restores a deterministic sample project via
+ * the import flow, then walks the key screens. Outputs to docs/screenshots/.
  *
- * Run: npm run screenshots  (dev server must already be running on :5173)
+ * Run: npm run screenshots   (a server must be running; defaults to :5173)
+ *   or: SCREENSHOT_BASE_URL=http://localhost:4173 node scripts/screenshots.js
  */
 
 import { chromium } from 'playwright';
@@ -32,6 +33,8 @@ const archive = {
 		currency: 'EUR',
 		currencySymbol: '€',
 		defaultSplit: 'even',
+		// off so the multi-currency screenshot uses a typed rate instead of a live fetch
+		autoFetchRates: false,
 		createdAt: day(-180),
 		categories: [
 			{ id: 'cat-groceries', name: 'Groceries', emoji: '🛒' },
@@ -47,35 +50,15 @@ const archive = {
 			{ id: 'pm-bank', name: 'Bank transfer', emoji: '🏦' }
 		],
 		trips: [
-			{
-				id: 'trip-lisbon',
-				name: 'Lisbon weekend',
-				emoji: '🏖',
-				startDate: day(-5),
-				endDate: day(-2),
-				createdAt: day(-20)
-			},
-			{
-				id: 'trip-flat',
-				name: 'Flat costs',
-				emoji: '🏠',
-				startDate: day(-180),
-				createdAt: day(-180)
-			},
-			{
-				id: 'trip-ski',
-				name: 'Ski trip',
-				emoji: '⛷️',
-				startDate: day(-90),
-				endDate: day(-86),
-				createdAt: day(-100)
-			}
+			{ id: 'trip-lisbon', name: 'Lisbon weekend', emoji: '🏖', startDate: day(-5), endDate: day(-2), createdAt: day(-20) },
+			{ id: 'trip-flat', name: 'Flat costs', emoji: '🏠', startDate: day(-180), createdAt: day(-180) },
+			{ id: 'trip-ski', name: 'Ski trip', emoji: '⛷️', startDate: day(-90), endDate: day(-86), createdAt: day(-100) }
 		]
 	},
 	members: [
-		{ id: 'm-anna', name: 'Anna', createdAt: day(-180) },
-		{ id: 'm-marco', name: 'Marco', createdAt: day(-180) },
-		{ id: 'm-sofia', name: 'Sofia', createdAt: day(-180) }
+		{ id: 'm-anna', name: 'Anna', emoji: '🦊', color: 'violet', createdAt: day(-180) },
+		{ id: 'm-marco', name: 'Marco', emoji: '🐼', color: 'cyan', createdAt: day(-180) },
+		{ id: 'm-sofia', name: 'Sofia', emoji: '🐧', color: 'coral', createdAt: day(-180) }
 	],
 	expenses: [
 		{
@@ -130,21 +113,20 @@ const archive = {
 		},
 		{
 			id: 'e4',
-			payments: [
-				{ memberId: 'm-anna', amount: 4500 },
-				{ memberId: 'm-marco', amount: 3000 }
-			],
-			amount: 7500,
-			currency: 'EUR',
-			description: 'Pastéis & coffee',
-			categoryId: 'cat-restaurants',
+			payments: [{ memberId: 'm-marco', amount: 3000 }],
+			amount: 3000,
+			currency: 'USD',
+			exchangeRate: 0.92,
+			rateFetchedAt: day(-3),
+			description: 'Souvenirs (USD)',
+			categoryId: 'cat-other',
 			paymentMethodId: 'pm-card',
 			tripId: 'trip-lisbon',
 			date: day(-3),
 			splitMode: 'even',
 			splits: [{ memberId: 'm-anna' }, { memberId: 'm-marco' }, { memberId: 'm-sofia' }],
 			createdAt: day(-3),
-			createdBy: 'm-anna'
+			createdBy: 'm-marco'
 		},
 		{
 			id: 'e5',
@@ -209,7 +191,6 @@ async function main() {
 		reducedMotion: 'reduce'
 	});
 
-	// Force dark theme and disable Vite HMR overlay noise before any script runs.
 	await context.addInitScript(() => {
 		try {
 			localStorage.setItem('kostos:theme', 'dark');
@@ -222,8 +203,7 @@ async function main() {
 	page.on('pageerror', (e) => console.error('[pageerror]', e.message));
 
 	async function shot(name) {
-		const path = `${OUT_DIR}/${name}.png`;
-		await page.screenshot({ path });
+		await page.screenshot({ path: `${OUT_DIR}/${name}.png` });
 		console.log(`  ✓ ${name}.png`);
 	}
 
@@ -243,60 +223,69 @@ async function main() {
 		buffer: Buffer.from(JSON.stringify(archive))
 	});
 	await page.waitForSelector('text=Restore on this device');
-	// Anna is the first member; the picker preselects her.
 	await page.click('text=Restore on this device');
 	await page.waitForURL(/\/p\/PRT-/);
-	await page.waitForSelector('.trip-strip');
 
-	// 3. Project home (default: All)
-	await page.waitForTimeout(300); // let animations settle
+	// 3. Project home: balances hub (graph, owed/owe, tip, settle lines)
+	await page.waitForSelector('[data-page="dashboard"]');
+	await page.waitForSelector('.balance-amount');
+	await page.waitForSelector('.line');
+	await page.waitForTimeout(400);
 	await shot('02-home');
 
-	// 4. Project home filtered to Lisbon
-	await page.click('button:has-text("Lisbon weekend")');
+	// 4. Settle confirm sheet (tap a transfer)
+	await page.click('.line');
+	await page.waitForSelector('text=Record settlement');
 	await page.waitForTimeout(300);
-	await shot('03-home-lisbon');
+	await shot('03-settle');
+	await page.click('.sheet-cancel');
+	await page.waitForTimeout(250);
 
-	// 5. Add expense form
+	// 5. Add-expense form: math toolbar
 	await page.click('a[aria-label="Add expense"]');
 	await page.waitForSelector('text=New expense');
-	await page.waitForTimeout(200);
-	await shot('04-add-expense');
-
-	// 6. Amount input focused (math toolbar should appear)
 	await page.fill('.amount-input', '50/3');
 	await page.focus('.amount-input');
 	await page.waitForTimeout(400);
 	await shot('05-math-toolbar');
 
-	// 7. Settle up page
-	const roomUrl = page.url().replace(/\/add$/, '');
-	await page.goto(`${roomUrl}/settle`);
-	await page.waitForSelector('text=Settle up');
+	// 6. Multi-currency: pick a foreign currency and a stored rate
+	await page.fill('.amount-input', '45');
+	await page.fill('.title-input', 'Souvenirs');
+	await page.click('.currency-chip');
+	await page.waitForSelector('text=US Dollar');
+	await page.click('text=US Dollar');
+	await page.waitForSelector('.rate-card');
+	await page.fill('.rate-input', '0.92');
+	await page.click('.title-input'); // blur the amount so the math toolbar hides
 	await page.waitForTimeout(300);
-	await shot('06-settle');
+	await shot('04-currency');
 
-	// 8. Stats page (still scoped to Lisbon)
-	await page.goto(`${roomUrl}/stats`);
+	// The static build uses relative asset paths, so navigate client-side (clicks) rather
+	// than full-reload page.goto, which would break asset resolution on deep routes.
+	await page.click('[aria-label="Cancel"]'); // back to home from the form
+	await page.waitForSelector('[data-page="dashboard"]');
+
+	// 7. Stats
+	await page.click('a[href$="/stats"]');
 	await page.waitForSelector('.tabs-pill');
 	await page.waitForTimeout(400);
-	await shot('07-stats');
+	await shot('06-stats');
 
-	// 9. Manage trips screen
-	await page.goto(`${roomUrl}/settings/trips`);
-	await page.waitForSelector('.intro');
-	await page.waitForTimeout(300);
-	await shot('08-trips');
-
-	// 10. Settings (data section)
-	await page.goto(`${roomUrl}/settings`);
+	// 8. Settings: data section
+	await page.click('a[aria-label="Project settings"]');
 	await page.waitForSelector('text=Export backup (JSON)');
-	// Scroll down to the Data section so it's centered.
 	await page.evaluate(() => {
 		document.querySelector('.data-card')?.scrollIntoView({ block: 'center' });
 	});
 	await page.waitForTimeout(300);
-	await shot('09-data');
+	await shot('08-data');
+
+	// 9. Manage trips
+	await page.click('a[href$="/settings/trips"]');
+	await page.waitForSelector('.intro');
+	await page.waitForTimeout(300);
+	await shot('07-trips');
 
 	await browser.close();
 	console.log(`Done. ${OUT_DIR}`);
