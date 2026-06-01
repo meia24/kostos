@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { version } from '$app/environment';
 	import { goto } from '$app/navigation';
 	import { PROJECT_COLOR_VALUES, tileBackground } from '$lib/colors';
 	import { listProjects, type ProjectRef } from '$lib/storage';
@@ -399,6 +400,7 @@
 				</details>
 			</section>
 		{/if}
+		<footer class="version-footer">Kostos v{version}</footer>
 	</div>
 </div>
 
@@ -783,5 +785,14 @@
 
 	.continue-btn {
 		margin-top: 14px;
+	}
+
+	.version-footer {
+		margin-top: 28px;
+		padding: 8px 0 4px;
+		text-align: center;
+		font-family: var(--font-mono);
+		font-size: 11px;
+		color: var(--ink-3);
 	}
 </style>

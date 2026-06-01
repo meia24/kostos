@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { version } from '$app/environment';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { PROJECT_COLORS, PROJECT_COLOR_VALUES } from '$lib/colors';
@@ -350,6 +351,7 @@
 			<p class="dim sign-out-hint">
 				Your data stays in the group. Joining again with the token restores everything.
 			</p>
+			<p class="dim version-line">Kostos v{version}</p>
 		</div>
 	{:else}
 		<div class="scroll empty-screen">
@@ -605,6 +607,14 @@
 		text-align: center;
 		margin: 8px 0 0;
 		line-height: 1.5;
+	}
+
+	.version-line {
+		font-size: 10px;
+		font-family: var(--font-mono);
+		text-align: center;
+		margin: 18px 0 0;
+		color: var(--ink-3);
 	}
 
 	.empty-screen {
