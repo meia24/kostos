@@ -34,6 +34,11 @@ const config = {
 		runes: ({ filename }) => (filename.split(/[/\\]/).includes('node_modules') ? undefined : true)
 	},
 	kit: {
+		// Absolute asset URLs (/_app/...), not relative. With SPA fallback the app shell is
+		// served for deep routes like /p/<room>/people; relative paths would resolve against
+		// that URL (/p/<room>/_app/...), miss, fall back to HTML, and break JS + CSS. We are
+		// always served from the domain root, so absolute is correct.
+		paths: { relative: false },
 		// surfaces as `version` from $app/environment so we can show it in the UI
 		version: { name: resolveVersion() },
 		adapter: adapter({
