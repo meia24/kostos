@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import Avatar from '$lib/components/Avatar.svelte';
 	import { parseProjectArchive, type ProjectArchive } from '$lib/io/projectArchive';
 	import { addProject, setCurrentMember } from '$lib/storage';
 	import { addExpense, initProject, openRoom } from '$lib/sync/doc';
@@ -61,6 +62,7 @@
 			currency: a.project.currency,
 			currencySymbol: a.project.currencySymbol,
 			defaultSplit: a.project.defaultSplit,
+			autoFetchRates: a.project.autoFetchRates,
 			categories: a.project.categories,
 			paymentMethods: a.project.paymentMethods,
 			trips: a.project.trips ?? [],
@@ -189,7 +191,7 @@
 						class:on={youMemberId === m.id}
 						onclick={() => (youMemberId = m.id)}
 					>
-						<span class="av av-sm member-av">{(m.name[0] ?? '?').toUpperCase()}</span>
+						<Avatar member={m} size="sm" />
 						<span class="member-name">{m.name}</span>
 						{#if youMemberId === m.id}
 							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="member-check">
@@ -336,11 +338,6 @@
 		cursor: pointer;
 		font: inherit;
 		text-align: left;
-	}
-
-	.member-av {
-		background: color-mix(in oklab, var(--ink) 12%, transparent);
-		color: var(--ink);
 	}
 
 	.member-name {

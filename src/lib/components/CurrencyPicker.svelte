@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { CURRENCY_PRESETS, type CurrencyPreset } from '$lib/currencies';
 
 	type Props = {
@@ -7,11 +8,21 @@
 		onSelect: (preset: CurrencyPreset) => void;
 		onCustom: (symbol: string) => void;
 		variant?: 'card' | 'inline';
+		label?: string;
+		startOpen?: boolean;
 	};
 
-	let { code, symbol, onSelect, onCustom, variant = 'card' }: Props = $props();
+	let {
+		code,
+		symbol,
+		onSelect,
+		onCustom,
+		variant = 'card',
+		label = 'Default currency',
+		startOpen = false
+	}: Props = $props();
 
-	let open = $state(false);
+	let open = $state(untrack(() => startOpen));
 	let customSym = $state('');
 
 	const currentName = $derived.by(() => {
@@ -42,7 +53,7 @@
 	>
 		<span class="field-icon num">{symbol}</span>
 		<span class="col field-text">
-			<span class="field-label">Default currency</span>
+			<span class="field-label">{label}</span>
 			<span class="field-value-static">{code === '—' ? 'Custom' : code} · {currentName}</span>
 		</span>
 		<span class="field-chevron" aria-hidden="true">

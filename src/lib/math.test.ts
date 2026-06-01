@@ -71,6 +71,13 @@ describe('toMinorUnits', () => {
 	it('does not lose pennies on noisy floats', () => {
 		expect(toMinorUnits(0.1 + 0.2)).toBe(30);
 	});
+
+	it('treats zero-decimal currencies as whole units', () => {
+		// ¥2000 is 2000 minor units, not 200000
+		expect(toMinorUnits(2000, 0)).toBe(2000);
+		expect(evalToCents('2000', 0)).toBe(2000);
+		expect(evalToCents('1000+1000', 0)).toBe(2000);
+	});
 });
 
 describe('isAllowedMathChar', () => {

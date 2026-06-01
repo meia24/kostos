@@ -38,11 +38,12 @@
 
 	async function onSave(expense: Expense) {
 		updateExpense(handle, expense);
-		await goto(`/p/${roomId}/expenses/${expense.id}`);
+		// replace so back from the detail doesn't land on the edit form again
+		await goto(`/p/${roomId}/expenses/${expense.id}`, { replaceState: true });
 	}
 
 	function onCancel() {
-		goto(`/p/${roomId}/expenses/${expenseId}`);
+		goto(`/p/${roomId}/expenses/${expenseId}`, { replaceState: true });
 	}
 </script>
 

@@ -374,6 +374,7 @@ select {
 }
 
 .av-lg { width: 48px; height: 48px; font-size: 16px; }
+.av-md { width: 40px; height: 40px; font-size: 14px; }
 .av-sm { width: 24px; height: 24px; font-size: 10px; }
 .av-xs { width: 20px; height: 20px; font-size: 9px; }
 

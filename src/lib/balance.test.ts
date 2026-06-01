@@ -23,6 +23,7 @@ function expense(partial: ExpenseInit): Expense {
 		payments,
 		amount: partial.amount,
 		currency: partial.currency ?? 'EUR',
+		exchangeRate: partial.exchangeRate,
 		date: partial.date ?? 0,
 		splitMode: partial.splitMode ?? 'even',
 		splits: partial.splits,
@@ -210,6 +211,52 @@ describe('computeBalances', () => {
 		expect(byId.a).toBe(300);
 		expect(byId.b).toBe(0);
 		expect(byId.c).toBe(-300);
+		expect(netZero(balances)).toBe(true);
+	});
+
+	it('converts a foreign-currency expense to base before laddering', () => {
+		const members = [member('a'), member('b')];
+		const expenses: Expense[] = [
+			expense({
+				amount: 5000, // $50.00
+				currency: 'USD',
+				exchangeRate: 0.9, // 0.90 EUR per USD
+				payerId: 'a',
+				splits: [{ memberId: 'a' }, { memberId: 'b' }]
+			})
+		];
+		const balances = computeBalances(members, expenses, 'EUR');
+		const byId = Object.fromEntries(balances.map((b) => [b.memberId, b.net]));
+		// base total €45.00, split evenly => b owes a €22.50
+		expect(byId.a).toBe(2250);
+		expect(byId.b).toBe(-2250);
+		expect(netZero(balances)).toBe(true);
+	});
+
+	it('keeps a mixed-currency ledger net-zero', () => {
+		const members = [member('a'), member('b'), member('c')];
+		const expenses: Expense[] = [
+			expense({
+				id: 'eur',
+				amount: 9001,
+				payerId: 'a',
+				splits: members.map((m) => ({ memberId: m.id }))
+			}),
+			expense({
+				id: 'usd',
+				amount: 4999,
+				currency: 'USD',
+				exchangeRate: 0.913,
+				payerId: 'b',
+				splitMode: 'shares',
+				splits: [
+					{ memberId: 'a', shares: 1 },
+					{ memberId: 'b', shares: 2 },
+					{ memberId: 'c', shares: 3 }
+				]
+			})
+		];
+		const balances = computeBalances(members, expenses, 'EUR');
 		expect(netZero(balances)).toBe(true);
 	});
 

@@ -1,7 +1,7 @@
 {
 	"name": "kostos-v2",
 	"private": true,
-	"version": "0.0.1",
+	"version": "0.1.0",
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",
@@ -15,6 +15,7 @@
 		"sync": "node scripts/sync-server.js",
 		"icons": "pwa-assets-generator && node scripts/build-maskable.js",
 		"screenshots": "node scripts/screenshots.js",
+		"seed": "node scripts/generate-seed.js",
 		"cf:dev": "wrangler dev",
 		"cf:deploy": "vite build && wrangler deploy"
 	},

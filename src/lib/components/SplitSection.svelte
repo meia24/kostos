@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Avatar from './Avatar.svelte';
 	import FillRowButton from './FillRowButton.svelte';
 	import { mathInput } from '$lib/actions/mathInput';
 	import { formatAmount } from '$lib/money';
@@ -137,7 +138,7 @@
 						<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7" /></svg>
 					{/if}
 				</button>
-				<span class="av av-sm member-av">{(m.name[0] ?? '?').toUpperCase()}</span>
+				<Avatar member={m} size="sm" />
 				<span class="member-name">{m.name}{m.id === currentMemberId ? ' (you)' : ''}</span>
 				{#if !isIn}
 					<span class="dim mono dash">—</span>
@@ -317,11 +318,6 @@
 	.checkbox.on {
 		background: var(--accent);
 		border-color: var(--accent);
-	}
-
-	.member-av {
-		background: color-mix(in oklab, var(--ink) 12%, transparent);
-		color: var(--ink);
 	}
 
 	.member-name {

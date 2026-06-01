@@ -30,3 +30,38 @@ export const PROJECT_EMOJI_PRESETS: string[] = [
 	'🐶',
 	'💸'
 ];
+
+/* Animal emojis for member avatars. All default to colour presentation. New members get a
+ * random one (non-repeated where possible); the picker also offers a custom emoji or letter. */
+export const ANIMAL_EMOJIS: string[] = [
+	'🐶',
+	'🐱',
+	'🐭',
+	'🐹',
+	'🐰',
+	'🦊',
+	'🐻',
+	'🐼',
+	'🐨',
+	'🐯',
+	'🦁',
+	'🐮',
+	'🐷',
+	'🐸',
+	'🐵',
+	'🐔',
+	'🐧',
+	'🦄',
+	'🐝',
+	'🦋',
+	'🐢',
+	'🐙',
+	'🦀',
+	'🐬',
+	'🐳',
+	'🦓',
+	'🦒',
+	'🦔',
+	'🦦',
+	'🦉'
+];

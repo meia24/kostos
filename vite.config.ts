@@ -15,7 +15,7 @@ export default defineConfig({
 	plugins: [
 		sveltekit(),
 		SvelteKitPWA({
-			registerType: 'prompt',
+			registerType: 'autoUpdate',
 			injectRegister: false,
 			manifest: {
 				name: 'Kostos',
@@ -41,7 +41,11 @@ export default defineConfig({
 				]
 			},
 			workbox: {
-				globPatterns: ['client/**/*.{js,css,ico,png,svg,webp,woff,woff2}']
+				globPatterns: ['client/**/*.{js,css,ico,png,svg,webp,woff,woff2}'],
+				// purge precaches from older builds so a stale SW can't keep serving
+				// dead CSS/JS chunk names (the pre-refactor "unstyled on mobile" bug)
+				cleanupOutdatedCaches: true,
+				clientsClaim: true
 			}
 		})
 	]

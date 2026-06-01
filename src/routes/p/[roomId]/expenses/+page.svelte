@@ -2,7 +2,7 @@
 	import { page } from '$app/state';
 	import EmptyCard from '$lib/components/EmptyCard.svelte';
 	import ExpenseRow from '$lib/components/ExpenseRow.svelte';
-	import ScreenAppBar from '$lib/components/ScreenAppBar.svelte';
+	import ProjectAppBar from '$lib/components/ProjectAppBar.svelte';
 	import TabBar from '$lib/components/TabBar.svelte';
 	import { formatAmount } from '$lib/money';
 	import { getCurrentMember } from '$lib/storage';
@@ -146,13 +146,7 @@
 </svelte:head>
 
 <div class="screen" data-page="expenses-list">
-	<ScreenAppBar title="Expenses" backHref="/p/{roomId}" {project}>
-		{#snippet right()}
-			<a class="icon-btn" href="/p/{roomId}/add" aria-label="Add expense">
-				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 6v12M6 12h12" /></svg>
-			</a>
-		{/snippet}
-	</ScreenAppBar>
+	<ProjectAppBar {roomId} {project} handle={room.handle} />
 
 	<div class="search-bar">
 		<span class="search-icon" aria-hidden="true">

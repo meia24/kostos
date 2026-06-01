@@ -2,7 +2,10 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { expenseShares } from '$lib/balance';
+	import Avatar from '$lib/components/Avatar.svelte';
 	import ScreenAppBar from '$lib/components/ScreenAppBar.svelte';
+	import { CURRENCY_PRESETS } from '$lib/currencies';
+	import { expenseBaseAmount } from '$lib/currency-convert';
 	import { formatAmount, formatSigned } from '$lib/money';
 	import { getCurrentMember } from '$lib/storage';
 	import { removeExpense } from '$lib/sync/doc';
@@ -24,6 +27,17 @@
 	const currency = $derived(room.currency);
 	const membersById = $derived(room.membersById);
 	const expense = $derived(expenses.find((e) => e.id === expenseId));
+
+	// a single expense reads cleanest in its own currency; the base equivalent sits under
+	// the hero so it still ties back to the group balances.
+	const isForeign = $derived(!!expense && expense.currency !== currency);
+	const nativeCurrency = $derived(expense?.currency ?? currency);
+	const nativeSymbol = $derived(
+		isForeign
+			? (CURRENCY_PRESETS.find((p) => p.code === nativeCurrency)?.sym ?? nativeCurrency)
+			: currencySymbol
+	);
+	const baseAmount = $derived(expense ? expenseBaseAmount(expense, currency) : 0);
 
 	const category = $derived.by(() => {
 		if (!expense?.categoryId || !project) return null;
@@ -127,17 +141,21 @@
 					</div>
 				</div>
 				<div class="hero-amount">
-					<span class="hero-sym">{currencySymbol}</span>{formatAmount(expense.amount, "", currency)}
+					<span class="hero-sym">{nativeSymbol}</span>{formatAmount(expense.amount, "", nativeCurrency)}
 				</div>
+				{#if isForeign}
+					<div class="dim mono hero-fx">
+						≈ {formatAmount(baseAmount, currencySymbol, currency)}
+						{#if expense.exchangeRate}· 1 {nativeCurrency} = {expense.exchangeRate} {currency}{/if}
+					</div>
+				{/if}
 				<div class="row gap-8 hero-stickers">
 					{#each expense.payments as p, idx (idx)}
 						<span class="sticker">
-							<span class="av av-xs sticker-av">
-								{(membersById.get(p.memberId)?.name?.[0] ?? '?').toUpperCase()}
-							</span>
+							<Avatar member={membersById.get(p.memberId)} size="xs" />
 							{memberLabel(p.memberId)}
 							{#if expense.payments.length > 1}
-								<span class="dim">{formatAmount(p.amount, currencySymbol, currency)}</span>
+								<span class="dim">{formatAmount(p.amount, nativeSymbol, nativeCurrency)}</span>
 							{/if}
 						</span>
 					{/each}
@@ -157,7 +175,7 @@
 						<div class="row between">
 							<div class="col">
 								<div class="eyebrow share-eyebrow">Your share</div>
-								<div class="num share-amount">{formatAmount(yourShareCents, currencySymbol, currency)}</div>
+								<div class="num share-amount">{formatAmount(yourShareCents, nativeSymbol, nativeCurrency)}</div>
 								<div class="dim mono share-sub">{shareLabelFor(currentMemberId)}</div>
 							</div>
 							<div class="col" style="align-items: flex-end;">
@@ -167,7 +185,7 @@
 									class:tone-owed={yourImpact > 0}
 									class:tone-owe={yourImpact < 0}
 								>
-									{formatSigned(yourImpact, currencySymbol, currency)}
+									{formatSigned(yourImpact, nativeSymbol, nativeCurrency)}
 								</div>
 							</div>
 						</div>
@@ -186,9 +204,7 @@
 					{@const cents = shares.get(s.memberId) ?? 0}
 					{#if i > 0}<hr class="hairline" style="margin-left: 56px;" />{/if}
 					<div class="row gap-10 breakdown-row">
-						<span class="av av-sm breakdown-av">
-							{(member?.name?.[0] ?? '?').toUpperCase()}
-						</span>
+						<Avatar member={member} size="sm" />
 						<div class="col" style="flex: 1;">
 							<div class="row gap-6">
 								<span class="breakdown-name">{memberLabel(s.memberId)}</span>
@@ -196,7 +212,7 @@
 							</div>
 							<div class="dim mono breakdown-meta">{shareLabelFor(s.memberId)}</div>
 						</div>
-						<span class="num breakdown-amount">{formatAmount(cents, currencySymbol, currency)}</span>
+						<span class="num breakdown-amount">{formatAmount(cents, nativeSymbol, nativeCurrency)}</span>
 					</div>
 				{/each}
 			</div>
@@ -283,14 +299,14 @@
 		font-size: 28px;
 	}
 
+	.hero-fx {
+		font-size: 12px;
+		margin-top: 6px;
+	}
+
 	.hero-stickers {
 		flex-wrap: wrap;
 		align-items: center;
-	}
-
-	.sticker-av {
-		background: color-mix(in oklab, var(--ink) 18%, transparent);
-		color: var(--ink);
 	}
 
 	.share-callout {
@@ -325,11 +341,6 @@
 
 	.breakdown-row {
 		padding: 12px;
-	}
-
-	.breakdown-av {
-		background: color-mix(in oklab, var(--ink) 12%, transparent);
-		color: var(--ink);
 	}
 
 	.breakdown-name {

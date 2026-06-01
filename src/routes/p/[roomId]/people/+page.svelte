@@ -1,10 +1,14 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { pickMemberColor, pickMemberEmoji } from '$lib/avatar';
+	import { ANIMAL_EMOJIS } from '$lib/emojis';
 	import { computeBalances, expenseShares } from '$lib/balance';
-	import ScreenAppBar from '$lib/components/ScreenAppBar.svelte';
+	import Avatar from '$lib/components/Avatar.svelte';
+	import MemberEmojiPicker from '$lib/components/MemberEmojiPicker.svelte';
+	import ProjectAppBar from '$lib/components/ProjectAppBar.svelte';
 	import TabBar from '$lib/components/TabBar.svelte';
 	import { formatAmount, formatSigned } from '$lib/money';
-	import { getCurrentMember } from '$lib/storage';
+	import { getCurrentMember, setCurrentMember } from '$lib/storage';
 	import {
 		addMember,
 		generateId,
@@ -28,16 +32,28 @@
 	let editingName = $state('');
 	let editInputEl = $state<HTMLInputElement | null>(null);
 	let removingId = $state<string | null>(null);
+	let emojiPickerId = $state<string | null>(null);
 	let newName = $state('');
 
 	$effect(() => {
 		if (editingId && editInputEl) editInputEl.focus();
 	});
 
-	const currentMemberId = $derived.by(() => getCurrentMember(roomId));
+	// Local copy so claiming a member updates the UI at once; getCurrentMember reads
+	// localStorage, which isn't reactive on its own.
+	let currentMemberId = $state<string | null>(null);
+	$effect(() => {
+		currentMemberId = getCurrentMember(roomId);
+	});
+
+	function claimMember(m: Member) {
+		setCurrentMember(roomId, m.id);
+		currentMemberId = m.id;
+	}
+
 	const currencySymbol = $derived(room.currencySymbol);
 	const currency = $derived(room.currency);
-	const balances = $derived(computeBalances(members, expenses));
+	const balances = $derived(computeBalances(members, expenses, room.currency));
 	const balanceById = $derived(new Map(balances.map((b) => [b.memberId, b.net])));
 
 	type MemberStats = { paid: number; owes: number; count: number };
@@ -116,8 +132,28 @@
 		event?.preventDefault();
 		const name = newName.trim();
 		if (!name) return;
-		addMember(handle, { id: generateId(), name, createdAt: Date.now() });
+		addMember(handle, {
+			id: generateId(),
+			name,
+			color: pickMemberColor(members),
+			emoji: pickMemberEmoji(members),
+			createdAt: Date.now()
+		});
 		newName = '';
+	}
+
+	const pickerMember = $derived(members.find((m) => m.id === emojiPickerId) ?? null);
+
+	function setEmoji(emoji: string) {
+		if (!emojiPickerId) return;
+		updateMember(handle, emojiPickerId, { emoji });
+		emojiPickerId = null;
+	}
+
+	function clearEmoji() {
+		if (!emojiPickerId) return;
+		updateMember(handle, emojiPickerId, { emoji: '' });
+		emojiPickerId = null;
 	}
 </script>
 
@@ -126,7 +162,7 @@
 </svelte:head>
 
 <div class="screen" data-page="people">
-	<ScreenAppBar title="Members" backHref="/p/{roomId}" {project} />
+	<ProjectAppBar {roomId} {project} handle={room.handle} />
 
 	<div class="scroll">
 		<div class="section-head" style="margin-top: 4px;">
@@ -141,7 +177,14 @@
 				{@const history = memberHistoryCount(handle, m.id)}
 				<div class="card member-card" class:is-you={isYou}>
 					<div class="row gap-12 member-top">
-						<span class="av av-lg member-av">{(m.name[0] ?? '?').toUpperCase()}</span>
+						<button
+							type="button"
+							class="avatar-btn"
+							onclick={() => (emojiPickerId = m.id)}
+							aria-label="Change {m.name}'s avatar"
+						>
+							<Avatar member={m} size="lg" />
+						</button>
 						<div class="col member-text">
 							{#if editingId === m.id}
 								<form class="row gap-6" onsubmit={commitEdit}>
@@ -177,14 +220,19 @@
 						<hr class="hairline member-rule" />
 						<div class="row between stat-row">
 							<div class="col stat-cell">
-								<span class="dim mono stat-label">PAID</span>
+								<span class="dim mono stat-label">PUT IN</span>
 								<span class="num stat-value">{formatAmount(stats.paid, currencySymbol, currency)}</span>
 							</div>
 							<div class="col stat-cell">
-								<span class="dim mono stat-label">OWES SHARE</span>
+								<span class="dim mono stat-label">USED</span>
 								<span class="num stat-value">{formatAmount(stats.owes, currencySymbol, currency)}</span>
 							</div>
 							<div class="row gap-6 member-actions">
+								{#if !isYou}
+									<button class="btn btn-ghost claim-btn" type="button" onclick={() => claimMember(m)}>
+										This is me
+									</button>
+								{/if}
 								<button class="icon-btn" type="button" onclick={() => startEdit(m)} aria-label="Rename">
 									<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 20h4l11-11-4-4L4 16v4zM14 6l4 4" /></svg>
 								</button>
@@ -241,6 +289,16 @@
 	<TabBar {roomId} active="people" />
 </div>
 
+<MemberEmojiPicker
+	open={pickerMember !== null}
+	current={pickerMember?.emoji}
+	name={pickerMember?.name ?? ''}
+	emojis={ANIMAL_EMOJIS}
+	onPick={setEmoji}
+	onClear={clearEmoji}
+	onClose={() => (emojiPickerId = null)}
+/>
+
 <style>
 	.member-cards {
 		gap: 8px;
@@ -258,9 +316,18 @@
 		align-items: center;
 	}
 
-	.member-av {
-		background: color-mix(in oklab, var(--ink) 14%, transparent);
-		color: var(--ink);
+	.avatar-btn {
+		border: 0;
+		background: transparent;
+		padding: 0;
+		cursor: pointer;
+		border-radius: 999px;
+		flex-shrink: 0;
+		-webkit-tap-highlight-color: transparent;
+	}
+
+	.avatar-btn:active {
+		transform: scale(0.96);
 	}
 
 	.member-text {
@@ -327,6 +394,14 @@
 
 	.member-actions {
 		margin-left: auto;
+		align-items: center;
+	}
+
+	.claim-btn {
+		padding: 6px 10px;
+		font-size: 12px;
+		color: var(--ink-2);
+		white-space: nowrap;
 	}
 
 	.member-actions .icon-btn {

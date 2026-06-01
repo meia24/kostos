@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import CategoryBreakdown from '$lib/components/CategoryBreakdown.svelte';
-	import ScreenAppBar from '$lib/components/ScreenAppBar.svelte';
+	import ProjectAppBar from '$lib/components/ProjectAppBar.svelte';
 	import type { CategoryRollup } from '$lib/components/CategoryBreakdown.svelte';
 	import DailyBars from '$lib/components/DailyBars.svelte';
 	import EmptyCard from '$lib/components/EmptyCard.svelte';
@@ -11,6 +11,7 @@
 	import TopExpensesCard from '$lib/components/TopExpensesCard.svelte';
 	import TripSheet from '$lib/components/TripSheet.svelte';
 	import TripStrip from '$lib/components/TripStrip.svelte';
+	import { expenseInBase } from '$lib/currency-convert';
 	import { formatAmount } from '$lib/money';
 	import { getCurrentMember } from '$lib/storage';
 	import { useRoom } from '$lib/sync/useRoom.svelte';
@@ -97,8 +98,10 @@
 		if (cutoff === 0) return realExpenses;
 		return realExpenses.filter((e) => e.date >= cutoff);
 	});
+	// Normalise to the base currency so cross-currency groups sum correctly everywhere.
+	const periodBase = $derived(periodExpenses.map((e) => expenseInBase(e, currency)));
 
-	const totalSpent = $derived(periodExpenses.reduce((s, e) => s + e.amount, 0));
+	const totalSpent = $derived(periodBase.reduce((s, e) => s + e.amount, 0));
 	const perPerson = $derived(members.length > 0 ? Math.round(totalSpent / members.length) : 0);
 	const expenseCount = $derived(periodExpenses.length);
 	const avgExpense = $derived(expenseCount > 0 ? Math.round(totalSpent / expenseCount) : 0);
@@ -147,7 +150,7 @@
 			for (let t = start; t <= end; t += 86400 * 1000) {
 				buckets.push({ date: t, total: 0 });
 			}
-			for (const e of periodExpenses) {
+			for (const e of periodBase) {
 				const idx = Math.round((startOfDay(e.date) - start) / (86400 * 1000));
 				if (idx >= 0 && idx < buckets.length) buckets[idx].total += e.amount;
 			}
@@ -161,7 +164,7 @@
 			for (let t = startW; t <= endW; t += 7 * 86400 * 1000) {
 				buckets.push({ date: t, total: 0 });
 			}
-			for (const e of periodExpenses) {
+			for (const e of periodBase) {
 				const idx = Math.round((startOfWeek(e.date) - startW) / (7 * 86400 * 1000));
 				if (idx >= 0 && idx < buckets.length) buckets[idx].total += e.amount;
 			}
@@ -177,7 +180,7 @@
 			cursor.setMonth(cursor.getMonth() + 1);
 		}
 		const indexByMonth = new Map(buckets.map((b, i) => [b.date, i]));
-		for (const e of periodExpenses) {
+		for (const e of periodBase) {
 			const idx = indexByMonth.get(startOfMonth(e.date));
 			if (idx !== undefined) buckets[idx].total += e.amount;
 		}
@@ -186,7 +189,7 @@
 
 	const byCategory = $derived.by<CategoryRollup[]>(() => {
 		const totals = new Map<string, number>();
-		for (const e of periodExpenses) {
+		for (const e of periodBase) {
 			const id = e.categoryId ?? 'uncategorised';
 			totals.set(id, (totals.get(id) ?? 0) + e.amount);
 		}
@@ -207,20 +210,23 @@
 	const byMemberPaid = $derived.by<MemberContribution[]>(() => {
 		const totals = new Map<string, number>();
 		for (const m of members) totals.set(m.id, 0);
-		for (const e of periodExpenses) {
+		for (const e of periodBase) {
 			for (const p of e.payments) {
 				totals.set(p.memberId, (totals.get(p.memberId) ?? 0) + p.amount);
 			}
 		}
 		return [...totals.entries()]
-			.map(([id, paid]) => ({ id, name: membersById.get(id)?.name ?? '—', paid }))
+			.map(([id, paid]) => {
+				const m = membersById.get(id);
+				return { id, name: m?.name ?? '—', color: m?.color, emoji: m?.emoji, paid };
+			})
 			.sort((a, b) => b.paid - a.paid);
 	});
 
 	type MethodRollup = { id: string; name: string; emoji: string; amount: number; color: string };
 	const byMethod = $derived.by<MethodRollup[]>(() => {
 		const totals = new Map<string, number>();
-		for (const e of periodExpenses) {
+		for (const e of periodBase) {
 			const id = e.paymentMethodId ?? 'unknown';
 			totals.set(id, (totals.get(id) ?? 0) + e.amount);
 		}
@@ -239,7 +245,7 @@
 	});
 
 	const topExpenses = $derived(
-		[...periodExpenses].sort((a, b) => b.amount - a.amount).slice(0, 5)
+		[...periodBase].sort((a, b) => b.amount - a.amount).slice(0, 5)
 	);
 
 	const insight = $derived.by<string | null>(() => {
@@ -259,7 +265,7 @@
 </svelte:head>
 
 <div class="screen" data-page="stats">
-	<ScreenAppBar title="Stats" backHref="/p/{roomId}" {project} />
+	<ProjectAppBar {roomId} {project} handle={room.handle} />
 
 	<div class="scroll">
 		<TripStrip

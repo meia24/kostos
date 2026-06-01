@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import AmountField from './AmountField.svelte';
+	import CurrencyPicker from './CurrencyPicker.svelte';
 	import EmojiPickerField from './EmojiPickerField.svelte';
 	import type { EmojiItem } from './EmojiPickerField.svelte';
 	import PaidBySection from './PaidBySection.svelte';
@@ -10,6 +11,10 @@
 	import NotesField from './NotesField.svelte';
 	import TripPickerField from './TripPickerField.svelte';
 	import { expenseShares, splitEvenly } from '$lib/balance';
+	import { CURRENCY_PRESETS, currencyDecimals, type CurrencyPreset } from '$lib/currencies';
+	import { expenseBaseAmount } from '$lib/currency-convert';
+	import { fetchRate } from '$lib/fx';
+	import { formatAmount, toInputValue } from '$lib/money';
 	import { evalToCents } from '$lib/math';
 	import { suggestTripIdForDate } from '$lib/trips';
 	import type {
@@ -54,7 +59,7 @@
 	const seed = untrack(() => initial);
 
 	function seedAmountInput(): string {
-		return seed ? (seed.amount / 100).toFixed(2) : '';
+		return seed ? toInputValue(seed.amount, seed.currency) : '';
 	}
 
 	function seedDateStr(): string {
@@ -78,7 +83,7 @@
 		return seed.payments.map((p) => ({
 			id: generateId(),
 			memberId: p.memberId,
-			amount: (p.amount / 100).toFixed(2)
+			amount: toInputValue(p.amount, seed.currency)
 		}));
 	}
 
@@ -101,7 +106,7 @@
 		for (const m of members) out[m.id] = '';
 		if (seed?.splitMode === 'amount') {
 			for (const s of seed.splits) {
-				out[s.memberId] = ((s.amount ?? 0) / 100).toFixed(2);
+				out[s.memberId] = toInputValue(s.amount ?? 0, seed.currency);
 			}
 		}
 		return out;
@@ -132,7 +137,7 @@
 			amountCents = 0;
 			return;
 		}
-		const evaluated = evalToCents(raw);
+		const evaluated = evalToCents(raw, decimals);
 		if (evaluated !== null && evaluated >= 0) amountCents = evaluated;
 	});
 
@@ -148,11 +153,96 @@
 	});
 
 	const isExpression = $derived(/[+\-*/()]/.test(amountInput.trim()));
-	const currencySymbol = $derived(project.currencySymbol);
-	const currency = $derived(project.currency);
+
+	let currencyCode = $state(untrack(() => seed?.currency ?? project.currency));
+	let currencyOpen = $state(false);
+	let rateInput = $state(seed?.exchangeRate != null ? String(seed.exchangeRate) : '');
+	let rateTouched = $state(false);
+	let rateFetching = $state(false);
+	let rateError = $state(false);
+
+	function symbolForCode(code: string): string {
+		if (code === project.currency) return project.currencySymbol;
+		return CURRENCY_PRESETS.find((p) => p.code === code)?.sym ?? code;
+	}
+
+	const currency = $derived(currencyCode);
+	const currencySymbol = $derived(symbolForCode(currencyCode));
+	const decimals = $derived(currencyDecimals(currencyCode));
+	const isForeign = $derived(currencyCode !== project.currency);
+
+	// render a minor-units value as an editable string in the active currency's precision
+	function amountStr(cents: number): string {
+		return (cents / 10 ** decimals).toFixed(decimals);
+	}
+	const exchangeRate = $derived.by(() => {
+		const v = parseFloat(rateInput);
+		return Number.isFinite(v) && v > 0 ? v : null;
+	});
+	const baseAmountPreview = $derived(
+		isForeign && exchangeRate
+			? expenseBaseAmount(
+					{
+						id: 'preview',
+						payments: [],
+						amount: amountCents,
+						currency: currencyCode,
+						exchangeRate,
+						date: 0,
+						splitMode: 'even',
+						splits: [],
+						createdAt: 0,
+						createdBy: ''
+					},
+					project.currency
+				)
+			: 0
+	);
+
+	function resetRate() {
+		rateInput = '';
+		rateTouched = false;
+		rateError = false;
+	}
+
+	function pickCurrency(p: CurrencyPreset) {
+		currencyCode = p.code;
+		resetRate();
+	}
+
+	function pickCustomCurrency(sym: string) {
+		currencyCode = sym;
+		resetRate();
+	}
+
+	async function fetchCurrentRate() {
+		if (!isForeign) return;
+		rateError = false;
+		rateFetching = true;
+		const rate = await fetchRate(currencyCode, project.currency);
+		rateFetching = false;
+		if (rate == null) {
+			rateError = true;
+			return;
+		}
+		rateInput = String(Number(rate.toFixed(6)));
+	}
+
+	// plain (non-reactive) guard: only auto-fetch once per currency so a failed request
+	// never retries in a loop and hammers the API.
+	let lastAutoRateKey = '';
+	$effect(() => {
+		const key = currencyCode;
+		if (!isForeign || !project.autoFetchRates) return;
+		if (untrack(() => rateTouched)) return;
+		if (key === lastAutoRateKey) return;
+		lastAutoRateKey = key;
+		void fetchCurrentRate();
+	});
+
 	const involvedList = $derived(members.filter((m) => involved.has(m.id)));
 
-	const payerCents = $derived(payers.map((p) => evalToCents(p.amount) ?? 0));
+	const payerCents = $derived(payers.map((p) => evalToCents(p.amount, decimals) ?? 0));
 	const paidTotal = $derived(payerCents.reduce((sum, c) => sum + c, 0));
 	const paidShort = $derived(amountCents - paidTotal);
 	const isMultiPayer = $derived(payers.length > 1);
@@ -162,8 +252,13 @@
 			(!isMultiPayer || (paidTotal === amountCents && payerCents.every((c) => c > 0)))
 	);
 
+	const rateValid = $derived(!isForeign || exchangeRate !== null);
 	const canSave = $derived(
-		amountCents > 0 && title.trim().length > 0 && paymentsValid && involvedList.length > 0
+		amountCents > 0 &&
+			title.trim().length > 0 &&
+			paymentsValid &&
+			involvedList.length > 0 &&
+			rateValid
 	);
 
 	function buildSplits(): ExpenseSplit[] {
@@ -173,7 +268,7 @@
 		}
 		return involvedList.map((m) => ({
 			memberId: m.id,
-			amount: evalToCents(amounts[m.id] ?? '') ?? 0
+			amount: evalToCents(amounts[m.id] ?? '', decimals) ?? 0
 		}));
 	}
 
@@ -184,7 +279,7 @@
 			id: 'preview',
 			payments: [{ memberId: fallback, amount: amountCents }],
 			amount: amountCents,
-			currency: project.currency,
+			currency: currencyCode,
 			date: Date.now(),
 			splitMode,
 			splits: buildSplits(),
@@ -198,13 +293,13 @@
 	);
 	const assignedAmount = $derived.by(() => {
 		if (splitMode !== 'amount') return amountCents;
-		return involvedList.reduce((sum, m) => sum + (evalToCents(amounts[m.id] ?? '') ?? 0), 0);
+		return involvedList.reduce((sum, m) => sum + (evalToCents(amounts[m.id] ?? '', decimals) ?? 0), 0);
 	});
 	const remaining = $derived(amountCents - assignedAmount);
 	const totalShares = $derived(involvedList.reduce((sum, m) => sum + (shares[m.id] ?? 0), 0));
 	const emptyInvolvedCount = $derived(
 		splitMode === 'amount'
-			? involvedList.filter((m) => (evalToCents(amounts[m.id] ?? '') ?? 0) === 0).length
+			? involvedList.filter((m) => (evalToCents(amounts[m.id] ?? '', decimals) ?? 0) === 0).length
 			: 0
 	);
 	const canAutoFill = $derived(
@@ -230,7 +325,7 @@
 		}
 		if (payers.length === 1) {
 			payers = [
-				{ ...payers[0], amount: (amountCents / 100).toFixed(2) },
+				{ ...payers[0], amount: amountStr(amountCents) },
 				{ id: generateId(), memberId: nextAvailableMember(), amount: '' }
 			];
 			return;
@@ -247,29 +342,29 @@
 	function fillPayerRow(id: string) {
 		const sumOthers = payers
 			.filter((p) => p.id !== id)
-			.reduce((sum, p) => sum + (evalToCents(p.amount) ?? 0), 0);
+			.reduce((sum, p) => sum + (evalToCents(p.amount, decimals) ?? 0), 0);
 		const target = amountCents - sumOthers;
 		if (target < 0) return;
-		setPayerRow(id, { amount: (target / 100).toFixed(2) });
+		setPayerRow(id, { amount: amountStr(target) });
 	}
 
 	function fillSplitRow(memberId: string) {
 		const sumOthers = involvedList
 			.filter((m) => m.id !== memberId)
-			.reduce((sum, m) => sum + (evalToCents(amounts[m.id] ?? '') ?? 0), 0);
+			.reduce((sum, m) => sum + (evalToCents(amounts[m.id] ?? '', decimals) ?? 0), 0);
 		const target = amountCents - sumOthers;
 		if (target < 0) return;
-		amounts = { ...amounts, [memberId]: (target / 100).toFixed(2) };
+		amounts = { ...amounts, [memberId]: amountStr(target) };
 	}
 
 	function autoFillRest() {
 		if (splitMode !== 'amount') return;
-		const empties = involvedList.filter((m) => (evalToCents(amounts[m.id] ?? '') ?? 0) === 0);
+		const empties = involvedList.filter((m) => (evalToCents(amounts[m.id] ?? '', decimals) ?? 0) === 0);
 		if (empties.length === 0 || remaining <= 0) return;
 		const portions = splitEvenly(remaining, empties.length);
 		const next = { ...amounts };
 		empties.forEach((m, i) => {
-			next[m.id] = (portions[i] / 100).toFixed(2);
+			next[m.id] = amountStr(portions[i]);
 		});
 		amounts = next;
 	}
@@ -314,7 +409,9 @@
 			id: seed?.id ?? generateId(),
 			payments: finalPayments,
 			amount: amountCents,
-			currency: project.currency,
+			currency: currencyCode,
+			exchangeRate: isForeign ? (exchangeRate ?? undefined) : undefined,
+			rateFetchedAt: isForeign ? Date.now() : undefined,
 			description: title.trim(),
 			categoryId,
 			paymentMethodId,
@@ -362,7 +459,78 @@
 			{isExpression}
 		/>
 
-		<input class="input title-input" bind:value={title} placeholder="What was it for?" />
+		{#if currencyOpen}
+			<div class="card field-card currency-card">
+				<CurrencyPicker
+					code={currencyCode}
+					symbol={currencySymbol}
+					label="Currency"
+					startOpen
+					onSelect={(p) => {
+						pickCurrency(p);
+						currencyOpen = false;
+					}}
+					onCustom={(s) => {
+						pickCustomCurrency(s);
+						currencyOpen = false;
+					}}
+				/>
+			</div>
+		{:else}
+			<div class="currency-chip-row">
+				<button type="button" class="currency-chip" onclick={() => (currencyOpen = true)}>
+					<span class="num currency-chip-sym">{currencySymbol}</span>
+					<span class="currency-chip-code">{currencyCode}</span>
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" class="currency-chip-chevron" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
+				</button>
+			</div>
+		{/if}
+
+		{#if isForeign}
+			<div class="card rate-card">
+				<div class="row between rate-head">
+					<span class="eyebrow">Exchange rate</span>
+					<button
+						type="button"
+						class="btn btn-ghost rate-fetch"
+						onclick={fetchCurrentRate}
+						disabled={rateFetching}
+					>
+						{rateFetching ? 'Fetching…' : 'Fetch rate'}
+					</button>
+				</div>
+				<div class="row gap-8 rate-row">
+					<span class="rate-eq mono">1 {currencyCode} =</span>
+					<input
+						class="input rate-input mono"
+						bind:value={rateInput}
+						oninput={() => (rateTouched = true)}
+						inputmode="decimal"
+						placeholder="0.000000"
+						aria-label="Exchange rate to {project.currency}"
+					/>
+					<span class="rate-base mono">{project.currency}</span>
+				</div>
+				{#if exchangeRate}
+					<p class="dim mono rate-note">
+						{formatAmount(amountCents, currencySymbol, currencyCode)} ≈ {formatAmount(
+							baseAmountPreview,
+							project.currencySymbol,
+							project.currency
+						)}
+					</p>
+				{:else if rateError}
+					<p class="dim rate-note">Couldn't fetch a rate. Enter it manually.</p>
+				{:else}
+					<p class="dim rate-note">Set the rate to convert this into {project.currency}.</p>
+				{/if}
+			</div>
+		{/if}
+
+		<label class="title-field">
+			<span class="eyebrow title-label">Concept</span>
+			<input class="input title-input" bind:value={title} placeholder="What was it for?" />
+		</label>
 
 		<div class="card field-card meta-card">
 			<EmojiPickerField
@@ -458,8 +626,104 @@
 		margin-bottom: 10px;
 	}
 
-	.title-input {
+	.currency-card {
+		padding: 4px;
+		margin-bottom: 10px;
+	}
+
+	.currency-chip-row {
+		display: flex;
+		justify-content: center;
+		margin-bottom: 12px;
+	}
+
+	.currency-chip {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		padding: 5px 10px 5px 12px;
+		background: transparent;
+		border: 1px solid var(--line);
+		border-radius: 999px;
+		color: var(--ink-2);
+		cursor: pointer;
+		font: inherit;
+		font-size: 12px;
+		-webkit-tap-highlight-color: transparent;
+	}
+
+	.currency-chip-sym {
+		color: var(--accent);
+		font-weight: 700;
+	}
+
+	.currency-chip-code {
+		letter-spacing: 0.04em;
+	}
+
+	.currency-chip-chevron {
+		width: 13px;
+		height: 13px;
+		color: var(--ink-3);
+	}
+
+	.rate-card {
+		padding: 14px;
+		margin-bottom: 10px;
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+	}
+
+	.rate-head {
+		align-items: center;
+	}
+
+	.rate-fetch {
+		padding: 6px 10px;
+		font-size: 12px;
+		color: var(--ink-2);
+	}
+
+	.rate-row {
+		align-items: center;
+	}
+
+	.rate-eq {
+		font-size: 13px;
+		color: var(--ink-2);
+		white-space: nowrap;
+	}
+
+	.rate-input {
+		flex: 1;
+		padding: 10px 12px;
+		font-size: 14px;
+		text-align: center;
+	}
+
+	.rate-base {
+		font-size: 13px;
+		color: var(--ink-2);
+	}
+
+	.rate-note {
+		font-size: 11px;
+		margin: 0;
+	}
+
+	.title-field {
+		display: block;
 		margin: 18px 0 12px;
+	}
+
+	.title-label {
+		display: block;
+		margin-bottom: 8px;
+	}
+
+	.title-input {
+		width: 100%;
 		text-align: left;
 		font-size: 17px;
 		font-weight: 600;
