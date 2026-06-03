@@ -174,7 +174,7 @@
 		display: flex;
 		align-items: center;
 		gap: 12px;
-		padding: 14px 12px;
+		padding: 9px 12px;
 		text-decoration: none;
 		color: inherit;
 	}
