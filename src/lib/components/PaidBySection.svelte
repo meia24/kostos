@@ -58,15 +58,20 @@
 <div class="card field-card">
 	{#if !isMulti}
 		{@const single = payers[0]}
+		{@const payerMember = members.find((m) => m.id === single?.memberId)}
 		<button
 			type="button"
 			class="field field-button"
 			aria-expanded={openRow === single?.id}
 			onclick={() => (openRow = openRow === single?.id ? null : (single?.id ?? null))}
 		>
-			<span class="cat-tile field-tile">
-				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 4v16M6 7h12M4 11l2-4 2 4a2 2 0 1 1-4 0zM16 11l2-4 2 4a2 2 0 1 1-4 0z" /></svg>
-			</span>
+			{#if payerMember}
+				<Avatar member={payerMember} size="md" />
+			{:else}
+				<span class="cat-tile field-tile">
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 4v16M6 7h12M4 11l2-4 2 4a2 2 0 1 1-4 0zM16 11l2-4 2 4a2 2 0 1 1-4 0z" /></svg>
+				</span>
+			{/if}
 			<span class="col field-text">
 				<span class="field-label">Paid by</span>
 				<span class="field-value-static">{single ? memberName(single.memberId) : '—'}</span>
