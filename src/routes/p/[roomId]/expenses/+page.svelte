@@ -4,10 +4,12 @@
 	import ExpenseRow from '$lib/components/ExpenseRow.svelte';
 	import ProjectAppBar from '$lib/components/ProjectAppBar.svelte';
 	import TabBar from '$lib/components/TabBar.svelte';
+	import TripSheet from '$lib/components/TripSheet.svelte';
+	import TripStrip from '$lib/components/TripStrip.svelte';
 	import { formatAmount } from '$lib/money';
 	import { getCurrentMember } from '$lib/storage';
 	import { useRoom } from '$lib/sync/useRoom.svelte';
-	import { readTripSelection, scopeExpenses } from '$lib/trips';
+	import { readTripSelection, scopeExpenses, writeTripSelection } from '$lib/trips';
 	import type { Expense } from '$lib/types';
 
 	const roomId = $derived(page.params.roomId ?? '');
@@ -63,6 +65,21 @@
 		selectedTripId ? (trips.find((t) => t.id === selectedTripId) ?? null) : null
 	);
 	const scopedExpenses = $derived(scopeExpenses(expenses, selectedTripId));
+
+	function selectTrip(tripId: string | null) {
+		selectedTripId = tripId;
+		writeTripSelection(roomId, tripId);
+	}
+
+	let tripSheetOpen = $state(false);
+	function selectFromSheet(tripId: string | null) {
+		selectTrip(tripId);
+		tripSheetOpen = false;
+	}
+
+	const expenseCountForTrip = $derived((tripId: string) =>
+		expenses.reduce((n, e) => (e.tripId === tripId ? n + 1 : n), 0)
+	);
 
 	const filtered = $derived.by(() => {
 		const trimmed = query.trim().toLowerCase();
@@ -174,6 +191,24 @@
 	</div>
 
 	<div class="scroll" onscroll={onScroll}>
+		<TripStrip
+			{trips}
+			{selectedTripId}
+			expenseCountAll={expenses.length}
+			{expenseCountForTrip}
+			onSelect={selectTrip}
+			onOverflowOpen={() => (tripSheetOpen = true)}
+		/>
+
+		<TripSheet
+			open={tripSheetOpen}
+			{trips}
+			{selectedTripId}
+			manageHref="/p/{roomId}/settings/trips"
+			onSelect={selectFromSheet}
+			onClose={() => (tripSheetOpen = false)}
+		/>
+
 		<section class="card summary-card">
 			<div class="col">
 				<div class="eyebrow summary-eyebrow">
