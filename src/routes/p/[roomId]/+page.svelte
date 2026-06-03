@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { computeBalances, planSettlements } from '$lib/balance';
+	import ExpenseRow from '$lib/components/ExpenseRow.svelte';
 	import ProjectAppBar from '$lib/components/ProjectAppBar.svelte';
 	import SettlementGraph from '$lib/components/SettlementGraph.svelte';
 	import SettlePanel from '$lib/components/SettlePanel.svelte';
@@ -29,6 +30,12 @@
 		return balances.find((b) => b.memberId === currentMemberId)?.net ?? 0;
 	});
 	const plan = $derived(planSettlements(balances));
+
+	// most recently added (createdAt, not date) so the peek surfaces fresh activity
+	// from other members, which is the whole point of showing it here
+	const recentExpenses = $derived(
+		[...expenses].sort((a, b) => b.createdAt - a.createdAt).slice(0, 3)
+	);
 
 	// Gate on the people actually in the plan, not the whole group, and cap it so the
 	// two-column flow stays a comfortable height on a phone.
@@ -112,6 +119,31 @@
 				<span>Everyone is settled up</span>
 			</div>
 		{/if}
+
+		{#if recentExpenses.length > 0}
+			<div class="section-head recent-head">
+				<div class="eyebrow">Recent activity</div>
+				<a class="mono see-all" href="/p/{roomId}/expenses">See all</a>
+			</div>
+			<div class="card recent-card">
+				{#each recentExpenses as e, i (e.id)}
+					{#if i > 0}<hr class="hairline" style="margin-left: 56px;" />{/if}
+					<ExpenseRow
+						expense={e}
+						href="/p/{roomId}/expenses/{e.id}"
+						membersById={room.membersById}
+						categoryById={room.categoryById}
+						methodById={room.methodById}
+						tripsById={room.tripsById}
+						{currentMemberId}
+						symbol={currencySymbol}
+						{currency}
+						totalMembers={members.length}
+						showInvolvedCount={false}
+					/>
+				{/each}
+			</div>
+		{/if}
 	</div>
 
 	<TabBar {roomId} active="home" />
@@ -175,6 +207,21 @@
 
 	.settle-head {
 		margin-bottom: 8px;
+	}
+
+	.recent-head {
+		margin: 22px 0 8px;
+	}
+
+	/* tight padding so rows + their hairlines line up like the expenses list */
+	.recent-card {
+		padding: 4px;
+	}
+
+	.see-all {
+		font-size: 11px;
+		color: var(--accent);
+		text-decoration: none;
 	}
 
 	.plan-count {
