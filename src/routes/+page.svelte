@@ -115,6 +115,12 @@
 </svelte:head>
 
 <div class="screen" data-page="landing">
+	<a class="icon-btn settings-link" href="/settings" aria-label="Settings" title="Settings">
+		<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+			<circle cx="12" cy="12" r="2.6" />
+			<path d="M19 12a7 7 0 0 0-.16-1.5l2.05-1.58-2-3.46-2.43.83a7 7 0 0 0-2.59-1.5L13.5 2h-3l-.37 2.79a7 7 0 0 0-2.59 1.5l-2.43-.83-2 3.46L5.16 10.5A7 7 0 0 0 5 12a7 7 0 0 0 .16 1.5l-2.05 1.58 2 3.46 2.43-.83a7 7 0 0 0 2.59 1.5L10.5 22h3l.37-2.79a7 7 0 0 0 2.59-1.5l2.43.83 2-3.46-2.05-1.58A7 7 0 0 0 19 12z" />
+		</svg>
+	</a>
 	<div class="scroll landing-scroll">
 		<header class="col brand">
 			<div class="brand-mark" role="img" aria-label="Kostos logo">
@@ -407,6 +413,13 @@
 <style>
 	.landing-scroll {
 		padding-top: 36px;
+	}
+
+	.settings-link {
+		position: absolute;
+		top: 14px;
+		right: 14px;
+		z-index: 2;
 	}
 
 	.brand {
