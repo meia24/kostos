@@ -272,6 +272,11 @@
 		margin: 22px 0 8px;
 	}
 
+	/* match the list's first-gap so the empty state isn't crammed under the summary */
+	.scroll :global(.empty-card) {
+		margin-top: 22px;
+	}
+
 	.day-total {
 		font-size: 11px;
 	}
