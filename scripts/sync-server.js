@@ -50,7 +50,12 @@ wss.on('connection', (ws, req) => {
 	}
 
 	ws.on('message', (data, isBinary) => {
-		if (!isBinary) return;
+		if (!isBinary) {
+			// heartbeat: mirror the Cloudflare relay's auto ping/pong so the client's
+			// zombie-socket detection behaves the same in local dev
+			if (data.toString() === 'ping' && ws.readyState === ws.OPEN) ws.send('pong');
+			return;
+		}
 		const buf = data instanceof Buffer ? data : Buffer.from(data);
 		room.history.push(buf);
 		while (room.history.length > HISTORY_CAP) room.history.shift();

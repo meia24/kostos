@@ -19,6 +19,14 @@ export class SyncRoom extends DurableObject {
 	private history: HistoryEntry[] = [];
 	private hydrated = false;
 
+	constructor(ctx: DurableObjectState, env: unknown) {
+		super(ctx, env as never);
+		// Runtime answers client "ping" with "pong" without waking the DO, so a
+		// hibernated room still keeps the heartbeat that lets clients detect a dead
+		// socket. The webSocketMessage handler is never invoked for these.
+		this.ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair('ping', 'pong'));
+	}
+
 	async fetch(request: Request): Promise<Response> {
 		if (request.headers.get('Upgrade') !== 'websocket') {
 			return new Response('Expected WebSocket', { status: 426 });
@@ -48,10 +56,7 @@ export class SyncRoom extends DurableObject {
 
 		await this.ensureHydrated();
 
-		this.history.push(message);
-		while (this.history.length > HISTORY_CAP) this.history.shift();
-		await this.ctx.storage.put(HISTORY_KEY, this.history);
-
+		// fan out first so a storage hiccup can never block live delivery
 		for (const peer of this.ctx.getWebSockets()) {
 			if (peer === ws) continue;
 			try {
@@ -59,6 +64,14 @@ export class SyncRoom extends DurableObject {
 			} catch {
 				// best-effort fanout; failing peers will reconnect
 			}
+		}
+
+		this.history.push(message);
+		while (this.history.length > HISTORY_CAP) this.history.shift();
+		try {
+			await this.ctx.storage.put(HISTORY_KEY, this.history);
+		} catch {
+			// history persistence is best-effort; replay just rebuilds from peers
 		}
 	}
 
