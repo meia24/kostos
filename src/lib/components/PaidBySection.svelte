@@ -277,6 +277,8 @@
 		border: 0;
 		color: inherit;
 		cursor: pointer;
+		text-align: left;
+		font: inherit;
 	}
 
 	.payer-text {
