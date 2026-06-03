@@ -201,7 +201,7 @@
 			</section>
 
 			<div class="section-head">
-				<div class="eyebrow">Signed in as</div>
+				<div class="eyebrow">Joined as</div>
 				{#if currentMember}
 					<button
 						type="button"
