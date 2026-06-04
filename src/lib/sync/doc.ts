@@ -452,22 +452,29 @@ export function readExpenses(handle: RoomHandle): Expense[] {
 
 const ACTIVITY_CAP = 500;
 
+function parseChange(raw: string | undefined): ActivityChange | undefined {
+	if (!raw) return undefined;
+	// a corrupt entry from a buggy/hostile peer must not break the whole log
+	try {
+		return JSON.parse(raw) as ActivityChange;
+	} catch {
+		return undefined;
+	}
+}
+
 export function readActivity(handle: RoomHandle): ActivityEvent[] {
-	return handle.activity.toArray().map((m) => {
-		const rawChange = m.get('change') as string | undefined;
-		return {
-			id: m.get('id') as string,
-			at: m.get('at') as number,
-			by: (m.get('by') as string | null) ?? null,
-			kind: m.get('kind') as ActivityEvent['kind'],
-			expenseId: m.get('expenseId') as string | undefined,
-			memberId: m.get('memberId') as string | undefined,
-			label: m.get('label') as string | undefined,
-			amount: m.get('amount') as number | undefined,
-			currency: m.get('currency') as string | undefined,
-			change: rawChange ? (JSON.parse(rawChange) as ActivityChange) : undefined
-		};
-	});
+	return handle.activity.toArray().map((m) => ({
+		id: m.get('id') as string,
+		at: m.get('at') as number,
+		by: (m.get('by') as string | null) ?? null,
+		kind: m.get('kind') as ActivityEvent['kind'],
+		expenseId: m.get('expenseId') as string | undefined,
+		memberId: m.get('memberId') as string | undefined,
+		label: m.get('label') as string | undefined,
+		amount: m.get('amount') as number | undefined,
+		currency: m.get('currency') as string | undefined,
+		change: parseChange(m.get('change') as string | undefined)
+	}));
 }
 
 /** Append an event to the room log. Call inside the mutating transaction so the
