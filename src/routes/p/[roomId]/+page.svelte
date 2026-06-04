@@ -44,7 +44,7 @@
 
 	// newest events first; the full audit log lives on /activity
 	const activity = $derived(room.activity);
-	const recentActivity = $derived([...activity].slice(-4).reverse());
+	const recentActivity = $derived([...activity].slice(-5).reverse());
 
 	// Gate on the people actually in the plan, not the whole group, and cap it so the
 	// two-column flow stays a comfortable height on a phone.
@@ -148,7 +148,7 @@
 	}
 
 	.balance-block {
-		padding: 2px 0 16px;
+		padding: 2px 0 28px;
 		text-align: center;
 	}
 
@@ -182,7 +182,7 @@
 		align-items: center;
 		gap: 8px;
 		padding: 10px 14px;
-		margin-bottom: 14px;
+		margin-bottom: 20px;
 		border: 1px dashed var(--line-2);
 		border-radius: var(--radius);
 		font-size: 13px;
@@ -198,11 +198,11 @@
 	}
 
 	.settle-head {
-		margin-bottom: 8px;
+		margin-bottom: 10px;
 	}
 
 	.recent-head {
-		margin: 22px 0 8px;
+		margin: 34px 0 10px;
 	}
 
 	.see-all {
@@ -220,7 +220,7 @@
 		align-items: center;
 		justify-content: center;
 		gap: 8px;
-		padding: 24px 0;
+		padding: 28px 0;
 		color: var(--ink-2);
 		font-size: 14px;
 	}

@@ -17,7 +17,7 @@
 
 <div class="screen" data-page="activity">
 	<ScreenAppBar title="Activity" backHref="/p/{roomId}" />
-	<div class="scroll">
+	<div class="scroll activity-scroll">
 		{#if events.length === 0}
 			<EmptyCard>
 				<p>No activity yet. Adding, editing, or settling expenses shows up here.</p>
@@ -27,3 +27,10 @@
 		{/if}
 	</div>
 </div>
+
+<style>
+	/* global .scroll has no top padding; give the log room under the app bar */
+	.activity-scroll {
+		padding-top: 16px;
+	}
+</style>
