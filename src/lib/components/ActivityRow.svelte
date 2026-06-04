@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { CURRENCY_PRESETS } from '$lib/currencies';
 	import { formatAmount } from '$lib/money';
-	import type { ActivityEvent, Member } from '$lib/types';
+	import type { ActivityChange, ActivityEvent, Member } from '$lib/types';
 	import Avatar from './Avatar.svelte';
 
 	type Props = {
@@ -22,15 +22,39 @@
 		return formatAmount(cents, sym, currency);
 	}
 
+	function shortDate(ms: number): string {
+		return new Date(ms).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+	}
+
+	function payerNames(ids: string[]): string {
+		const names = ids.map((id) => membersById.get(id)?.name ?? '—');
+		if (names.length === 0) return '—';
+		if (names.length === 1) return names[0];
+		if (names.length === 2) return `${names[0]} & ${names[1]}`;
+		return `${names[0]} +${names.length - 1}`;
+	}
+
+	function formatChange(c: ActivityChange): string {
+		switch (c.kind) {
+			case 'amount':
+				return `${money(c.from, c.fromCurrency)} → ${money(c.to, c.toCurrency)}`;
+			case 'text':
+				return `“${c.from || '—'}” → “${c.to || '—'}”`;
+			case 'date':
+				return `${shortDate(c.from)} → ${shortDate(c.to)}`;
+			case 'paidBy':
+				return c.from && c.to ? `${payerNames(c.from)} → ${payerNames(c.to)}` : 'paid by';
+			case 'split':
+				return c.from && c.to ? `${c.from} → ${c.to}` : 'split';
+		}
+	}
+
 	// surface whatever changed, amount first, then anything else, with a "+N" tail
 	const editDetail = $derived.by(() => {
 		const changes = event.changes ?? [];
 		if (changes.length === 0) return '';
-		const primary = changes.find((c) => c.field === 'amount') ?? changes[0];
-		const core =
-			primary.from !== undefined && primary.to !== undefined
-				? `${primary.from} → ${primary.to}`
-				: primary.field;
+		const primary = changes.find((c) => c.kind === 'amount') ?? changes[0];
+		const core = formatChange(primary);
 		return changes.length > 1 ? `${core} +${changes.length - 1}` : core;
 	});
 
@@ -41,9 +65,9 @@
 				return `added “${label}” · ${money(event.amount, event.currency)}`;
 			case 'expense.edit': {
 				const changes = event.changes ?? [];
-				const titleChange = changes.find((c) => c.field === 'title');
-				if (titleChange && changes.length === 1) {
-					return `renamed “${titleChange.from}” → “${titleChange.to}”`;
+				const lone = changes[0];
+				if (changes.length === 1 && lone.kind === 'text') {
+					return `renamed ${formatChange(lone)}`;
 				}
 				return editDetail ? `edited “${label}” · ${editDetail}` : `edited “${label}”`;
 			}
@@ -59,7 +83,7 @@
 				return `removed ${label}`;
 			case 'member.rename': {
 				const c = event.changes?.[0];
-				return c ? `renamed ${c.from} → ${c.to}` : 'renamed a member';
+				return c && c.kind === 'text' ? `renamed ${c.from} → ${c.to}` : 'renamed a member';
 			}
 			default:
 				return '';

@@ -9,8 +9,15 @@ export type ActivityKind =
 	| 'member.remove'
 	| 'member.rename';
 
-/** A single audit-log change, with display-ready before/after strings. */
-export type ActivityChange = { field: string; from?: string; to?: string };
+/** A single audit-log change, holding raw values; formatting is the renderer's job
+ *  so events stay locale-agnostic. `paidBy`/`split` carry no from/to when only the
+ *  amounts or the split detail moved (the members/mode stayed the same). */
+export type ActivityChange =
+	| { kind: 'amount'; from: number; to: number; fromCurrency: string; toCurrency: string }
+	| { kind: 'text'; from: string; to: string }
+	| { kind: 'date'; from: number; to: number }
+	| { kind: 'paidBy'; from?: string[]; to?: string[] }
+	| { kind: 'split'; from?: SplitMode; to?: SplitMode };
 
 /** One entry in a room's append-only activity log. `by` is the actor's member id
  *  (the member claimed on the device that made the change), null if none was set. */

@@ -1,8 +1,6 @@
 import * as Y from 'yjs';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import { browser } from '$app/environment';
-import { CURRENCY_PRESETS } from '$lib/currencies';
-import { formatAmount } from '$lib/money';
 import { getCurrentMember, getCurrentProject } from '$lib/storage';
 import {
 	DEFAULT_CATEGORIES,
@@ -18,6 +16,7 @@ import {
 	type Project,
 	type Trip
 } from '$lib/types';
+import { diffExpense } from './activity-diff';
 import { createSyncProvider, type EncryptedSyncProvider } from './provider';
 
 function syncUrl(): string {
@@ -284,7 +283,7 @@ export function updateMember(handle: RoomHandle, id: string, updates: Partial<Om
 					kind: 'member.rename',
 					memberId: id,
 					label: updates.name,
-					changes: [{ field: 'name', from: prevName, to: updates.name }]
+					changes: [{ kind: 'text', from: prevName, to: updates.name }]
 				});
 			}
 		});
@@ -490,76 +489,6 @@ function logActivity(handle: RoomHandle, ev: Omit<ActivityEvent, 'id' | 'at' | '
 	if (over > 0) handle.activity.delete(0, over);
 }
 
-function moneyStr(cents: number, currency: string): string {
-	const sym = CURRENCY_PRESETS.find((p) => p.code === currency)?.sym ?? currency;
-	return formatAmount(cents, sym, currency);
-}
-
-function dayStr(ts: number): string {
-	return new Date(ts).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
-}
-
-function payerLabel(payments: Payment[], names: Map<string, string>): string {
-	const list = payments.map((p) => names.get(p.memberId) ?? '—');
-	if (list.length === 0) return '—';
-	if (list.length === 1) return list[0];
-	if (list.length === 2) return `${list[0]} & ${list[1]}`;
-	return `${list[0]} +${list.length - 1}`;
-}
-
-function serializePayments(payments: Payment[]): string {
-	return [...payments]
-		.sort((a, b) => a.memberId.localeCompare(b.memberId))
-		.map((p) => `${p.memberId}:${p.amount}`)
-		.join(',');
-}
-
-function serializeSplits(splits: ExpenseSplit[]): string {
-	return [...splits]
-		.sort((a, b) => a.memberId.localeCompare(b.memberId))
-		.map((s) => `${s.memberId}:${s.shares ?? ''}:${s.amount ?? ''}`)
-		.join(',');
-}
-
-function diffExpense(handle: RoomHandle, prev: Expense, next: Expense): ActivityChange[] {
-	const changes: ActivityChange[] = [];
-	if (prev.amount !== next.amount || prev.currency !== next.currency) {
-		changes.push({
-			field: 'amount',
-			from: moneyStr(prev.amount, prev.currency),
-			to: moneyStr(next.amount, next.currency)
-		});
-	}
-	if ((prev.description ?? '') !== (next.description ?? '')) {
-		changes.push({ field: 'title', from: prev.description || '—', to: next.description || '—' });
-	}
-	if (serializePayments(prev.payments) !== serializePayments(next.payments)) {
-		const prevIds = [...new Set(prev.payments.map((p) => p.memberId))].sort();
-		const nextIds = [...new Set(next.payments.map((p) => p.memberId))].sort();
-		if (prevIds.join(',') !== nextIds.join(',')) {
-			const names = new Map(readMembers(handle).map((m) => [m.id, m.name]));
-			changes.push({
-				field: 'paid by',
-				from: payerLabel(prev.payments, names),
-				to: payerLabel(next.payments, names)
-			});
-		} else {
-			// same payers, only the per-payer amounts moved
-			changes.push({ field: 'paid by' });
-		}
-	}
-	if (prev.date !== next.date) {
-		changes.push({ field: 'date', from: dayStr(prev.date), to: dayStr(next.date) });
-	}
-	if (prev.splitMode !== next.splitMode) {
-		changes.push({ field: 'split', from: prev.splitMode, to: next.splitMode });
-	} else if (serializeSplits(prev.splits) !== serializeSplits(next.splits)) {
-		// same mode, but who's in or the shares/amounts changed
-		changes.push({ field: 'split' });
-	}
-	return changes;
-}
-
 export function addExpense(handle: RoomHandle, expense: Expense): void {
 	handle.doc.transact(() => {
 		handle.expenses.push([expenseMap(expense)]);
@@ -606,7 +535,7 @@ export function updateExpense(handle: RoomHandle, expense: Expense): void {
 	for (let i = 0; i < items.length; i++) {
 		if (items.get(i).get('id') === expense.id) {
 			const prev = readExpenseEntry(items.get(i));
-			const changes = diffExpense(handle, prev, expense);
+			const changes = diffExpense(prev, expense);
 			handle.doc.transact(() => {
 				items.delete(i, 1);
 				items.insert(i, [expenseMap(expense)]);
