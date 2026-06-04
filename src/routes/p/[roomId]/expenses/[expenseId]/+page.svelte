@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { expenseShares } from '$lib/balance';
+	import ActivityRow from '$lib/components/ActivityRow.svelte';
 	import Avatar from '$lib/components/Avatar.svelte';
 	import ScreenAppBar from '$lib/components/ScreenAppBar.svelte';
 	import { CURRENCY_PRESETS } from '$lib/currencies';
@@ -27,6 +28,9 @@
 	const currency = $derived(room.currency);
 	const membersById = $derived(room.membersById);
 	const expense = $derived(expenses.find((e) => e.id === expenseId));
+	const editEvents = $derived(
+		room.activity.filter((a) => a.expenseId === expenseId && a.kind === 'expense.edit').reverse()
+	);
 
 	// a single expense reads cleanest in its own currency; the base equivalent sits under
 	// the hero so it still ties back to the group balances.
@@ -234,6 +238,13 @@
 					<span class="dim mono audit-label">Created</span>
 					<span class="audit-value">{formatDate(expense.createdAt)}</span>
 				</div>
+				{#if editEvents.length > 0}
+					<hr class="hairline" />
+					<span class="dim mono audit-label">Edits</span>
+					{#each editEvents as ev (ev.id)}
+						<ActivityRow event={ev} {membersById} {currentMemberId} />
+					{/each}
+				{/if}
 			</div>
 
 			<div class="row gap-8 action-row">

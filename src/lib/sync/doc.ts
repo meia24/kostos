@@ -1,10 +1,14 @@
 import * as Y from 'yjs';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import { browser } from '$app/environment';
-import { getCurrentProject } from '$lib/storage';
+import { CURRENCY_PRESETS } from '$lib/currencies';
+import { formatAmount } from '$lib/money';
+import { getCurrentMember, getCurrentProject } from '$lib/storage';
 import {
 	DEFAULT_CATEGORIES,
 	DEFAULT_PAYMENT_METHODS,
+	type ActivityChange,
+	type ActivityEvent,
 	type Category,
 	type Expense,
 	type ExpenseSplit,
@@ -30,6 +34,7 @@ export type RoomHandle = {
 	project: Y.Map<unknown>;
 	members: Y.Array<Y.Map<unknown>>;
 	expenses: Y.Array<Y.Map<unknown>>;
+	activity: Y.Array<Y.Map<unknown>>;
 	ready: Promise<void>;
 	syncProvider?: EncryptedSyncProvider;
 };
@@ -59,6 +64,7 @@ export function openRoom(roomId: string, secret?: string): RoomHandle {
 	const project = doc.getMap('project');
 	const members = doc.getArray<Y.Map<unknown>>('members');
 	const expenses = doc.getArray<Y.Map<unknown>>('expenses');
+	const activity = doc.getArray<Y.Map<unknown>>('activity');
 
 	let persistence: IndexeddbPersistence | undefined;
 	let ready: Promise<void>;
@@ -84,6 +90,7 @@ export function openRoom(roomId: string, secret?: string): RoomHandle {
 		project,
 		members,
 		expenses,
+		activity,
 		ready,
 		syncProvider
 	};
@@ -258,6 +265,7 @@ function yArrayOf<T>(items: T[], toMap: (item: T) => Y.Map<unknown>): Y.Array<Y.
 export function addMember(handle: RoomHandle, member: Member): void {
 	handle.doc.transact(() => {
 		handle.members.push([memberMap(member)]);
+		logActivity(handle, { kind: 'member.add', memberId: member.id, label: member.name });
 	});
 }
 
@@ -265,11 +273,20 @@ export function updateMember(handle: RoomHandle, id: string, updates: Partial<Om
 	for (let i = 0; i < handle.members.length; i++) {
 		const entry = handle.members.get(i);
 		if (entry.get('id') !== id) continue;
+		const prevName = entry.get('name') as string;
 		handle.doc.transact(() => {
 			if (updates.name !== undefined) entry.set('name', updates.name);
 			if (updates.color !== undefined) entry.set('color', updates.color);
 			// empty string clears the emoji back to the name-initial glyph
 			if (updates.emoji !== undefined) entry.set('emoji', updates.emoji);
+			if (updates.name !== undefined && updates.name !== prevName) {
+				logActivity(handle, {
+					kind: 'member.rename',
+					memberId: id,
+					label: updates.name,
+					changes: [{ field: 'name', from: prevName, to: updates.name }]
+				});
+			}
 		});
 		return;
 	}
@@ -277,8 +294,13 @@ export function updateMember(handle: RoomHandle, id: string, updates: Partial<Om
 
 export function removeMember(handle: RoomHandle, id: string): void {
 	for (let i = 0; i < handle.members.length; i++) {
-		if (handle.members.get(i).get('id') === id) {
-			handle.doc.transact(() => handle.members.delete(i, 1));
+		const entry = handle.members.get(i);
+		if (entry.get('id') === id) {
+			const name = entry.get('name') as string;
+			handle.doc.transact(() => {
+				handle.members.delete(i, 1);
+				logActivity(handle, { kind: 'member.remove', memberId: id, label: name });
+			});
 			return;
 		}
 	}
@@ -429,17 +451,111 @@ export function readExpenses(handle: RoomHandle): Expense[] {
 	return handle.expenses.toArray().map(readExpenseEntry);
 }
 
+const ACTIVITY_CAP = 500;
+
+export function readActivity(handle: RoomHandle): ActivityEvent[] {
+	return handle.activity.toArray().map((m) => {
+		const rawChanges = m.get('changes') as string | undefined;
+		return {
+			id: m.get('id') as string,
+			at: m.get('at') as number,
+			by: (m.get('by') as string | null) ?? null,
+			kind: m.get('kind') as ActivityEvent['kind'],
+			expenseId: m.get('expenseId') as string | undefined,
+			memberId: m.get('memberId') as string | undefined,
+			label: m.get('label') as string | undefined,
+			amount: m.get('amount') as number | undefined,
+			currency: m.get('currency') as string | undefined,
+			changes: rawChanges ? (JSON.parse(rawChanges) as ActivityChange[]) : undefined
+		};
+	});
+}
+
+/** Append an event to the room log. Call inside the mutating transaction so the
+ *  log entry syncs atomically with the change it describes. */
+function logActivity(handle: RoomHandle, ev: Omit<ActivityEvent, 'id' | 'at' | 'by'>): void {
+	const map = new Y.Map<unknown>();
+	map.set('id', generateId());
+	map.set('at', Date.now());
+	map.set('by', getCurrentMember(handle.roomId) ?? null);
+	map.set('kind', ev.kind);
+	if (ev.expenseId) map.set('expenseId', ev.expenseId);
+	if (ev.memberId) map.set('memberId', ev.memberId);
+	if (ev.label !== undefined) map.set('label', ev.label);
+	if (ev.amount !== undefined) map.set('amount', ev.amount);
+	if (ev.currency !== undefined) map.set('currency', ev.currency);
+	if (ev.changes?.length) map.set('changes', JSON.stringify(ev.changes));
+	handle.activity.push([map]);
+	const over = handle.activity.length - ACTIVITY_CAP;
+	if (over > 0) handle.activity.delete(0, over);
+}
+
+function moneyStr(cents: number, currency: string): string {
+	const sym = CURRENCY_PRESETS.find((p) => p.code === currency)?.sym ?? currency;
+	return formatAmount(cents, sym, currency);
+}
+
+function dayStr(ts: number): string {
+	return new Date(ts).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+}
+
+function diffExpense(prev: Expense, next: Expense): ActivityChange[] {
+	const changes: ActivityChange[] = [];
+	if (prev.amount !== next.amount || prev.currency !== next.currency) {
+		changes.push({
+			field: 'amount',
+			from: moneyStr(prev.amount, prev.currency),
+			to: moneyStr(next.amount, next.currency)
+		});
+	}
+	if ((prev.description ?? '') !== (next.description ?? '')) {
+		changes.push({ field: 'title', from: prev.description || '—', to: next.description || '—' });
+	}
+	if (prev.date !== next.date) {
+		changes.push({ field: 'date', from: dayStr(prev.date), to: dayStr(next.date) });
+	}
+	if (prev.splitMode !== next.splitMode) {
+		changes.push({ field: 'split', from: prev.splitMode, to: next.splitMode });
+	}
+	return changes;
+}
+
 export function addExpense(handle: RoomHandle, expense: Expense): void {
 	handle.doc.transact(() => {
 		handle.expenses.push([expenseMap(expense)]);
+		logActivity(
+			handle,
+			expense.isSettlement
+				? {
+						kind: 'settle.add',
+						expenseId: expense.id,
+						memberId: expense.splits[0]?.memberId,
+						amount: expense.amount,
+						currency: expense.currency
+					}
+				: {
+						kind: 'expense.add',
+						expenseId: expense.id,
+						label: expense.description || 'Expense',
+						amount: expense.amount,
+						currency: expense.currency
+					}
+		);
 	});
 }
 
 export function removeExpense(handle: RoomHandle, id: string): void {
 	const items = handle.expenses;
 	for (let i = 0; i < items.length; i++) {
-		if (items.get(i).get('id') === id) {
-			handle.doc.transact(() => items.delete(i, 1));
+		const entry = items.get(i);
+		if (entry.get('id') === id) {
+			const label =
+				(entry.get('description') as string | undefined) ||
+				(entry.get('isSettlement') ? 'settlement' : 'Expense');
+			handle.doc.transact(() => {
+				items.delete(i, 1);
+				logActivity(handle, { kind: 'expense.remove', expenseId: id, label });
+			});
 			return;
 		}
 	}
@@ -449,9 +565,19 @@ export function updateExpense(handle: RoomHandle, expense: Expense): void {
 	const items = handle.expenses;
 	for (let i = 0; i < items.length; i++) {
 		if (items.get(i).get('id') === expense.id) {
+			const prev = readExpenseEntry(items.get(i));
+			const changes = diffExpense(prev, expense);
 			handle.doc.transact(() => {
 				items.delete(i, 1);
 				items.insert(i, [expenseMap(expense)]);
+				if (changes.length) {
+					logActivity(handle, {
+						kind: 'expense.edit',
+						expenseId: expense.id,
+						label: expense.description || prev.description || 'Expense',
+						changes
+					});
+				}
 			});
 			return;
 		}

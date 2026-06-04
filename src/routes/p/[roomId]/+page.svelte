@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { computeBalances, planSettlements } from '$lib/balance';
-	import ExpenseRow from '$lib/components/ExpenseRow.svelte';
+	import ActivityRow from '$lib/components/ActivityRow.svelte';
 	import ProjectAppBar from '$lib/components/ProjectAppBar.svelte';
 	import SettlementGraph from '$lib/components/SettlementGraph.svelte';
 	import SettlePanel from '$lib/components/SettlePanel.svelte';
@@ -42,11 +42,9 @@
 		});
 	});
 
-	// most recently added (createdAt, not date) so the peek surfaces fresh activity
-	// from other members, which is the whole point of showing it here
-	const recentExpenses = $derived(
-		[...expenses].sort((a, b) => b.createdAt - a.createdAt).slice(0, 3)
-	);
+	// newest events first; the full audit log lives on /activity
+	const activity = $derived(room.activity);
+	const recentActivity = $derived([...activity].slice(-4).reverse());
 
 	// Gate on the people actually in the plan, not the whole group, and cap it so the
 	// two-column flow stays a comfortable height on a phone.
@@ -131,27 +129,15 @@
 			</div>
 		{/if}
 
-		{#if recentExpenses.length > 0}
+		{#if recentActivity.length > 0}
 			<div class="section-head recent-head">
 				<div class="eyebrow">Recent activity</div>
-				<a class="mono see-all" href="/p/{roomId}/expenses">See all</a>
+				<a class="mono see-all" href="/p/{roomId}/activity">See all</a>
 			</div>
 			<div class="card recent-card">
-				{#each recentExpenses as e, i (e.id)}
-					{#if i > 0}<hr class="hairline" style="margin-left: 56px;" />{/if}
-					<ExpenseRow
-						expense={e}
-						href="/p/{roomId}/expenses/{e.id}"
-						membersById={room.membersById}
-						categoryById={room.categoryById}
-						methodById={room.methodById}
-						tripsById={room.tripsById}
-						{currentMemberId}
-						symbol={currencySymbol}
-						{currency}
-						totalMembers={members.length}
-						showInvolvedCount={false}
-					/>
+				{#each recentActivity as ev, i (ev.id)}
+					{#if i > 0}<hr class="hairline" style="margin-left: 32px;" />{/if}
+					<ActivityRow event={ev} {membersById} {currentMemberId} />
 				{/each}
 			</div>
 		{/if}

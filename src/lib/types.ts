@@ -1,5 +1,35 @@
 export type DefaultSplit = 'even' | 'shares' | 'amount';
 
+export type ActivityKind =
+	| 'expense.add'
+	| 'expense.edit'
+	| 'expense.remove'
+	| 'settle.add'
+	| 'member.add'
+	| 'member.remove'
+	| 'member.rename';
+
+/** A single audit-log change, with display-ready before/after strings. */
+export type ActivityChange = { field: string; from?: string; to?: string };
+
+/** One entry in a room's append-only activity log. `by` is the actor's member id
+ *  (the member claimed on the device that made the change), null if none was set. */
+export type ActivityEvent = {
+	id: string;
+	at: number;
+	by: string | null;
+	kind: ActivityKind;
+	/** Subject expense for expense.* and settle.add. */
+	expenseId?: string;
+	/** Subject member for member.* events, or the recipient for settle.add. */
+	memberId?: string;
+	/** Snapshot of the expense description or member name at the time. */
+	label?: string;
+	amount?: number;
+	currency?: string;
+	changes?: ActivityChange[];
+};
+
 export type ProjectColor = 'lime' | 'cyan' | 'violet' | 'amber' | 'coral' | 'blue';
 
 export type Category = {

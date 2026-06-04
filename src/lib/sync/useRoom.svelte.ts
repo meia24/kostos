@@ -7,8 +7,16 @@
  * via `$effect(() => room.observe())` so cleanup happens naturally on unmount.
  */
 
-import { openRoom, readExpenses, readMembers, readProject, type RoomHandle } from './doc';
+import {
+	openRoom,
+	readActivity,
+	readExpenses,
+	readMembers,
+	readProject,
+	type RoomHandle
+} from './doc';
 import type {
+	ActivityEvent,
 	Category,
 	Expense,
 	Member,
@@ -22,6 +30,7 @@ export class RoomState {
 	project = $state<Project | null>(null);
 	members = $state<Member[]>([]);
 	expenses = $state<Expense[]>([]);
+	activity = $state<ActivityEvent[]>([]);
 
 	// Lookup maps + display helpers that every route ends up rebuilding. Keeping them on
 	// the room itself means each component just consumes them; no per-route boilerplate.
@@ -46,6 +55,7 @@ export class RoomState {
 		this.project = readProject(this.handle);
 		this.members = readMembers(this.handle);
 		this.expenses = readExpenses(this.handle);
+		this.activity = readActivity(this.handle);
 	};
 
 	/** Attach Yjs observers + return a teardown function suitable for $effect cleanup. */
@@ -53,10 +63,12 @@ export class RoomState {
 		this.handle.project.observeDeep(this.refresh);
 		this.handle.members.observeDeep(this.refresh);
 		this.handle.expenses.observeDeep(this.refresh);
+		this.handle.activity.observeDeep(this.refresh);
 		return () => {
 			this.handle.project.unobserveDeep(this.refresh);
 			this.handle.members.unobserveDeep(this.refresh);
 			this.handle.expenses.unobserveDeep(this.refresh);
+			this.handle.activity.unobserveDeep(this.refresh);
 		};
 	}
 }
