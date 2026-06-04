@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import ActivityRow from '$lib/components/ActivityRow.svelte';
+	import ActivityList from '$lib/components/ActivityList.svelte';
 	import EmptyCard from '$lib/components/EmptyCard.svelte';
 	import ScreenAppBar from '$lib/components/ScreenAppBar.svelte';
 	import { getCurrentMember } from '$lib/storage';
@@ -23,18 +23,7 @@
 				<p>No activity yet. Adding, editing, or settling expenses shows up here.</p>
 			</EmptyCard>
 		{:else}
-			<div class="card activity-card">
-				{#each events as ev, i (ev.id)}
-					{#if i > 0}<hr class="hairline" style="margin-left: 32px;" />{/if}
-					<ActivityRow event={ev} {membersById} {currentMemberId} />
-				{/each}
-			</div>
+			<ActivityList {events} {membersById} {currentMemberId} />
 		{/if}
 	</div>
 </div>
-
-<style>
-	.activity-card {
-		padding: 4px;
-	}
-</style>

@@ -16,23 +16,37 @@
 	const actorName = $derived(
 		event.by && event.by === currentMemberId ? 'You' : (actor?.name ?? 'Someone')
 	);
-	const amountChange = $derived(event.changes?.find((c) => c.field === 'amount'));
-
 	function money(cents: number | undefined, currency: string | undefined): string {
 		if (cents === undefined || !currency) return '';
 		const sym = CURRENCY_PRESETS.find((p) => p.code === currency)?.sym ?? currency;
 		return formatAmount(cents, sym, currency);
 	}
 
+	// surface whatever changed, amount first, then anything else, with a "+N" tail
+	const editDetail = $derived.by(() => {
+		const changes = event.changes ?? [];
+		if (changes.length === 0) return '';
+		const primary = changes.find((c) => c.field === 'amount') ?? changes[0];
+		const core =
+			primary.from !== undefined && primary.to !== undefined
+				? `${primary.from} → ${primary.to}`
+				: primary.field;
+		return changes.length > 1 ? `${core} +${changes.length - 1}` : core;
+	});
+
 	const message = $derived.by(() => {
 		const label = event.label ?? 'item';
 		switch (event.kind) {
 			case 'expense.add':
 				return `added “${label}” · ${money(event.amount, event.currency)}`;
-			case 'expense.edit':
-				return amountChange
-					? `edited “${label}” · ${amountChange.from} → ${amountChange.to}`
-					: `edited “${label}”`;
+			case 'expense.edit': {
+				const changes = event.changes ?? [];
+				const titleChange = changes.find((c) => c.field === 'title');
+				if (titleChange && changes.length === 1) {
+					return `renamed “${titleChange.from}” → “${titleChange.to}”`;
+				}
+				return editDetail ? `edited “${label}” · ${editDetail}` : `edited “${label}”`;
+			}
 			case 'expense.remove':
 				return `deleted “${label}”`;
 			case 'settle.add': {

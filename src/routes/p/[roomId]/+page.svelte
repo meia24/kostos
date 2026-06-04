@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { computeBalances, planSettlements } from '$lib/balance';
-	import ActivityRow from '$lib/components/ActivityRow.svelte';
+	import ActivityList from '$lib/components/ActivityList.svelte';
 	import ProjectAppBar from '$lib/components/ProjectAppBar.svelte';
 	import SettlementGraph from '$lib/components/SettlementGraph.svelte';
 	import SettlePanel from '$lib/components/SettlePanel.svelte';
@@ -134,12 +134,7 @@
 				<div class="eyebrow">Recent activity</div>
 				<a class="mono see-all" href="/p/{roomId}/activity">See all</a>
 			</div>
-			<div class="card recent-card">
-				{#each recentActivity as ev, i (ev.id)}
-					{#if i > 0}<hr class="hairline" style="margin-left: 32px;" />{/if}
-					<ActivityRow event={ev} {membersById} {currentMemberId} />
-				{/each}
-			</div>
+			<ActivityList events={recentActivity} {membersById} {currentMemberId} />
 		{/if}
 	</div>
 
@@ -208,11 +203,6 @@
 
 	.recent-head {
 		margin: 22px 0 8px;
-	}
-
-	/* tight padding so rows + their hairlines line up like the expenses list */
-	.recent-card {
-		padding: 4px;
 	}
 
 	.see-all {

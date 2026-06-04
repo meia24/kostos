@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { expenseShares } from '$lib/balance';
-	import ActivityRow from '$lib/components/ActivityRow.svelte';
+	import ActivityList from '$lib/components/ActivityList.svelte';
 	import Avatar from '$lib/components/Avatar.svelte';
 	import ScreenAppBar from '$lib/components/ScreenAppBar.svelte';
 	import { CURRENCY_PRESETS } from '$lib/currencies';
@@ -241,9 +241,7 @@
 				{#if editEvents.length > 0}
 					<hr class="hairline" />
 					<span class="dim mono audit-label">Edits</span>
-					{#each editEvents as ev (ev.id)}
-						<ActivityRow event={ev} {membersById} {currentMemberId} />
-					{/each}
+					<ActivityList events={editEvents} {membersById} {currentMemberId} />
 				{/if}
 			</div>
 
