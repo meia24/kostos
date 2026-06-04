@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { pickMemberColor, pickMemberEmoji } from '$lib/avatar';
+	import { enterDemo } from '$lib/demo';
 	import { PROJECT_COLORS, PROJECT_COLOR_VALUES, tileBackground } from '$lib/colors';
 	import CurrencyPicker from '$lib/components/CurrencyPicker.svelte';
 	import EmojiTilePicker from '$lib/components/EmojiTilePicker.svelte';
@@ -33,6 +34,24 @@
 
 	const filledOthers = $derived(others.filter((m) => m.name.trim().length > 0));
 	const canCreate = $derived(name.trim().length > 0 && yourName.trim().length > 0);
+
+	// nudge throwaway "test" groups toward the local demo so they don't pile up.
+	// substring match (so "testi", "test123" count) plus common words in other languages.
+	const looksLikeTest = $derived(
+		/test|prueba|prova|essai|versuch|demo|sample|ejemplo|muestra|exemple|esempio|beispiel|playground|sandbox|trial|dummy|тест|проба|测试|テスト|테스트/i.test(
+			name
+		)
+	);
+	let demoLoading = $state(false);
+	async function tryDemo() {
+		if (demoLoading) return;
+		demoLoading = true;
+		try {
+			await enterDemo();
+		} finally {
+			demoLoading = false;
+		}
+	}
 
 	function pickCurrency(p: CurrencyPreset) {
 		currencyCode = p.code;
@@ -174,6 +193,14 @@
 			bind:value={name}
 			style="font-size: 17px; font-weight: 600; text-align: center; padding: 16px; margin-bottom: 8px;"
 		/>
+		{#if looksLikeTest}
+			<div class="test-hint">
+				<span>Just trying Kostos out? Open the demo group instead!</span>
+				<button type="button" class="test-hint-btn" onclick={tryDemo} disabled={demoLoading}>
+					{demoLoading ? 'Loading…' : 'See the demo'}
+				</button>
+			</div>
+		{/if}
 		<input
 			class="input"
 			placeholder="Description (optional)"
@@ -254,6 +281,38 @@
 </div>
 
 <style>
+	.test-hint {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+		align-items: flex-start;
+		padding: 12px 14px;
+		margin-bottom: 8px;
+		border: 1px dashed var(--line-2);
+		border-radius: var(--radius);
+		background: color-mix(in oklab, var(--accent) 6%, var(--bg-2));
+		font-size: 13px;
+		line-height: 1.5;
+		color: var(--ink-2);
+	}
+
+	.test-hint-btn {
+		align-self: flex-start;
+		padding: 7px 14px;
+		border-radius: 999px;
+		border: 1px solid color-mix(in oklab, var(--accent) 45%, var(--line));
+		background: color-mix(in oklab, var(--accent) 14%, transparent);
+		color: var(--accent);
+		font-size: 13px;
+		font-weight: 600;
+		cursor: pointer;
+	}
+
+	.test-hint-btn:disabled {
+		opacity: 0.6;
+		cursor: default;
+	}
+
 	.restore-link {
 		display: flex;
 		align-items: center;
