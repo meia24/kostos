@@ -68,6 +68,68 @@ describe('diffExpense', () => {
 		]);
 	});
 
+	it('does not double-count payment/split cascades when the total changes', () => {
+		// single payer, even split; the form tracks the payer amount to the new total
+		const prev = expense({
+			amount: 4200,
+			description: 'Lunch',
+			payments: [{ memberId: 'a', amount: 4200 }],
+			splits: [{ memberId: 'a' }, { memberId: 'b' }]
+		});
+		const next = expense({
+			amount: 10000,
+			description: 'Lunch 2',
+			payments: [{ memberId: 'a', amount: 10000 }],
+			splits: [{ memberId: 'a' }, { memberId: 'b' }]
+		});
+		expect(diffExpense(prev, next)).toEqual([
+			{ kind: 'amount', from: 4200, to: 10000, fromCurrency: 'EUR', toCurrency: 'EUR' },
+			{ kind: 'text', from: 'Lunch', to: 'Lunch 2' }
+		]);
+	});
+
+	it('suppresses split values that recompute from a changed total', () => {
+		const prev = expense({
+			amount: 1000,
+			splitMode: 'amount',
+			payments: [{ memberId: 'a', amount: 1000 }],
+			splits: [
+				{ memberId: 'a', amount: 500 },
+				{ memberId: 'b', amount: 500 }
+			]
+		});
+		const next = expense({
+			amount: 1500,
+			splitMode: 'amount',
+			payments: [{ memberId: 'a', amount: 1500 }],
+			splits: [
+				{ memberId: 'a', amount: 750 },
+				{ memberId: 'b', amount: 750 }
+			]
+		});
+		expect(diffExpense(prev, next)).toEqual([
+			{ kind: 'amount', from: 1000, to: 1500, fromCurrency: 'EUR', toCurrency: 'EUR' }
+		]);
+	});
+
+	it('reports a split value change when the total is unchanged', () => {
+		const prev = expense({
+			splitMode: 'amount',
+			splits: [
+				{ memberId: 'a', amount: 500 },
+				{ memberId: 'b', amount: 500 }
+			]
+		});
+		const next = expense({
+			splitMode: 'amount',
+			splits: [
+				{ memberId: 'a', amount: 700 },
+				{ memberId: 'b', amount: 300 }
+			]
+		});
+		expect(diffExpense(prev, next)).toEqual([{ kind: 'split' }]);
+	});
+
 	it('ignores reordering of payers', () => {
 		const prev = expense({
 			payments: [

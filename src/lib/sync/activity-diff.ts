@@ -21,9 +21,19 @@ function serializeSplits(splits: ExpenseSplit[]): string {
 		.join(',');
 }
 
+function memberSet(ids: string[]): string {
+	return [...new Set(ids)].sort().join(',');
+}
+
 export function diffExpense(prev: Expense, next: Expense): ActivityChange[] {
 	const changes: ActivityChange[] = [];
-	if (prev.amount !== next.amount || prev.currency !== next.currency) {
+
+	// the form rebuilds payments + split values from the total on every save, so a
+	// payer amount or a split value moving usually just tracks a changed total.
+	// only treat those as edits when the total itself held steady.
+	const totalChanged = prev.amount !== next.amount || prev.currency !== next.currency;
+
+	if (totalChanged) {
 		changes.push({
 			kind: 'amount',
 			from: prev.amount,
@@ -35,24 +45,30 @@ export function diffExpense(prev: Expense, next: Expense): ActivityChange[] {
 	if ((prev.description ?? '') !== (next.description ?? '')) {
 		changes.push({ kind: 'text', from: prev.description ?? '', to: next.description ?? '' });
 	}
-	if (serializePayments(prev.payments) !== serializePayments(next.payments)) {
-		const prevIds = [...new Set(prev.payments.map((p) => p.memberId))].sort();
-		const nextIds = [...new Set(next.payments.map((p) => p.memberId))].sort();
-		// carry the member ids only when the set of payers changed; if just the
-		// per-payer amounts moved, the renderer shows a plain "paid by"
-		if (prevIds.join(',') !== nextIds.join(',')) {
-			changes.push({ kind: 'paidBy', from: prevIds, to: nextIds });
-		} else {
-			changes.push({ kind: 'paidBy' });
-		}
+
+	const prevPayers = memberSet(prev.payments.map((p) => p.memberId));
+	const nextPayers = memberSet(next.payments.map((p) => p.memberId));
+	if (prevPayers !== nextPayers) {
+		changes.push({
+			kind: 'paidBy',
+			from: [...new Set(prev.payments.map((p) => p.memberId))].sort(),
+			to: [...new Set(next.payments.map((p) => p.memberId))].sort()
+		});
+	} else if (!totalChanged && serializePayments(prev.payments) !== serializePayments(next.payments)) {
+		changes.push({ kind: 'paidBy' });
 	}
+
 	if (prev.date !== next.date) {
 		changes.push({ kind: 'date', from: prev.date, to: next.date });
 	}
+
 	if (prev.splitMode !== next.splitMode) {
 		changes.push({ kind: 'split', from: prev.splitMode, to: next.splitMode });
-	} else if (serializeSplits(prev.splits) !== serializeSplits(next.splits)) {
+	} else if (memberSet(prev.splits.map((s) => s.memberId)) !== memberSet(next.splits.map((s) => s.memberId))) {
+		changes.push({ kind: 'split' });
+	} else if (!totalChanged && serializeSplits(prev.splits) !== serializeSplits(next.splits)) {
 		changes.push({ kind: 'split' });
 	}
+
 	return changes;
 }
