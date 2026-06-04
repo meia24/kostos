@@ -10,9 +10,11 @@
 		currentMemberId: string | null;
 		/** when set, expense events link to the expense (a deleted one has nowhere to go) */
 		roomId?: string;
+		/** spell out every edit change and let the row wrap, for the expense timeline */
+		detailed?: boolean;
 	};
 
-	let { event, membersById, currentMemberId, roomId }: Props = $props();
+	let { event, membersById, currentMemberId, roomId, detailed = false }: Props = $props();
 
 	const href = $derived(
 		roomId && event.expenseId && event.kind !== 'expense.remove'
@@ -73,6 +75,9 @@
 				return `added “${label}” · ${money(event.amount, event.currency)}`;
 			case 'expense.edit': {
 				const changes = event.changes ?? [];
+				if (detailed) {
+					return changes.length ? `edited · ${changes.map(formatChange).join(', ')}` : 'edited';
+				}
 				const lone = changes[0];
 				if (changes.length === 1 && lone.kind === 'text') {
 					return `renamed ${formatChange(lone)}`;
@@ -111,7 +116,13 @@
 	}
 </script>
 
-<svelte:element this={href ? 'a' : 'div'} {href} class="activity-row" class:linked={!!href}>
+<svelte:element
+	this={href ? 'a' : 'div'}
+	{href}
+	class="activity-row"
+	class:linked={!!href}
+	class:detailed
+>
 	<Avatar member={actor} size="sm" />
 	<span class="activity-text"><span class="actor">{actorName}</span> {message}</span>
 	<span class="activity-time mono dim">{relTime(event.at)}</span>
@@ -143,6 +154,16 @@
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
+	}
+
+	/* the expense timeline has room: wrap and show the full change instead of clipping */
+	.activity-row.detailed {
+		align-items: flex-start;
+	}
+
+	.activity-row.detailed .activity-text {
+		white-space: normal;
+		overflow: visible;
 	}
 
 	.actor {

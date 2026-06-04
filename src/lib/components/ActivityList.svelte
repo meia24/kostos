@@ -7,15 +7,16 @@
 		membersById: Map<string, Member>;
 		currentMemberId: string | null;
 		roomId?: string;
+		detailed?: boolean;
 	};
 
-	let { events, membersById, currentMemberId, roomId }: Props = $props();
+	let { events, membersById, currentMemberId, roomId, detailed = false }: Props = $props();
 </script>
 
 <div class="activity-list">
 	{#each events as ev, i (ev.id)}
 		{#if i > 0}<hr class="hairline" />{/if}
-		<ActivityRow event={ev} {membersById} {currentMemberId} {roomId} />
+		<ActivityRow event={ev} {membersById} {currentMemberId} {roomId} {detailed} />
 	{/each}
 </div>
 
