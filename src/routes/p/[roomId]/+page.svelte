@@ -134,7 +134,7 @@
 				<div class="eyebrow">Recent activity</div>
 				<a class="mono see-all" href="/p/{roomId}/activity">See all</a>
 			</div>
-			<ActivityList events={recentActivity} {membersById} {currentMemberId} />
+			<ActivityList events={recentActivity} {membersById} {currentMemberId} {roomId} />
 		{/if}
 	</div>
 

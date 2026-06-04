@@ -6,15 +6,16 @@
 		events: ActivityEvent[];
 		membersById: Map<string, Member>;
 		currentMemberId: string | null;
+		roomId?: string;
 	};
 
-	let { events, membersById, currentMemberId }: Props = $props();
+	let { events, membersById, currentMemberId, roomId }: Props = $props();
 </script>
 
 <div class="activity-list">
 	{#each events as ev, i (ev.id)}
 		{#if i > 0}<hr class="hairline" />{/if}
-		<ActivityRow event={ev} {membersById} {currentMemberId} />
+		<ActivityRow event={ev} {membersById} {currentMemberId} {roomId} />
 	{/each}
 </div>
 

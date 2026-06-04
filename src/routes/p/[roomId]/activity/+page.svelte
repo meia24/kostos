@@ -23,7 +23,7 @@
 				<p>No activity yet. Adding, editing, or settling expenses shows up here.</p>
 			</EmptyCard>
 		{:else}
-			<ActivityList {events} {membersById} {currentMemberId} />
+			<ActivityList {events} {membersById} {currentMemberId} {roomId} />
 		{/if}
 	</div>
 </div>

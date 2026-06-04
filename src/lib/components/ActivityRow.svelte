@@ -8,9 +8,17 @@
 		event: ActivityEvent;
 		membersById: Map<string, Member>;
 		currentMemberId: string | null;
+		/** when set, expense events link to the expense (a deleted one has nowhere to go) */
+		roomId?: string;
 	};
 
-	let { event, membersById, currentMemberId }: Props = $props();
+	let { event, membersById, currentMemberId, roomId }: Props = $props();
+
+	const href = $derived(
+		roomId && event.expenseId && event.kind !== 'expense.remove'
+			? `/p/${roomId}/expenses/${event.expenseId}`
+			: undefined
+	);
 
 	const actor = $derived(event.by ? membersById.get(event.by) : undefined);
 	const actorName = $derived(
@@ -103,11 +111,11 @@
 	}
 </script>
 
-<div class="activity-row">
+<svelte:element this={href ? 'a' : 'div'} {href} class="activity-row" class:linked={!!href}>
 	<Avatar member={actor} size="sm" />
 	<span class="activity-text"><span class="actor">{actorName}</span> {message}</span>
 	<span class="activity-time mono dim">{relTime(event.at)}</span>
-</div>
+</svelte:element>
 
 <style>
 	.activity-row {
@@ -115,6 +123,16 @@
 		align-items: center;
 		gap: 10px;
 		padding: 8px 4px;
+		color: inherit;
+		text-decoration: none;
+	}
+
+	.activity-row.linked {
+		cursor: pointer;
+	}
+
+	.activity-row.linked:active {
+		opacity: 0.6;
 	}
 
 	.activity-text {
