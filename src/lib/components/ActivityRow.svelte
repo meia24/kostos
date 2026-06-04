@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { CURRENCY_PRESETS } from '$lib/currencies';
 	import { formatAmount } from '$lib/money';
-	import type { ActivityChange, ActivityEvent, Member } from '$lib/types';
+	import type { ActivityEvent, Member } from '$lib/types';
 	import Avatar from './Avatar.svelte';
 
 	type Props = {
@@ -10,11 +10,9 @@
 		currentMemberId: string | null;
 		/** when set, expense events link to the expense (a deleted one has nowhere to go) */
 		roomId?: string;
-		/** spell out every edit change and let the row wrap, for the expense timeline */
-		detailed?: boolean;
 	};
 
-	let { event, membersById, currentMemberId, roomId, detailed = false }: Props = $props();
+	let { event, membersById, currentMemberId, roomId }: Props = $props();
 
 	const href = $derived(
 		roomId && event.expenseId && event.kind !== 'expense.remove'
@@ -26,6 +24,7 @@
 	const actorName = $derived(
 		event.by && event.by === currentMemberId ? 'You' : (actor?.name ?? 'Someone')
 	);
+
 	function money(cents: number | undefined, currency: string | undefined): string {
 		if (cents === undefined || !currency) return '';
 		const sym = CURRENCY_PRESETS.find((p) => p.code === currency)?.sym ?? currency;
@@ -44,46 +43,35 @@
 		return `${names[0]} +${names.length - 1}`;
 	}
 
-	function formatChange(c: ActivityChange): string {
+	// one event carries one change, so each edit reads as its own plain line
+	function editMessage(label: string): string {
+		const c = event.change;
+		if (!c) return `edited “${label}”`;
 		switch (c.kind) {
 			case 'amount':
-				return `${money(c.from, c.fromCurrency)} → ${money(c.to, c.toCurrency)}`;
+				return `edited “${label}” · ${money(c.from, c.fromCurrency)} → ${money(c.to, c.toCurrency)}`;
 			case 'text':
-				return `“${c.from || '—'}” → “${c.to || '—'}”`;
+				return `renamed “${c.from}” → “${c.to}”`;
 			case 'date':
-				return `${shortDate(c.from)} → ${shortDate(c.to)}`;
+				return `moved “${label}” to ${shortDate(c.to)}`;
 			case 'paidBy':
-				return c.from && c.to ? `${payerNames(c.from)} → ${payerNames(c.to)}` : 'paid by';
+				return c.from && c.to
+					? `changed who paid “${label}” · ${payerNames(c.from)} → ${payerNames(c.to)}`
+					: `changed who paid “${label}”`;
 			case 'split':
-				return c.from && c.to ? `${c.from} → ${c.to}` : 'split';
+				return c.from && c.to
+					? `changed “${label}” to ${c.to} split`
+					: `changed the split of “${label}”`;
 		}
 	}
-
-	// surface whatever changed, amount first, then anything else, with a "+N" tail
-	const editDetail = $derived.by(() => {
-		const changes = event.changes ?? [];
-		if (changes.length === 0) return '';
-		const primary = changes.find((c) => c.kind === 'amount') ?? changes[0];
-		const core = formatChange(primary);
-		return changes.length > 1 ? `${core} +${changes.length - 1}` : core;
-	});
 
 	const message = $derived.by(() => {
 		const label = event.label ?? 'item';
 		switch (event.kind) {
 			case 'expense.add':
 				return `added “${label}” · ${money(event.amount, event.currency)}`;
-			case 'expense.edit': {
-				const changes = event.changes ?? [];
-				if (detailed) {
-					return changes.length ? `edited · ${changes.map(formatChange).join(', ')}` : 'edited';
-				}
-				const lone = changes[0];
-				if (changes.length === 1 && lone.kind === 'text') {
-					return `renamed ${formatChange(lone)}`;
-				}
-				return editDetail ? `edited “${label}” · ${editDetail}` : `edited “${label}”`;
-			}
+			case 'expense.edit':
+				return editMessage(label);
 			case 'expense.remove':
 				return `deleted “${label}”`;
 			case 'settle.add': {
@@ -94,10 +82,10 @@
 				return `added ${label}`;
 			case 'member.remove':
 				return `removed ${label}`;
-			case 'member.rename': {
-				const c = event.changes?.[0];
-				return c && c.kind === 'text' ? `renamed ${c.from} → ${c.to}` : 'renamed a member';
-			}
+			case 'member.rename':
+				return event.change?.kind === 'text'
+					? `renamed ${event.change.from} → ${event.change.to}`
+					: 'renamed a member';
 			default:
 				return '';
 		}
@@ -116,13 +104,7 @@
 	}
 </script>
 
-<svelte:element
-	this={href ? 'a' : 'div'}
-	{href}
-	class="activity-row"
-	class:linked={!!href}
-	class:detailed
->
+<svelte:element this={href ? 'a' : 'div'} {href} class="activity-row" class:linked={!!href}>
 	<Avatar member={actor} size="sm" />
 	<span class="activity-text"><span class="actor">{actorName}</span> {message}</span>
 	<span class="activity-time mono dim">{relTime(event.at)}</span>
@@ -154,16 +136,6 @@
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
-	}
-
-	/* the expense timeline has room: wrap and show the full change instead of clipping */
-	.activity-row.detailed {
-		align-items: flex-start;
-	}
-
-	.activity-row.detailed .activity-text {
-		white-space: normal;
-		overflow: visible;
 	}
 
 	.actor {

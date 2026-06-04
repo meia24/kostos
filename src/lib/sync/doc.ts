@@ -283,7 +283,7 @@ export function updateMember(handle: RoomHandle, id: string, updates: Partial<Om
 					kind: 'member.rename',
 					memberId: id,
 					label: updates.name,
-					changes: [{ kind: 'text', from: prevName, to: updates.name }]
+					change: { kind: 'text', from: prevName, to: updates.name }
 				});
 			}
 		});
@@ -454,7 +454,7 @@ const ACTIVITY_CAP = 500;
 
 export function readActivity(handle: RoomHandle): ActivityEvent[] {
 	return handle.activity.toArray().map((m) => {
-		const rawChanges = m.get('changes') as string | undefined;
+		const rawChange = m.get('change') as string | undefined;
 		return {
 			id: m.get('id') as string,
 			at: m.get('at') as number,
@@ -465,7 +465,7 @@ export function readActivity(handle: RoomHandle): ActivityEvent[] {
 			label: m.get('label') as string | undefined,
 			amount: m.get('amount') as number | undefined,
 			currency: m.get('currency') as string | undefined,
-			changes: rawChanges ? (JSON.parse(rawChanges) as ActivityChange[]) : undefined
+			change: rawChange ? (JSON.parse(rawChange) as ActivityChange) : undefined
 		};
 	});
 }
@@ -483,7 +483,7 @@ function logActivity(handle: RoomHandle, ev: Omit<ActivityEvent, 'id' | 'at' | '
 	if (ev.label !== undefined) map.set('label', ev.label);
 	if (ev.amount !== undefined) map.set('amount', ev.amount);
 	if (ev.currency !== undefined) map.set('currency', ev.currency);
-	if (ev.changes?.length) map.set('changes', JSON.stringify(ev.changes));
+	if (ev.change) map.set('change', JSON.stringify(ev.change));
 	handle.activity.push([map]);
 	const over = handle.activity.length - ACTIVITY_CAP;
 	if (over > 0) handle.activity.delete(0, over);
@@ -536,16 +536,13 @@ export function updateExpense(handle: RoomHandle, expense: Expense): void {
 		if (items.get(i).get('id') === expense.id) {
 			const prev = readExpenseEntry(items.get(i));
 			const changes = diffExpense(prev, expense);
+			const label = expense.description || prev.description || 'Expense';
 			handle.doc.transact(() => {
 				items.delete(i, 1);
 				items.insert(i, [expenseMap(expense)]);
-				if (changes.length) {
-					logActivity(handle, {
-						kind: 'expense.edit',
-						expenseId: expense.id,
-						label: expense.description || prev.description || 'Expense',
-						changes
-					});
+				// one log entry per change keeps each line single and self-explanatory
+				for (const change of changes) {
+					logActivity(handle, { kind: 'expense.edit', expenseId: expense.id, label, change });
 				}
 			});
 			return;

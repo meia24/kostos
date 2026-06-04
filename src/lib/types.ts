@@ -34,7 +34,8 @@ export type ActivityEvent = {
 	label?: string;
 	amount?: number;
 	currency?: string;
-	changes?: ActivityChange[];
+	/** one event describes one change; a multi-field edit logs several events */
+	change?: ActivityChange;
 };
 
 export type ProjectColor = 'lime' | 'cyan' | 'violet' | 'amber' | 'coral' | 'blue';

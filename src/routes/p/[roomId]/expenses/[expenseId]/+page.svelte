@@ -242,7 +242,7 @@
 					<hr class="hairline" />
 					<div class="audit-edits">
 						<span class="dim mono audit-label edits-label">Edits</span>
-						<ActivityList events={editEvents} {membersById} {currentMemberId} detailed />
+						<ActivityList events={editEvents} {membersById} {currentMemberId} />
 					</div>
 				{/if}
 			</div>
