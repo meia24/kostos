@@ -240,8 +240,10 @@
 				</div>
 				{#if editEvents.length > 0}
 					<hr class="hairline" />
-					<span class="dim mono audit-label">Edits</span>
-					<ActivityList events={editEvents} {membersById} {currentMemberId} />
+					<div class="audit-edits">
+						<span class="dim mono audit-label edits-label">Edits</span>
+						<ActivityList events={editEvents} {membersById} {currentMemberId} />
+					</div>
 				{/if}
 			</div>
 
@@ -399,6 +401,19 @@
 
 	.audit-value {
 		font-size: 12px;
+	}
+
+	/* line the edits label + rows up with the 16px inset of the rows above
+	   (4px card padding + 12px). the activity rows carry their own 4px, so the
+	   wrapper adds 8px to land the avatar and time at the same edges. */
+	.audit-edits {
+		padding: 10px 8px 6px;
+	}
+
+	.edits-label {
+		display: block;
+		padding-left: 4px;
+		margin-bottom: 4px;
 	}
 
 	.action-row {
