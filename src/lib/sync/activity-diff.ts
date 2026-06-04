@@ -25,6 +25,12 @@ function memberSet(ids: string[]): string {
 	return [...new Set(ids)].sort().join(',');
 }
 
+// compare by calendar day: the form is date-granular and round-trips the stored
+// timestamp through a YYYY-MM-DD string, so a time-of-day delta is not a real edit
+function dayKey(ms: number): string {
+	return new Date(ms).toISOString().slice(0, 10);
+}
+
 export function diffExpense(prev: Expense, next: Expense): ActivityChange[] {
 	const changes: ActivityChange[] = [];
 
@@ -58,7 +64,7 @@ export function diffExpense(prev: Expense, next: Expense): ActivityChange[] {
 		changes.push({ kind: 'paidBy' });
 	}
 
-	if (prev.date !== next.date) {
+	if (dayKey(prev.date) !== dayKey(next.date)) {
 		changes.push({ kind: 'date', from: prev.date, to: next.date });
 	}
 

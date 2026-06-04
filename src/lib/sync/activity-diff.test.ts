@@ -130,6 +130,11 @@ describe('diffExpense', () => {
 		expect(diffExpense(prev, next)).toEqual([{ kind: 'split' }]);
 	});
 
+	it('ignores a time-of-day change within the same day', () => {
+		const day = Date.UTC(2026, 5, 4);
+		expect(diffExpense(expense({ date: day }), expense({ date: day + 3600_000 }))).toEqual([]);
+	});
+
 	it('ignores reordering of payers', () => {
 		const prev = expense({
 			payments: [
