@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { version } from '$app/environment';
 	import { goto } from '$app/navigation';
+	import { enterDemo } from '$lib/demo';
 	import { PROJECT_COLOR_VALUES, tileBackground } from '$lib/colors';
 	import { formatAmount } from '$lib/money';
 	import { listProjects, type ProjectRef } from '$lib/storage';
@@ -10,6 +11,17 @@
 	let tokenInputOpen = $state(false);
 	let token = $state('');
 	let error = $state<string | null>(null);
+	let demoLoading = $state(false);
+
+	async function tryDemo() {
+		if (demoLoading) return;
+		demoLoading = true;
+		try {
+			await enterDemo();
+		} finally {
+			demoLoading = false;
+		}
+	}
 
 	$effect(() => {
 		projects = listProjects();
@@ -116,12 +128,14 @@
 </svelte:head>
 
 <div class="screen" data-page="landing">
-	<a class="icon-btn settings-link" href="/settings" aria-label="Settings" title="Settings">
-		<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
-			<circle cx="12" cy="12" r="2.6" />
-			<path d="M19 12a7 7 0 0 0-.16-1.5l2.05-1.58-2-3.46-2.43.83a7 7 0 0 0-2.59-1.5L13.5 2h-3l-.37 2.79a7 7 0 0 0-2.59 1.5l-2.43-.83-2 3.46L5.16 10.5A7 7 0 0 0 5 12a7 7 0 0 0 .16 1.5l-2.05 1.58 2 3.46 2.43-.83a7 7 0 0 0 2.59 1.5L10.5 22h3l.37-2.79a7 7 0 0 0 2.59-1.5l2.43.83 2-3.46-2.05-1.58A7 7 0 0 0 19 12z" />
-		</svg>
-	</a>
+	{#if hasProjects}
+		<a class="icon-btn settings-link" href="/settings" aria-label="Settings" title="Settings">
+			<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+				<circle cx="12" cy="12" r="2.6" />
+				<path d="M19 12a7 7 0 0 0-.16-1.5l2.05-1.58-2-3.46-2.43.83a7 7 0 0 0-2.59-1.5L13.5 2h-3l-.37 2.79a7 7 0 0 0-2.59 1.5l-2.43-.83-2 3.46L5.16 10.5A7 7 0 0 0 5 12a7 7 0 0 0 .16 1.5l-2.05 1.58 2 3.46 2.43-.83a7 7 0 0 0 2.59 1.5L10.5 22h3l.37-2.79a7 7 0 0 0 2.59-1.5l2.43.83 2-3.46-2.05-1.58A7 7 0 0 0 19 12z" />
+			</svg>
+		</a>
+	{/if}
 	<div class="scroll landing-scroll">
 		<header class="col brand">
 			<div class="brand-mark" role="img" aria-label="Kostos logo">
@@ -132,7 +146,7 @@
 			</div>
 			<h1 class="h1 brand-name">Kostos</h1>
 			{#if !hasProjects}
-				<h2 class="brand-tagline">Privacy-first group expense splitter</h2>
+				<h2 class="hero-headline">Free, end-to-end encrypted, open source expense splitter.</h2>
 			{/if}
 		</header>
 
@@ -245,7 +259,7 @@
 			<div class="cta-stack">
 				<a class="btn btn-primary btn-block primary-cta" href="/new">
 					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 6v12M6 12h12" /></svg>
-					<span>Create your first group</span>
+					<span>Create a group</span>
 				</a>
 
 				<button
@@ -255,7 +269,12 @@
 					onclick={() => (tokenInputOpen = !tokenInputOpen)}
 				>
 					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-					<span>Or join with a token</span>
+					<span>Join a group</span>
+				</button>
+
+				<button type="button" class="btn btn-block demo-cta" onclick={tryDemo} disabled={demoLoading}>
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M10 9l5 3-5 3z" fill="currentColor" stroke="none" /></svg>
+					<span>{demoLoading ? 'Loading the demo…' : 'Explore live demo'}</span>
 				</button>
 			</div>
 
@@ -263,15 +282,9 @@
 				{@render tokenForm()}
 			{/if}
 
-			<p class="lede">
-				Kostos is a <strong>free group expense splitter</strong> that lives on your device. Create a
-				group, share its token, and split bills with friends, family, or housemates. No accounts,
-				end-to-end encrypted, syncs live across devices, works offline.
-			</p>
-
 			<section class="value-props" aria-labelledby="why-kostos">
 				<h2 id="why-kostos" class="section-title">Why pick Kostos to split expenses</h2>
-				<div class="value-card">
+				<div class="value-card featured">
 					<div class="value-icon" aria-hidden="true">
 						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 11V8a6 6 0 0 1 12 0v3" /><rect x="4" y="11" width="16" height="10" rx="2" /></svg>
 					</div>
@@ -317,24 +330,24 @@
 							Inspect the SvelteKit + Y.js codebase, run the sync server yourself, or fork it. No
 							vendor lock-in and nothing hidden behind a paid tier.
 						</p>
-						<a
-							class="source-link"
-							href="https://github.com/shynewt/kostos"
-							target="_blank"
-							rel="noopener"
-						>
-							<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-								<path
-									d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.4-3.88-1.4-.52-1.33-1.27-1.69-1.27-1.69-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.76 2.68 1.25 3.34.96.1-.74.4-1.25.72-1.54-2.55-.29-5.24-1.28-5.24-5.7 0-1.26.45-2.29 1.18-3.1-.12-.29-.51-1.45.11-3.03 0 0 .97-.31 3.18 1.18a11 11 0 0 1 5.79 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.58.24 2.74.12 3.03.74.81 1.18 1.84 1.18 3.1 0 4.44-2.7 5.41-5.27 5.69.41.36.77 1.05.77 2.13v3.16c0 .31.21.67.79.56A11.5 11.5 0 0 0 12 .5z"
-								/>
-							</svg>
-							<span>View source on GitHub</span>
-							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
-								<path d="M7 17L17 7M9 7h8v8" />
-							</svg>
-						</a>
 					</div>
 				</div>
+				<a
+					class="source-link"
+					href="https://github.com/shynewt/kostos"
+					target="_blank"
+					rel="noopener"
+				>
+					<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+						<path
+							d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.4-3.88-1.4-.52-1.33-1.27-1.69-1.27-1.69-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.76 2.68 1.25 3.34.96.1-.74.4-1.25.72-1.54-2.55-.29-5.24-1.28-5.24-5.7 0-1.26.45-2.29 1.18-3.1-.12-.29-.51-1.45.11-3.03 0 0 .97-.31 3.18 1.18a11 11 0 0 1 5.79 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.58.24 2.74.12 3.03.74.81 1.18 1.84 1.18 3.1 0 4.44-2.7 5.41-5.27 5.69.41.36.77 1.05.77 2.13v3.16c0 .31.21.67.79.56A11.5 11.5 0 0 0 12 .5z"
+						/>
+					</svg>
+					<span>View source on GitHub</span>
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+						<path d="M7 17L17 7M9 7h8v8" />
+					</svg>
+				</a>
 			</section>
 
 			<section class="how-section" aria-labelledby="how-it-works">
@@ -445,30 +458,37 @@
 	}
 
 	.brand-mark {
-		width: 64px;
-		height: 64px;
-		border-radius: 22px;
+		width: 84px;
+		height: 84px;
+		border-radius: 26px;
 		background: var(--accent);
 		color: var(--accent-ink);
 		display: grid;
 		place-items: center;
-		box-shadow: 0 14px 30px -10px color-mix(in oklab, var(--accent) 50%, transparent);
+		box-shadow:
+			0 0 90px -12px color-mix(in oklab, var(--accent) 60%, transparent),
+			0 18px 44px -16px color-mix(in oklab, var(--accent) 55%, transparent);
+	}
+
+	.brand-mark :global(svg) {
+		width: 44px;
+		height: 44px;
 	}
 
 	.brand-name {
-		margin-top: 18px;
+		margin-top: 22px;
 	}
 
-	.brand-tagline {
-		font-size: 15px;
-		font-weight: 500;
-		color: var(--ink-2);
-		margin: 6px 0 0;
+	.hero-headline {
+		margin: 18px 0 0;
 		text-align: center;
-		max-width: 300px;
-		line-height: 1.4;
-		letter-spacing: -0.005em;
+		font-size: clamp(25px, 6.4vw, 30px);
+		font-weight: 600;
+		line-height: 1.28;
+		letter-spacing: -0.01em;
+		color: var(--ink);
 	}
+
 
 	.projects-section {
 		margin-bottom: 16px;
@@ -559,44 +579,43 @@
 		justify-content: center;
 	}
 
-	.lede {
-		font-size: 14px;
-		line-height: 1.55;
-		color: var(--ink-2);
-		margin: 26px 0 4px;
-	}
 
-	.lede strong {
-		color: var(--ink);
-		font-weight: 600;
-	}
 
 	.section-title {
 		font-family: var(--font-display);
-		font-size: 22px;
+		font-size: 23px;
 		font-weight: 400;
 		letter-spacing: -0.015em;
-		margin: 30px 0 14px;
+		margin: 40px 0 16px;
 	}
 
 	.value-props {
 		display: flex;
 		flex-direction: column;
-		gap: 14px;
-		margin-bottom: 22px;
+		gap: 12px;
+		margin-bottom: 4px;
 	}
 
 	.value-card {
 		display: flex;
-		gap: 12px;
+		gap: 14px;
 		align-items: flex-start;
+		padding: 16px;
+		background: var(--bg-2);
+		border: 1px solid var(--line);
+		border-radius: var(--radius-lg);
+	}
+
+	.value-card.featured {
+		border-color: color-mix(in oklab, var(--accent) 45%, var(--line));
+		background: color-mix(in oklab, var(--accent) 5%, var(--bg-2));
 	}
 
 	.value-icon {
-		width: 32px;
-		height: 32px;
-		border-radius: 10px;
-		background: color-mix(in oklab, var(--accent) 14%, transparent);
+		width: 40px;
+		height: 40px;
+		border-radius: 12px;
+		background: color-mix(in oklab, var(--accent) 16%, transparent);
 		color: var(--accent);
 		display: grid;
 		place-items: center;
@@ -604,20 +623,20 @@
 	}
 
 	.value-icon svg {
-		width: 16px;
-		height: 16px;
+		width: 19px;
+		height: 19px;
 	}
 
 	.value-title {
-		font-size: 13px;
+		font-size: 15px;
 		font-weight: 600;
 		margin: 0;
 	}
 
 	.value-sub {
-		font-size: 12px;
-		line-height: 1.5;
-		margin: 2px 0 0;
+		font-size: 13px;
+		line-height: 1.55;
+		margin: 4px 0 0;
 	}
 
 	.cta-stack {
@@ -629,15 +648,16 @@
 
 	.source-link {
 		display: inline-flex;
+		align-self: center;
 		align-items: center;
-		gap: 6px;
-		margin-top: 8px;
-		padding: 6px 10px;
+		gap: 8px;
+		margin-top: 14px;
+		padding: 9px 16px;
 		border-radius: 999px;
 		border: 1px solid var(--line);
-		background: transparent;
+		background: var(--bg-2);
 		color: var(--ink);
-		font-size: 12px;
+		font-size: 13px;
 		font-weight: 600;
 		text-decoration: none;
 		transition: background 0.14s ease, border-color 0.14s ease;
@@ -684,6 +704,22 @@
 		border-color: var(--line);
 	}
 
+	.demo-cta {
+		border-color: color-mix(in oklab, var(--accent) 35%, var(--line));
+		color: var(--accent);
+		transition: background 0.14s ease, border-color 0.14s ease;
+	}
+
+	.demo-cta:hover {
+		background: color-mix(in oklab, var(--accent) 10%, transparent);
+		border-color: color-mix(in oklab, var(--accent) 55%, var(--line));
+	}
+
+	.demo-cta:disabled {
+		opacity: 0.6;
+		cursor: default;
+	}
+
 	.how-section {
 		margin-bottom: 8px;
 	}
@@ -691,42 +727,49 @@
 	.how-list {
 		list-style: none;
 		margin: 0;
-		padding: 0;
+		padding: 4px 16px;
+		background: var(--bg-2);
+		border: 1px solid var(--line);
+		border-radius: var(--radius-lg);
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
 	}
 
 	.how-list li {
 		display: flex;
-		gap: 12px;
+		gap: 14px;
 		align-items: flex-start;
+		padding: 16px 0;
+	}
+
+	.how-list li + li {
+		border-top: 1px solid var(--line);
 	}
 
 	.how-step {
-		width: 28px;
-		height: 28px;
+		width: 30px;
+		height: 30px;
 		border-radius: 999px;
-		background: color-mix(in oklab, var(--accent) 14%, transparent);
+		background: color-mix(in oklab, var(--accent) 16%, transparent);
 		color: var(--accent);
 		display: grid;
 		place-items: center;
 		font-family: var(--font-mono);
-		font-size: 12px;
+		font-size: 13px;
 		font-weight: 700;
 		flex-shrink: 0;
 	}
 
 	.how-title {
-		font-size: 13px;
+		font-size: 15px;
 		font-weight: 600;
-		margin: 2px 0 0;
+		margin: 3px 0 0;
 	}
 
 	.how-body {
-		font-size: 12px;
-		line-height: 1.5;
-		margin: 4px 0 0;
+		font-size: 13px;
+		line-height: 1.55;
+		margin: 5px 0 0;
 	}
 
 	.faq-section {
@@ -747,8 +790,8 @@
 		list-style: none;
 		display: flex;
 		align-items: center;
-		gap: 8px;
-		font-size: 14px;
+		gap: 10px;
+		font-size: 15px;
 		font-weight: 600;
 	}
 
@@ -758,7 +801,7 @@
 
 	.faq-item summary h3 {
 		display: inline;
-		font-size: 14px;
+		font-size: 15px;
 		font-weight: 600;
 		margin: 0;
 	}
