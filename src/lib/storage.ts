@@ -32,6 +32,11 @@ export type ProjectRef = {
 	color?: ProjectColor;
 	/** Unix ms of the last open; drives the project list sort. */
 	lastActiveAt?: number;
+	/** Your net balance in the project's base currency (cents), cached on each visit so
+	 *  the home list can show it without opening every room. Positive means you are owed. */
+	net?: number;
+	netCurrency?: string;
+	netSymbol?: string;
 };
 
 function read(key: string): string | null {
@@ -148,7 +153,7 @@ export function removeProject(roomId: string): void {
 
 export function updateProjectMetadata(
 	roomId: string,
-	patch: Partial<Pick<ProjectRef, 'name' | 'emoji' | 'color' | 'lastActiveAt'>>
+	patch: Partial<Pick<ProjectRef, 'name' | 'emoji' | 'color' | 'lastActiveAt' | 'net' | 'netCurrency' | 'netSymbol'>>
 ): void {
 	const projects = parseProjectsRaw();
 	if (!projects) return;

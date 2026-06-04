@@ -2,6 +2,7 @@
 	import { version } from '$app/environment';
 	import { goto } from '$app/navigation';
 	import { PROJECT_COLOR_VALUES, tileBackground } from '$lib/colors';
+	import { formatAmount } from '$lib/money';
 	import { listProjects, type ProjectRef } from '$lib/storage';
 	import { parseToken } from '$lib/token';
 
@@ -197,6 +198,22 @@
 										)}{/if}
 								</span>
 							</span>
+							{#if p.net !== undefined && p.netSymbol}
+								<span class="col project-balance">
+									{#if p.net === 0}
+										<span class="dim mono pb-label">settled up</span>
+									{:else}
+										<span
+											class="num pb-amount"
+											class:tone-owed={p.net > 0}
+											class:tone-owe={p.net < 0}
+										>
+											{formatAmount(Math.abs(p.net), p.netSymbol, p.netCurrency)}
+										</span>
+										<span class="dim mono pb-label">{p.net > 0 ? 'owed to you' : 'you owe'}</span>
+									{/if}
+								</span>
+							{/if}
 							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" class="project-chevron">
 								<path d="M9 6l6 6-6 6" />
 							</svg>
@@ -507,6 +524,23 @@
 
 	.meta-sep {
 		opacity: 0.5;
+	}
+
+	.project-balance {
+		align-items: flex-end;
+		gap: 1px;
+		flex-shrink: 0;
+		text-align: right;
+	}
+
+	.pb-amount {
+		font-size: 13px;
+		font-weight: 600;
+	}
+
+	.pb-label {
+		font-size: 10px;
+		letter-spacing: 0.02em;
 	}
 
 	.project-chevron {

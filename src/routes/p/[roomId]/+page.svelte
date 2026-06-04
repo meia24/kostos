@@ -7,7 +7,7 @@
 	import SettlePanel from '$lib/components/SettlePanel.svelte';
 	import TabBar from '$lib/components/TabBar.svelte';
 	import { formatAmount } from '$lib/money';
-	import { getCurrentMember } from '$lib/storage';
+	import { getCurrentMember, updateProjectMetadata } from '$lib/storage';
 	import { useRoom } from '$lib/sync/useRoom.svelte';
 
 	const roomId = $derived(page.params.roomId ?? '');
@@ -30,6 +30,17 @@
 		return balances.find((b) => b.memberId === currentMemberId)?.net ?? 0;
 	});
 	const plan = $derived(planSettlements(balances));
+
+	// cache your net so the home list can show it without opening every room.
+	// only once an identity is claimed here, since "your" balance needs it.
+	$effect(() => {
+		if (!currentMemberId) return;
+		updateProjectMetadata(roomId, {
+			net: yourBalance,
+			netCurrency: currency,
+			netSymbol: currencySymbol
+		});
+	});
 
 	// most recently added (createdAt, not date) so the peek surfaces fresh activity
 	// from other members, which is the whole point of showing it here
