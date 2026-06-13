@@ -17,6 +17,7 @@
 	import { formatAmount, toInputValue } from '$lib/money';
 	import { evalToCents } from '$lib/math';
 	import { suggestTripIdForDate } from '$lib/trips';
+	import { buildCategoryModel, guessCategory } from '$lib/category-guess';
 	import type {
 		Category,
 		Expense,
@@ -33,6 +34,8 @@
 		currentMemberId: string | null;
 		mode: 'create' | 'edit';
 		initial?: Expense;
+		/** The group's expenses, used to guess a category from the description. */
+		expenses?: Expense[];
 		onSave: (expense: Expense) => void | Promise<void>;
 		onCancel: () => void;
 		onAddCategory: (item: Category) => void;
@@ -46,6 +49,7 @@
 		currentMemberId,
 		mode,
 		initial,
+		expenses = [],
 		onSave,
 		onCancel,
 		onAddCategory,
@@ -129,7 +133,40 @@
 	);
 	// Track whether the user has manually chosen a trip; once they do, stop auto-overriding.
 	let tripIdTouched = $state(false);
+	// Same idea for the category guesser: once the user picks a category, leave it be.
+	let categoryTouched = $state(false);
+	// The category we last auto-filled; lets us tell a guess apart from a manual pick,
+	// and only move the selection while it's still our own guess.
+	let guessedCategoryId = $state<string | undefined>(undefined);
 	let submitting = $state(false);
+
+	const categoryModel = $derived(buildCategoryModel(expenses.filter((e) => e.id !== seed?.id)));
+	const categoryIds = $derived(new Set(project.categories.map((c) => c.id)));
+	const categoryIsGuessed = $derived(
+		!categoryTouched && categoryId !== undefined && categoryId === guessedCategoryId
+	);
+
+	$effect(() => {
+		// Guess the category from the description, debounced so it lands once typing settles
+		// rather than flickering per keystroke. We never fight a manual choice, and on edits
+		// we leave an already-set category alone.
+		const text = title;
+		const model = categoryModel;
+		const valid = categoryIds;
+		if (untrack(() => categoryTouched)) return;
+		if (mode === 'edit' && seed?.categoryId !== undefined) return;
+		const timer = setTimeout(() => {
+			const guess = guessCategory(model, text, valid) ?? undefined;
+			untrack(() => {
+				// only move the selection if it's empty or still showing our last guess
+				if (categoryId === undefined || categoryId === guessedCategoryId) {
+					categoryId = guess;
+					guessedCategoryId = guess;
+				}
+			});
+		}, 350);
+		return () => clearTimeout(timer);
+	});
 
 	$effect(() => {
 		const raw = amountInput.trim();
@@ -401,6 +438,7 @@
 		const cat: Category = { id: item.id, name: item.name, emoji: item.emoji };
 		onAddCategory(cat);
 		categoryId = cat.id;
+		categoryTouched = true;
 	}
 
 	function handleAddMethod(item: EmojiItem) {
@@ -555,7 +593,11 @@
 				fallbackEmoji="📦"
 				items={project.categories}
 				selectedId={categoryId}
-				onSelect={(id) => (categoryId = id)}
+				suggested={categoryIsGuessed}
+				onSelect={(id) => {
+					categoryId = id;
+					categoryTouched = true;
+				}}
 				onAddCustom={handleAddCategory}
 			/>
 			<hr class="hairline" />

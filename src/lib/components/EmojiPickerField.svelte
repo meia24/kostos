@@ -8,9 +8,20 @@
 		selectedId: string | undefined;
 		onSelect: (id: string) => void;
 		onAddCustom: (item: EmojiItem) => void;
+		/** Marks the current value as auto-filled (e.g. guessed from the description) so the
+		 *  user notices and can correct it. Cleared once they pick a value themselves. */
+		suggested?: boolean;
 	};
 
-	let { label, fallbackEmoji = '📦', items, selectedId, onSelect, onAddCustom }: Props = $props();
+	let {
+		label,
+		fallbackEmoji = '📦',
+		items,
+		selectedId,
+		onSelect,
+		onAddCustom,
+		suggested = false
+	}: Props = $props();
 
 	let open = $state(false);
 	let customName = $state('');
@@ -42,7 +53,12 @@
 		<span class="picker-tile">{displayEmoji}</span>
 		<span class="col picker-text">
 			<span class="picker-label">{label}</span>
-			<span class="picker-value" class:is-empty={!selected}>{displayName}</span>
+			<span class="picker-value-row">
+				<span class="picker-value" class:is-empty={!selected}>{displayName}</span>
+				{#if suggested && selected}
+					<span class="picker-suggested">guessed</span>
+				{/if}
+			</span>
 		</span>
 		<span class="picker-chevron" aria-hidden="true">
 			<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
@@ -155,14 +171,32 @@
 		letter-spacing: 0.06em;
 	}
 
+	.picker-value-row {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		padding-top: 4px;
+	}
+
 	.picker-value {
 		font-size: 14px;
 		color: var(--ink);
-		padding-top: 4px;
 	}
 
 	.picker-value.is-empty {
 		color: var(--ink-3);
+	}
+
+	.picker-suggested {
+		font-family: var(--font-mono);
+		font-size: 9px;
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
+		color: var(--accent);
+		background: color-mix(in oklab, var(--accent) 14%, transparent);
+		padding: 2px 6px;
+		border-radius: 999px;
+		line-height: 1.4;
 	}
 
 	.picker-chevron {

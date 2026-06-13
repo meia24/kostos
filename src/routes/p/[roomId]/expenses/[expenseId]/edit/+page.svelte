@@ -59,6 +59,7 @@
 		{project}
 		{members}
 		{currentMemberId}
+		expenses={room.expenses}
 		mode="edit"
 		{initial}
 		{onSave}

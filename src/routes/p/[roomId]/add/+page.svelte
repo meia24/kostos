@@ -34,6 +34,7 @@
 		{project}
 		{members}
 		{currentMemberId}
+		expenses={room.expenses}
 		mode="create"
 		{onSave}
 		{onCancel}
